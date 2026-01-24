@@ -365,4 +365,184 @@ export class ReportService {
       monthlyEvolution: monthlyEvolutionArray,
     };
   }
+
+  /**
+   * Gera relatório de Fluxo de Caixa (Cash Flow)
+   * Com entradas, saídas, saldo e evolução temporal
+   */
+  static async getCashFlowReport(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    granularity: 'daily' | 'weekly' | 'monthly' = 'monthly'
+  ) {
+    // Buscar todas as transações do período (receitas e despesas)
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        type: {
+          in: ['income', 'expense'],
+        },
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Calcular totais
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    transactions.forEach(transaction => {
+      const amount = transaction.amount.toNumber();
+      if (transaction.type === 'income') {
+        totalIncome += amount;
+      } else if (transaction.type === 'expense') {
+        totalExpense += amount;
+      }
+    });
+
+    const balance = totalIncome - totalExpense;
+
+    // Agrupar por período conforme granularidade
+    const periodMap = new Map<string, {
+      period: string;
+      periodLabel: string;
+      income: number;
+      expense: number;
+      balance: number;
+      cumulativeBalance: number;
+    }>();
+
+    let cumulativeBalance = 0;
+
+    transactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      let periodKey: string;
+      let periodLabel: string;
+
+      if (granularity === 'daily') {
+        periodKey = date.toISOString().split('T')[0];
+        periodLabel = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      } else if (granularity === 'weekly') {
+        // Calcular semana (semana começa na segunda-feira)
+        const dayOfWeek = date.getDay();
+        const monday = new Date(date);
+        monday.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        periodKey = `${monday.getFullYear()}-W${String(Math.ceil((monday.getTime() - new Date(monday.getFullYear(), 0, 1).getTime()) / (1000 * 60 * 60 * 24 * 7))).padStart(2, '0')}`;
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        periodLabel = `${monday.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} - ${sunday.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+      } else {
+        // monthly
+        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        periodLabel = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        periodLabel = periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1);
+      }
+
+      const amount = transaction.amount.toNumber();
+      let periodData = periodMap.get(periodKey);
+
+      if (!periodData) {
+        periodData = {
+          period: periodKey,
+          periodLabel,
+          income: 0,
+          expense: 0,
+          balance: 0,
+          cumulativeBalance: 0,
+        };
+        periodMap.set(periodKey, periodData);
+      }
+
+      if (transaction.type === 'income') {
+        periodData.income += amount;
+      } else if (transaction.type === 'expense') {
+        periodData.expense += amount;
+      }
+
+      periodData.balance = periodData.income - periodData.expense;
+    });
+
+    // Calcular saldo acumulado e ordenar por período
+    const flowData = Array.from(periodMap.values())
+      .sort((a, b) => a.period.localeCompare(b.period))
+      .map((period, index, array) => {
+        // Calcular saldo acumulado
+        const previousCumulative = index > 0 ? array[index - 1].cumulativeBalance : 0;
+        period.cumulativeBalance = previousCumulative + period.balance;
+        return period;
+      });
+
+    // Calcular tendência simples (regressão linear simples)
+    // Usando os últimos períodos para prever os próximos
+    const trendData = flowData.length >= 3 ? this.calculateTrend(flowData) : null;
+
+    return {
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      },
+      summary: {
+        totalIncome,
+        totalExpense,
+        balance,
+      },
+      granularity,
+      flowData,
+      trend: trendData,
+    };
+  }
+
+  /**
+   * Calcula tendência simples usando regressão linear
+   */
+  private static calculateTrend(flowData: Array<{ period: string; cumulativeBalance: number }>) {
+    const n = flowData.length;
+    if (n < 2) return null;
+
+    // Usar os últimos períodos para calcular tendência
+    const recentData = flowData.slice(-Math.min(n, 6)); // Últimos 6 períodos ou todos se menos
+    const x = recentData.map((_, i) => i);
+    const y = recentData.map(d => d.cumulativeBalance);
+
+    // Calcular média
+    const xMean = x.reduce((a, b) => a + b, 0) / x.length;
+    const yMean = y.reduce((a, b) => a + b, 0) / y.length;
+
+    // Calcular coeficientes da regressão linear
+    let numerator = 0;
+    let denominator = 0;
+
+    for (let i = 0; i < x.length; i++) {
+      numerator += (x[i] - xMean) * (y[i] - yMean);
+      denominator += Math.pow(x[i] - xMean, 2);
+    }
+
+    const slope = denominator !== 0 ? numerator / denominator : 0;
+    const intercept = yMean - slope * xMean;
+
+    // Prever próximos 3 períodos
+    const forecast = [];
+    const lastPeriodIndex = x.length - 1;
+    for (let i = 1; i <= 3; i++) {
+      const predictedValue = slope * (lastPeriodIndex + i) + intercept;
+      forecast.push({
+        period: `forecast-${i}`,
+        periodLabel: `Previsão ${i}`,
+        cumulativeBalance: predictedValue,
+        isForecast: true,
+      });
+    }
+
+    return {
+      slope,
+      intercept,
+      forecast,
+    };
+  }
 }

@@ -12,8 +12,9 @@ import {
 } from 'lucide-react';
 import { ExpensesByCategoryReport } from './reports/ExpensesByCategoryReport';
 import { IncomeByCategoryReport } from './reports/IncomeByCategoryReport';
+import { CashFlowReport } from './reports/CashFlowReport';
 
-type ReportType = 'expenses-by-category' | 'income-by-category' | null;
+type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | null;
 
 interface ReportCard {
   id: ReportType;
@@ -40,6 +41,14 @@ const reportCards: ReportCard[] = [
     icon: TrendingUp,
     color: 'text-emerald-600 dark:text-emerald-400',
     bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+  },
+  {
+    id: 'cash-flow',
+    title: 'Fluxo de Caixa',
+    description: 'Entradas x saídas, saldo do período e evolução temporal com previsões',
+    icon: DollarSign,
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
   },
   // Futuros relatórios podem ser adicionados aqui:
   // {
@@ -94,6 +103,10 @@ export const Reports: React.FC = () => {
 
   if (selectedReport === 'income-by-category') {
     return <IncomeByCategoryReport onBack={handleBack} />;
+  }
+
+  if (selectedReport === 'cash-flow') {
+    return <CashFlowReport onBack={handleBack} />;
   }
 
   // Página principal com cards

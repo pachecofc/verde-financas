@@ -1031,6 +1031,37 @@ export interface IncomeReport {
   monthlyEvolution: MonthlyEvolution[];
 }
 
+export interface CashFlowPeriod {
+  period: string;
+  periodLabel: string;
+  income: number;
+  expense: number;
+  balance: number;
+  cumulativeBalance: number;
+  isForecast?: boolean;
+}
+
+export interface CashFlowTrend {
+  slope: number;
+  intercept: number;
+  forecast: CashFlowPeriod[];
+}
+
+export interface CashFlowReport {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+  };
+  granularity: 'daily' | 'weekly' | 'monthly';
+  flowData: CashFlowPeriod[];
+  trend: CashFlowTrend | null;
+}
+
 const reportApi = {
   // Obter relatório de despesas por categoria
   getExpensesByCategory: async (
@@ -1066,6 +1097,25 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<IncomeReport>(response);
+  },
+
+  // Obter relatório de Fluxo de Caixa
+  getCashFlow: async (
+    startDate: string,
+    endDate: string,
+    granularity: 'daily' | 'weekly' | 'monthly' = 'monthly'
+  ): Promise<CashFlowReport> => {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+      granularity,
+    });
+
+    const response = await fetch(`${API_BASE_URL}/reports/cash-flow?${queryParams}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<CashFlowReport>(response);
   },
 };
 
