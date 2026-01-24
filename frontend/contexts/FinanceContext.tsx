@@ -61,7 +61,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     console.log('FinanceProvider: Estado inicial budgets:', isAuth ? 'será carregado do backend' : (parsed?.budgets?.length || 0));
     return {
       categories: isAuth ? [] : (parsed?.categories || []), // Sempre começar vazio se autenticado
-      accounts: parsed?.accounts || INITIAL_ACCOUNTS,
+      accounts: isAuth ? [] : (parsed?.accounts || INITIAL_ACCOUNTS), // Sempre começar vazio se autenticado
       transactions: isAuth ? [] : (parsed?.transactions || []), // Sempre começar vazio se autenticado
       budgets: isAuth ? [] : (parsed?.budgets || []), // Sempre começar vazio se autenticado
       schedules: isAuth ? [] : (parsed?.schedules || []),
@@ -69,7 +69,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       assets: isAuth ? [] : (parsed?.assets || []),
       assetHoldings: isAuth ? [] : (parsed?.assetHoldings || []),
       goals: parsed?.goals || [],
-      user: parsed?.user || { name: 'Visitante', email: '', plan: 'basic', score: 0, achievements: [] },
+      user: isAuth ? (parsed?.user ? { ...parsed.user, score: 0, achievements: [] } : null) : (parsed?.user || { name: 'Visitante', email: '', plan: 'basic', score: 0, achievements: [] }),
       theme: parsed?.theme || 'light',
     };
   });
@@ -480,7 +480,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       ...prev,
       user: null,
       categories: [],
-      accounts: INITIAL_ACCOUNTS,
+      accounts: [],
       transactions: [],
       budgets: [],
       schedules: [],

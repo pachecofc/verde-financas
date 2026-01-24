@@ -6,10 +6,12 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Wallet, Calendar, Info, ShieldCheck, HeartPulse, Trophy, Crown, Sparkles, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
+import { useAccounts } from '../contexts/AccountContext';
 import { Link } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
-  const { transactions, accounts, categories, schedules, budgets, theme, user } = useFinance();
+  const { transactions, categories, schedules, budgets, theme, user } = useFinance();
+  const { accounts } = useAccounts(); // Usar contas do AccountContext (vindas do backend)
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
