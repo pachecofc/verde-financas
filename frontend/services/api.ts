@@ -1216,6 +1216,125 @@ export interface InvestmentsReport {
   evolution: InvestmentEvolution[];
 }
 
+export interface BudgetData {
+  budgetId: string;
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string | null;
+  categoryColor: string | null;
+  planned: number;
+  spent: number;
+  remaining: number;
+  usagePercentage: number;
+  variation: number;
+  variationPercentage: number;
+  status: 'over' | 'under' | 'on-track';
+}
+
+export interface OverBudgetData {
+  budgetId: string;
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string | null;
+  categoryColor: string | null;
+  planned: number;
+  spent: number;
+  exceeded: number;
+  usagePercentage: number;
+}
+
+export interface UnderBudgetData {
+  budgetId: string;
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string | null;
+  categoryColor: string | null;
+  planned: number;
+  spent: number;
+  saved: number;
+  usagePercentage: number;
+}
+
+export interface BudgetReport {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    totalBudgets: number;
+    totalPlanned: number;
+    totalSpent: number;
+    totalRemaining: number;
+    averageUsage: number;
+    categoriesOverBudget: number;
+    categoriesUnderBudget: number;
+    categoriesOnBudget: number;
+  };
+  budgets: BudgetData[];
+  overBudget: OverBudgetData[];
+  underBudget: UnderBudgetData[];
+}
+
+export interface MonthlyData {
+  month: number;
+  monthLabel: string;
+  income: number;
+  expenses: number;
+  balance: number;
+  incomeVariation: number;
+  expensesVariation: number;
+  balanceVariation: number;
+}
+
+export interface Insight {
+  type: 'positive' | 'warning' | 'info';
+  title: string;
+  description: string;
+}
+
+export interface TopCategory {
+  categoryId: string;
+  categoryName: string;
+  categoryIcon: string | null;
+  categoryColor: string | null;
+  total: number;
+  percentage: number;
+}
+
+export interface AnnualReport {
+  year: number;
+  summary: {
+    totalIncome: number;
+    totalExpenses: number;
+    netBalance: number;
+    averageMonthlyIncome: number;
+    averageMonthlyExpenses: number;
+    averageMonthlyBalance: number;
+    bestMonth: {
+      month: number;
+      monthLabel: string;
+      balance: number;
+      income: number;
+      expenses: number;
+    } | null;
+    worstMonth: {
+      month: number;
+      monthLabel: string;
+      balance: number;
+      income: number;
+      expenses: number;
+    } | null;
+    monthsWithPositiveBalance: number;
+    monthsWithNegativeBalance: number;
+  };
+  monthlyData: MonthlyData[];
+  insights: Insight[];
+  topCategories: {
+    income: TopCategory[];
+    expenses: TopCategory[];
+  };
+}
+
 const reportApi = {
   // Obter relatório de despesas por categoria
   getExpensesByCategory: async (
@@ -1326,6 +1445,41 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<InvestmentsReport>(response);
+  },
+
+  // Obter relatório de Orçamento
+  getBudget: async (
+    startDate: string,
+    endDate: string
+  ): Promise<BudgetReport> => {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+
+    const response = await fetch(`${API_BASE_URL}/reports/budget?${queryParams}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<BudgetReport>(response);
+  },
+
+  // Obter relatório Anual
+  getAnnual: async (year?: number): Promise<AnnualReport> => {
+    const queryParams = new URLSearchParams();
+    if (year) {
+      queryParams.append('year', year.toString());
+    }
+
+    const url = year
+      ? `${API_BASE_URL}/reports/annual?${queryParams}`
+      : `${API_BASE_URL}/reports/annual`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<AnnualReport>(response);
   },
 };
 

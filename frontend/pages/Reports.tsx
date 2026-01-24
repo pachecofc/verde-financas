@@ -11,6 +11,8 @@ import {
   FileText,
   CreditCard,
   Coins,
+  Receipt,
+  CalendarDays,
 } from 'lucide-react';
 import { ExpensesByCategoryReport } from './reports/ExpensesByCategoryReport';
 import { IncomeByCategoryReport } from './reports/IncomeByCategoryReport';
@@ -19,8 +21,10 @@ import { BalanceEvolutionReport } from './reports/BalanceEvolutionReport';
 import { GoalsReport } from './reports/GoalsReport';
 import { DebtsReport } from './reports/DebtsReport';
 import { InvestmentsReport } from './reports/InvestmentsReport';
+import { BudgetReport } from './reports/BudgetReport';
+import { AnnualReport } from './reports/AnnualReport';
 
-type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | 'balance-evolution' | 'goals' | 'debts' | 'investments' | null;
+type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | 'balance-evolution' | 'goals' | 'debts' | 'investments' | 'budget' | 'annual' | null;
 
 interface ReportCard {
   id: ReportType;
@@ -87,6 +91,22 @@ const reportCards: ReportCard[] = [
     icon: Coins,
     color: 'text-cyan-600 dark:text-cyan-400',
     bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
+  },
+  {
+    id: 'budget',
+    title: 'Orçamento',
+    description: 'Orçamento planejado vs. realizado, categorias que estouraram e variação percentual',
+    icon: Receipt,
+    color: 'text-indigo-600 dark:text-indigo-400',
+    bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+  },
+  {
+    id: 'annual',
+    title: 'Relatório Anual',
+    description: 'Resumo dos 12 meses, totais anuais, melhores e piores meses e principais insights',
+    icon: CalendarDays,
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-50 dark:bg-amber-900/20',
   },
   // Futuros relatórios podem ser adicionados aqui:
   // {
@@ -161,6 +181,14 @@ export const Reports: React.FC = () => {
 
   if (selectedReport === 'investments') {
     return <InvestmentsReport onBack={handleBack} />;
+  }
+
+  if (selectedReport === 'budget') {
+    return <BudgetReport onBack={handleBack} />;
+  }
+
+  if (selectedReport === 'annual') {
+    return <AnnualReport onBack={handleBack} />;
   }
 
   // Página principal com cards

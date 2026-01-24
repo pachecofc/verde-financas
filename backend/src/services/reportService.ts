@@ -1313,4 +1313,591 @@ export class ReportService {
       evolution: evolutionData,
     };
   }
+
+  /**
+   * Gera relatório de Orçamento
+   * Compara orçamento planejado vs realizado por categoria
+   */
+  static async getBudgetReport(
+    userId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
+    period: {
+      startDate: string;
+      endDate: string;
+    };
+    summary: {
+      totalBudgets: number;
+      totalPlanned: number;
+      totalSpent: number;
+      totalRemaining: number;
+      averageUsage: number;
+      categoriesOverBudget: number;
+      categoriesUnderBudget: number;
+      categoriesOnBudget: number;
+    };
+    budgets: Array<{
+      budgetId: string;
+      categoryId: string;
+      categoryName: string;
+      categoryIcon: string | null;
+      categoryColor: string | null;
+      planned: number;
+      spent: number;
+      remaining: number;
+      usagePercentage: number;
+      variation: number;
+      variationPercentage: number;
+      status: 'over' | 'under' | 'on-track';
+    }>;
+    overBudget: Array<{
+      budgetId: string;
+      categoryId: string;
+      categoryName: string;
+      categoryIcon: string | null;
+      categoryColor: string | null;
+      planned: number;
+      spent: number;
+      exceeded: number;
+      usagePercentage: number;
+    }>;
+    underBudget: Array<{
+      budgetId: string;
+      categoryId: string;
+      categoryName: string;
+      categoryIcon: string | null;
+      categoryColor: string | null;
+      planned: number;
+      spent: number;
+      saved: number;
+      usagePercentage: number;
+    }>;
+  }> {
+    // Buscar todos os orçamentos do usuário
+    const budgets = await prisma.budget.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    // Buscar todas as transações de despesa no período
+    const expenseTransactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'expense',
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        categoryId: {
+          not: null,
+        },
+      },
+    });
+
+    // Calcular gasto por categoria
+    const spentByCategory = new Map<string, number>();
+    expenseTransactions.forEach(transaction => {
+      if (transaction.categoryId) {
+        const amount = transaction.amount.toNumber();
+        const existing = spentByCategory.get(transaction.categoryId) || 0;
+        spentByCategory.set(transaction.categoryId, existing + amount);
+      }
+    });
+
+    // Processar cada orçamento
+    const budgetData = budgets.map(budget => {
+      const planned = budget.limit.toNumber();
+      const spent = spentByCategory.get(budget.categoryId) || 0;
+      const remaining = planned - spent;
+      const usagePercentage = planned > 0 ? (spent / planned) * 100 : 0;
+      const variation = spent - planned;
+      const variationPercentage = planned > 0 ? (variation / planned) * 100 : 0;
+      
+      let status: 'over' | 'under' | 'on-track';
+      if (spent > planned) {
+        status = 'over';
+      } else if (spent < planned * 0.9) { // Considera "under" se gastou menos de 90%
+        status = 'under';
+      } else {
+        status = 'on-track';
+      }
+
+      return {
+        budgetId: budget.id,
+        categoryId: budget.categoryId,
+        categoryName: budget.category.name,
+        categoryIcon: budget.category.icon,
+        categoryColor: budget.category.color,
+        planned,
+        spent,
+        remaining,
+        usagePercentage,
+        variation,
+        variationPercentage,
+        status,
+      };
+    });
+
+    // Separar por status
+    const overBudget = budgetData
+      .filter(b => b.status === 'over')
+      .map(b => ({
+        budgetId: b.budgetId,
+        categoryId: b.categoryId,
+        categoryName: b.categoryName,
+        categoryIcon: b.categoryIcon,
+        categoryColor: b.categoryColor,
+        planned: b.planned,
+        spent: b.spent,
+        exceeded: b.spent - b.planned,
+        usagePercentage: b.usagePercentage,
+      }))
+      .sort((a, b) => b.exceeded - a.exceeded); // Ordenar por maior excesso
+
+    const underBudget = budgetData
+      .filter(b => b.status === 'under')
+      .map(b => ({
+        budgetId: b.budgetId,
+        categoryId: b.categoryId,
+        categoryName: b.categoryName,
+        categoryIcon: b.categoryIcon,
+        categoryColor: b.categoryColor,
+        planned: b.planned,
+        spent: b.spent,
+        saved: b.planned - b.spent,
+        usagePercentage: b.usagePercentage,
+      }))
+      .sort((a, b) => b.saved - a.saved); // Ordenar por maior economia
+
+    // Calcular resumo
+    const totalPlanned = budgetData.reduce((sum, b) => sum + b.planned, 0);
+    const totalSpent = budgetData.reduce((sum, b) => sum + b.spent, 0);
+    const totalRemaining = totalPlanned - totalSpent;
+    const averageUsage = budgetData.length > 0
+      ? budgetData.reduce((sum, b) => sum + b.usagePercentage, 0) / budgetData.length
+      : 0;
+
+    return {
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      },
+      summary: {
+        totalBudgets: budgets.length,
+        totalPlanned,
+        totalSpent,
+        totalRemaining,
+        averageUsage,
+        categoriesOverBudget: overBudget.length,
+        categoriesUnderBudget: underBudget.length,
+        categoriesOnBudget: budgetData.filter(b => b.status === 'on-track').length,
+      },
+      budgets: budgetData.sort((a, b) => b.usagePercentage - a.usagePercentage), // Ordenar por maior uso
+      overBudget,
+      underBudget,
+    };
+  }
+
+  /**
+   * Gera relatório Anual
+   * Resumo dos 12 meses, totais anuais, melhores/piores meses e insights
+   */
+  static async getAnnualReport(
+    userId: string,
+    year: number
+  ): Promise<{
+    year: number;
+    summary: {
+      totalIncome: number;
+      totalExpenses: number;
+      netBalance: number;
+      averageMonthlyIncome: number;
+      averageMonthlyExpenses: number;
+      averageMonthlyBalance: number;
+      bestMonth: {
+        month: number;
+        monthLabel: string;
+        balance: number;
+        income: number;
+        expenses: number;
+      } | null;
+      worstMonth: {
+        month: number;
+        monthLabel: string;
+        balance: number;
+        income: number;
+        expenses: number;
+      } | null;
+      monthsWithPositiveBalance: number;
+      monthsWithNegativeBalance: number;
+    };
+    monthlyData: Array<{
+      month: number;
+      monthLabel: string;
+      income: number;
+      expenses: number;
+      balance: number;
+      incomeVariation: number;
+      expensesVariation: number;
+      balanceVariation: number;
+    }>;
+    insights: Array<{
+      type: 'positive' | 'warning' | 'info';
+      title: string;
+      description: string;
+    }>;
+    topCategories: {
+      income: Array<{
+        categoryId: string;
+        categoryName: string;
+        categoryIcon: string | null;
+        categoryColor: string | null;
+        total: number;
+        percentage: number;
+      }>;
+      expenses: Array<{
+        categoryId: string;
+        categoryName: string;
+        categoryIcon: string | null;
+        categoryColor: string | null;
+        total: number;
+        percentage: number;
+      }>;
+    };
+  }> {
+    // Definir período do ano
+    const startDate = new Date(year, 0, 1); // 1º de janeiro
+    const endDate = new Date(year, 11, 31, 23, 59, 59, 999); // 31 de dezembro
+
+    // Buscar todas as transações do ano
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        type: {
+          in: ['income', 'expense'],
+        },
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    // Agrupar por mês
+    const monthlyDataMap = new Map<number, {
+      income: number;
+      expenses: number;
+    }>();
+
+    // Inicializar todos os meses
+    for (let month = 0; month < 12; month++) {
+      monthlyDataMap.set(month, { income: 0, expenses: 0 });
+    }
+
+    // Processar transações
+    transactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      const month = date.getMonth();
+      const amount = transaction.amount.toNumber();
+
+      const monthData = monthlyDataMap.get(month) || { income: 0, expenses: 0 };
+
+      if (transaction.type === 'income') {
+        monthData.income += amount;
+      } else if (transaction.type === 'expense') {
+        monthData.expenses += amount;
+      }
+
+      monthlyDataMap.set(month, monthData);
+    });
+
+    // Calcular dados mensais com variações
+    const monthlyData: Array<{
+      month: number;
+      monthLabel: string;
+      income: number;
+      expenses: number;
+      balance: number;
+      incomeVariation: number;
+      expensesVariation: number;
+      balanceVariation: number;
+    }> = [];
+
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    let previousIncome = 0;
+    let previousExpenses = 0;
+    let previousBalance = 0;
+
+    for (let month = 0; month < 12; month++) {
+      const monthDataEntry = monthlyDataMap.get(month) || { income: 0, expenses: 0 };
+      const income = monthDataEntry.income;
+      const expenses = monthDataEntry.expenses;
+      const balance = income - expenses;
+
+      const incomeVariation = previousIncome > 0
+        ? ((income - previousIncome) / previousIncome) * 100
+        : 0;
+      const expensesVariation = previousExpenses > 0
+        ? ((expenses - previousExpenses) / previousExpenses) * 100
+        : 0;
+      const balanceVariation = previousBalance !== 0
+        ? ((balance - previousBalance) / Math.abs(previousBalance)) * 100
+        : 0;
+
+      monthlyData.push({
+        month: month + 1,
+        monthLabel: monthNames[month],
+        income,
+        expenses,
+        balance,
+        incomeVariation,
+        expensesVariation,
+        balanceVariation,
+      });
+
+      previousIncome = income;
+      previousExpenses = expenses;
+      previousBalance = balance;
+    }
+
+    // Calcular totais anuais
+    const totalIncome = monthlyData.reduce((sum, m) => sum + m.income, 0);
+    const totalExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0);
+    const netBalance = totalIncome - totalExpenses;
+    const averageMonthlyIncome = totalIncome / 12;
+    const averageMonthlyExpenses = totalExpenses / 12;
+    const averageMonthlyBalance = netBalance / 12;
+
+    // Encontrar melhor e pior mês (baseado no saldo)
+    const bestMonth = monthlyData.reduce((best, current) => {
+      if (!best || current.balance > best.balance) {
+        return current;
+      }
+      return best;
+    }, null as typeof monthlyData[0] | null);
+
+    const worstMonth = monthlyData.reduce((worst, current) => {
+      if (!worst || current.balance < worst.balance) {
+        return current;
+      }
+      return worst;
+    }, null as typeof monthlyData[0] | null);
+
+    const monthsWithPositiveBalance = monthlyData.filter(m => m.balance > 0).length;
+    const monthsWithNegativeBalance = monthlyData.filter(m => m.balance < 0).length;
+
+    // Calcular top categorias
+    const incomeByCategory = new Map<string, {
+      categoryId: string;
+      categoryName: string;
+      categoryIcon: string | null;
+      categoryColor: string | null;
+      total: number;
+    }>();
+
+    const expensesByCategory = new Map<string, {
+      categoryId: string;
+      categoryName: string;
+      categoryIcon: string | null;
+      categoryColor: string | null;
+      total: number;
+    }>();
+
+    transactions.forEach(transaction => {
+      if (!transaction.categoryId || !transaction.category) return;
+
+      const amount = transaction.amount.toNumber();
+      const categoryData = {
+        categoryId: transaction.categoryId,
+        categoryName: transaction.category.name,
+        categoryIcon: transaction.category.icon,
+        categoryColor: transaction.category.color,
+        total: 0,
+      };
+
+      if (transaction.type === 'income') {
+        const existing = incomeByCategory.get(transaction.categoryId);
+        if (existing) {
+          existing.total += amount;
+        } else {
+          categoryData.total = amount;
+          incomeByCategory.set(transaction.categoryId, categoryData);
+        }
+      } else if (transaction.type === 'expense') {
+        const existing = expensesByCategory.get(transaction.categoryId);
+        if (existing) {
+          existing.total += amount;
+        } else {
+          categoryData.total = amount;
+          expensesByCategory.set(transaction.categoryId, categoryData);
+        }
+      }
+    });
+
+    const topIncomeCategories = Array.from(incomeByCategory.values())
+      .map(cat => ({
+        ...cat,
+        percentage: totalIncome > 0 ? (cat.total / totalIncome) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    const topExpenseCategories = Array.from(expensesByCategory.values())
+      .map(cat => ({
+        ...cat,
+        percentage: totalExpenses > 0 ? (cat.total / totalExpenses) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    // Gerar insights
+    const insights: Array<{
+      type: 'positive' | 'warning' | 'info';
+      title: string;
+      description: string;
+    }> = [];
+
+    // Insight sobre saldo anual
+    if (netBalance > 0) {
+      insights.push({
+        type: 'positive',
+        title: 'Saldo Positivo no Ano',
+        description: `Você teve um saldo positivo de R$ ${netBalance.toFixed(2)} no ano de ${year}. Isso indica uma boa gestão financeira.`,
+      });
+    } else if (netBalance < 0) {
+      insights.push({
+        type: 'warning',
+        title: 'Saldo Negativo no Ano',
+        description: `O saldo anual foi negativo em R$ ${Math.abs(netBalance).toFixed(2)}. Considere revisar suas despesas ou aumentar suas receitas.`,
+      });
+    }
+
+    // Insight sobre melhor mês
+    if (bestMonth && bestMonth.balance > 0) {
+      insights.push({
+        type: 'positive',
+        title: `Melhor Mês: ${bestMonth.monthLabel}`,
+        description: `${bestMonth.monthLabel} foi seu melhor mês com saldo de R$ ${bestMonth.balance.toFixed(2)} (receitas: R$ ${bestMonth.income.toFixed(2)}, despesas: R$ ${bestMonth.expenses.toFixed(2)}).`,
+      });
+    }
+
+    // Insight sobre pior mês
+    if (worstMonth && worstMonth.balance < 0) {
+      insights.push({
+        type: 'warning',
+        title: `Atenção: ${worstMonth.monthLabel}`,
+        description: `${worstMonth.monthLabel} foi o mês mais desafiador com saldo negativo de R$ ${Math.abs(worstMonth.balance).toFixed(2)}.`,
+      });
+    }
+
+    // Insight sobre meses positivos
+    if (monthsWithPositiveBalance >= 6) {
+      insights.push({
+        type: 'positive',
+        title: 'Maioria dos Meses com Saldo Positivo',
+        description: `Você teve saldo positivo em ${monthsWithPositiveBalance} dos 12 meses, o que é um bom indicador de consistência financeira.`,
+      });
+    } else if (monthsWithNegativeBalance >= 6) {
+      insights.push({
+        type: 'warning',
+        title: 'Maioria dos Meses com Saldo Negativo',
+        description: `Atenção: ${monthsWithNegativeBalance} meses tiveram saldo negativo. Considere revisar seu orçamento.`,
+      });
+    }
+
+    // Insight sobre tendência
+    const lastQuarter = monthlyData.slice(-3);
+    const firstQuarter = monthlyData.slice(0, 3);
+    const lastQuarterAvg = lastQuarter.reduce((sum, m) => sum + m.balance, 0) / 3;
+    const firstQuarterAvg = firstQuarter.reduce((sum, m) => sum + m.balance, 0) / 3;
+
+    if (lastQuarterAvg > firstQuarterAvg * 1.1) {
+      insights.push({
+        type: 'positive',
+        title: 'Tendência de Melhoria',
+        description: 'Seus últimos 3 meses mostraram uma melhoria significativa em relação ao início do ano.',
+      });
+    } else if (lastQuarterAvg < firstQuarterAvg * 0.9) {
+      insights.push({
+        type: 'warning',
+        title: 'Tendência de Piora',
+        description: 'Os últimos 3 meses mostraram uma piora em relação ao início do ano. Considere revisar seus gastos.',
+      });
+    }
+
+    // Insight sobre média mensal
+    if (averageMonthlyBalance > 0) {
+      insights.push({
+        type: 'info',
+        title: 'Média Mensal Positiva',
+        description: `Sua média mensal de saldo foi de R$ ${averageMonthlyBalance.toFixed(2)}, indicando uma boa capacidade de poupança.`,
+      });
+    }
+
+    // Insight sobre maior receita
+    const maxIncomeMonth = monthlyData.reduce((max, m) => m.income > max.income ? m : max, monthlyData[0]);
+    if (maxIncomeMonth && maxIncomeMonth.income > 0) {
+      insights.push({
+        type: 'info',
+        title: `Maior Receita: ${maxIncomeMonth.monthLabel}`,
+        description: `${maxIncomeMonth.monthLabel} teve a maior receita do ano com R$ ${maxIncomeMonth.income.toFixed(2)}.`,
+      });
+    }
+
+    // Insight sobre maior despesa
+    const maxExpenseMonth = monthlyData.reduce((max, m) => m.expenses > max.expenses ? m : max, monthlyData[0]);
+    if (maxExpenseMonth && maxExpenseMonth.expenses > 0) {
+      insights.push({
+        type: 'info',
+        title: `Maior Despesa: ${maxExpenseMonth.monthLabel}`,
+        description: `${maxExpenseMonth.monthLabel} teve a maior despesa do ano com R$ ${maxExpenseMonth.expenses.toFixed(2)}.`,
+      });
+    }
+
+    return {
+      year,
+      summary: {
+        totalIncome,
+        totalExpenses,
+        netBalance,
+        averageMonthlyIncome,
+        averageMonthlyExpenses,
+        averageMonthlyBalance,
+        bestMonth: bestMonth ? {
+          month: bestMonth.month,
+          monthLabel: bestMonth.monthLabel,
+          balance: bestMonth.balance,
+          income: bestMonth.income,
+          expenses: bestMonth.expenses,
+        } : null,
+        worstMonth: worstMonth ? {
+          month: worstMonth.month,
+          monthLabel: worstMonth.monthLabel,
+          balance: worstMonth.balance,
+          income: worstMonth.income,
+          expenses: worstMonth.expenses,
+        } : null,
+        monthsWithPositiveBalance,
+        monthsWithNegativeBalance,
+      },
+      monthlyData,
+      insights,
+      topCategories: {
+        income: topIncomeCategories,
+        expenses: topExpenseCategories,
+      },
+    };
+  }
 }

@@ -279,4 +279,75 @@ export class ReportController {
       });
     }
   }
+
+  /**
+   * GET /api/reports/budget
+   * Gera relatório de Orçamento
+   * Query params: startDate, endDate
+   */
+  static async getBudget(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+      const { startDate, endDate } = req.query;
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          error: 'startDate and endDate are required (format: YYYY-MM-DD)',
+        });
+      }
+
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+
+      // Validar datas
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({
+          error: 'Invalid date format. Use YYYY-MM-DD',
+        });
+      }
+
+      if (start > end) {
+        return res.status(400).json({
+          error: 'startDate must be before or equal to endDate',
+        });
+      }
+
+      const report = await ReportService.getBudgetReport(userId, start, end);
+
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to generate report',
+      });
+    }
+  }
+
+  /**
+   * GET /api/reports/annual
+   * Gera relatório Anual
+   * Query params: year (opcional, padrão: ano atual)
+   */
+  static async getAnnual(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+      const { year } = req.query;
+
+      const reportYear = year ? parseInt(year as string, 10) : new Date().getFullYear();
+
+      // Validar ano
+      if (isNaN(reportYear) || reportYear < 2000 || reportYear > 2100) {
+        return res.status(400).json({
+          error: 'Invalid year. Use a year between 2000 and 2100',
+        });
+      }
+
+      const report = await ReportService.getAnnualReport(userId, reportYear);
+
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to generate report',
+      });
+    }
+  }
 }
