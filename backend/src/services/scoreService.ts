@@ -11,7 +11,7 @@ export interface ScoreCalculationData {
 export class ScoreService {
   // Calcular o score verde baseado nos dados financeiros
   static calculateGreenScore(data: ScoreCalculationData): number {
-    let score = 500; // Score base
+    let score = 0; // Score base
 
     // Penalizar orçamentos estourados (-50 pontos cada)
     const overBudgetCount = data.budgets.filter(b => b.spent > b.limit).length;
@@ -53,7 +53,7 @@ export class ScoreService {
       userScore = await prisma.userScore.create({
         data: {
           userId,
-          score: 500, // Score inicial
+          score: 0, // Score inicial
         },
       });
     }
