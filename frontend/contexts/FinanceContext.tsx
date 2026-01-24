@@ -11,6 +11,7 @@ interface FinanceContextType extends FinanceState {
   categoriesLoading: boolean;
   categoriesError: string | null;
   refreshCategories: () => Promise<void>;
+  ensureDefaultCategories: () => Promise<void>;
   addAccount: (a: Omit<Account, 'id'>) => void;
   updateAccount: (id: string, a: Partial<Omit<Account, 'id'>>) => void;
   deleteAccount: (id: string) => void;
@@ -1302,7 +1303,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <FinanceContext.Provider value={{
       ...state,
       addCategory, updateCategory, deleteCategory,
-      categoriesLoading, categoriesError, refreshCategories,
+      categoriesLoading, categoriesError, refreshCategories, ensureDefaultCategories,
       addAccount, updateAccount, deleteAccount,
       addTransaction, addTransactions, updateTransaction, deleteTransaction,
       addBudget, updateBudget, deleteBudget,

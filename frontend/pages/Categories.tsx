@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'; // Adicionado useMemo
 import { useFinance } from '../contexts/FinanceContext';
-import { Plus, Trash2, Edit2, ChevronRight, X, Smile, Loader2, AlertCircle, RefreshCw, MoreVertical, Search } from 'lucide-react'; // Adicionado Search
+import { Plus, Trash2, Edit2, ChevronRight, X, Smile, Loader2, AlertCircle, RefreshCw, MoreVertical, Search, Tags } from 'lucide-react';
 import { Category } from '../types';
 
 // Importa os componentes do Radix UI Dropdown Menu
@@ -26,7 +26,8 @@ export const Categories: React.FC = () => {
     deleteCategory,
     categoriesLoading,
     categoriesError,
-    refreshCategories
+    refreshCategories,
+    ensureDefaultCategories
   } = useFinance();
   const [showModal, setShowModal] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -189,12 +190,45 @@ export const Categories: React.FC = () => {
         </div>
       )}
 
-      {/* NOVO: Mensagem se nenhuma categoria for encontrada após a busca */}
+      {/* Mensagem se nenhuma categoria for encontrada após a busca */}
       {!categoriesLoading && filteredAndSortedCategories.length === 0 && searchTerm && (
         <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
           <Search className="w-12 h-12 mb-4" />
           <p className="text-lg font-semibold">Nenhuma categoria encontrada para "{searchTerm}"</p>
           <p className="text-sm mt-2">Tente um termo de busca diferente ou adicione uma nova categoria.</p>
+        </div>
+      )}
+
+      {/* Mensagem e botão quando não há categorias cadastradas */}
+      {!categoriesLoading && categories.length === 0 && !searchTerm && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6">
+            <Tags className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Nenhuma categoria cadastrada</h3>
+          <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md">
+            Parece que você ainda não tem categorias cadastradas. Clique no botão abaixo para carregar as categorias padrão do sistema.
+          </p>
+          <button
+            onClick={() => ensureDefaultCategories()}
+            disabled={categoriesLoading}
+            className="bg-emerald-600 dark:bg-emerald-500 text-white px-8 py-4 rounded-xl shadow-lg dark:shadow-none hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all flex items-center gap-3 font-bold active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {categoriesLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Carregando categorias...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-5 h-5" />
+                Carregar Categorias Padrão
+              </>
+            )}
+          </button>
+          {categoriesError && (
+            <p className="text-rose-600 dark:text-rose-400 text-sm mt-4">{categoriesError}</p>
+          )}
         </div>
       )}
 
