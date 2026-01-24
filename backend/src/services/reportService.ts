@@ -1088,4 +1088,229 @@ export class ReportService {
       debts: sortedDebts,
     };
   }
+
+  /**
+   * Gera relatório de Investimentos
+   * Mostra distribuição por ativos e evolução patrimonial
+   */
+  static async getInvestmentsReport(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    assetId?: string
+  ): Promise<{
+    period: {
+      startDate: string;
+      endDate: string;
+    };
+    summary: {
+      totalAssets: number;
+      totalValue: number;
+      totalInvested: number;
+      totalReturn: number;
+      returnPercentage: number;
+    };
+    distribution: Array<{
+      assetId: string;
+      assetName: string;
+      assetColor: string | null;
+      incomeType: string;
+      currentValue: number;
+      investedAmount: number;
+      return: number;
+      returnPercentage: number;
+      percentage: number;
+    }>;
+    evolution: Array<{
+      month: string;
+      monthLabel: string;
+      totalValue: number;
+      byAsset: Array<{
+        assetId: string;
+        assetName: string;
+        value: number;
+      }>;
+    }>;
+  }> {
+    // Buscar todos os holdings de ativos do usuário
+    const assetHoldings = await prisma.assetHolding.findMany({
+      where: {
+        userId,
+        ...(assetId ? { assetId } : {}),
+      },
+      include: {
+        asset: true,
+      },
+    });
+
+    // Buscar todas as transações de investimento (transferências com assetId)
+    const investmentTransactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'transfer',
+        assetId: assetId ? assetId : { not: null },
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        asset: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Calcular valores atuais e distribuídos
+    const totalValue = assetHoldings.reduce((sum, holding) => sum + holding.currentValue.toNumber(), 0);
+
+    // Calcular valor investido (soma das transferências para investimentos)
+    const investedByAsset = new Map<string, number>();
+    investmentTransactions.forEach(transaction => {
+      if (transaction.assetId) {
+        const amount = transaction.amount.toNumber();
+        const existing = investedByAsset.get(transaction.assetId) || 0;
+        investedByAsset.set(transaction.assetId, existing + amount);
+      }
+    });
+
+    // Calcular distribuição por ativo
+    const distribution = assetHoldings.map(holding => {
+      const currentValue = holding.currentValue.toNumber();
+      const investedAmount = investedByAsset.get(holding.assetId) || 0;
+      const returnAmount = currentValue - investedAmount;
+      const returnPercentage = investedAmount > 0 ? (returnAmount / investedAmount) * 100 : 0;
+      const percentage = totalValue > 0 ? (currentValue / totalValue) * 100 : 0;
+
+      return {
+        assetId: holding.assetId,
+        assetName: holding.asset.name,
+        assetColor: holding.asset.color,
+        incomeType: holding.asset.incomeType,
+        currentValue,
+        investedAmount,
+        return: returnAmount,
+        returnPercentage,
+        percentage,
+      };
+    }).sort((a, b) => b.currentValue - a.currentValue);
+
+    // Calcular totais
+    const totalInvested = distribution.reduce((sum, asset) => sum + asset.investedAmount, 0);
+    const totalReturn = distribution.reduce((sum, asset) => sum + asset.return, 0);
+    const totalReturnPercentage = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
+
+    // Calcular evolução mensal baseada nas transações de investimento
+    // Agrupar transações por mês e calcular valor acumulado investido
+    const monthlyEvolution = new Map<string, {
+      month: string;
+      monthLabel: string;
+      investedByAsset: Map<string, { assetId: string; assetName: string; invested: number }>;
+    }>();
+
+    // Processar transações de investimento
+    investmentTransactions.forEach(transaction => {
+      if (!transaction.assetId || !transaction.asset) return;
+
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const capitalizedMonthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+      let monthData = monthlyEvolution.get(monthKey);
+      if (!monthData) {
+        monthData = {
+          month: monthKey,
+          monthLabel: capitalizedMonthLabel,
+          investedByAsset: new Map(),
+        };
+        monthlyEvolution.set(monthKey, monthData);
+      }
+
+      const amount = transaction.amount.toNumber();
+      const existing = monthData.investedByAsset.get(transaction.assetId);
+      if (existing) {
+        existing.invested += amount;
+      } else {
+        monthData.investedByAsset.set(transaction.assetId, {
+          assetId: transaction.assetId,
+          assetName: transaction.asset.name,
+          invested: amount,
+        });
+      }
+    });
+
+    // Calcular valor acumulado investido mês a mês
+    const investedByAssetAccumulated = new Map<string, number>();
+    const evolutionData = Array.from(monthlyEvolution.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(month => {
+        // Atualizar valores acumulados por ativo
+        month.investedByAsset.forEach((assetData, assetId) => {
+          const current = investedByAssetAccumulated.get(assetId) || 0;
+          investedByAssetAccumulated.set(assetId, current + assetData.invested);
+        });
+
+        // Calcular valor total acumulado (investido até o momento)
+        const totalInvested = Array.from(investedByAssetAccumulated.values())
+          .reduce((sum, val) => sum + val, 0);
+
+        // Para cada ativo, usar o valor atual do holding se disponível
+        // ou o valor investido acumulado como aproximação
+        const byAsset = Array.from(investedByAssetAccumulated.entries()).map(([assetId, invested]) => {
+          const holding = assetHoldings.find(h => h.assetId === assetId);
+          // Se temos um holding, usar o valor atual; senão, usar o investido
+          const value = holding ? holding.currentValue.toNumber() : invested;
+          
+          const asset = holding?.asset || assetHoldings.find(h => h.assetId === assetId)?.asset;
+          return {
+            assetId,
+            assetName: asset?.name || 'Desconhecido',
+            value,
+          };
+        });
+
+        return {
+          month: month.month,
+          monthLabel: month.monthLabel,
+          totalValue: totalInvested, // Usar valor investido acumulado como base
+          byAsset,
+        };
+      });
+
+    // Se não houver transações, usar valores atuais dos holdings
+    if (evolutionData.length === 0) {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const currentMonthLabel = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      
+      evolutionData.push({
+        month: currentMonth,
+        monthLabel: currentMonthLabel.charAt(0).toUpperCase() + currentMonthLabel.slice(1),
+        totalValue,
+        byAsset: assetHoldings.map(holding => ({
+          assetId: holding.assetId,
+          assetName: holding.asset.name,
+          value: holding.currentValue.toNumber(),
+        })),
+      });
+    }
+
+    return {
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      },
+      summary: {
+        totalAssets: assetHoldings.length,
+        totalValue,
+        totalInvested,
+        totalReturn,
+        returnPercentage: totalReturnPercentage,
+      },
+      distribution,
+      evolution: evolutionData,
+    };
+  }
 }

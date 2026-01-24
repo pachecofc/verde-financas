@@ -1177,6 +1177,45 @@ export interface DebtsReport {
   debts: DebtData[];
 }
 
+export interface InvestmentDistribution {
+  assetId: string;
+  assetName: string;
+  assetColor: string | null;
+  incomeType: string;
+  currentValue: number;
+  investedAmount: number;
+  return: number;
+  returnPercentage: number;
+  percentage: number;
+}
+
+export interface InvestmentEvolution {
+  month: string;
+  monthLabel: string;
+  totalValue: number;
+  byAsset: Array<{
+    assetId: string;
+    assetName: string;
+    value: number;
+  }>;
+}
+
+export interface InvestmentsReport {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  summary: {
+    totalAssets: number;
+    totalValue: number;
+    totalInvested: number;
+    totalReturn: number;
+    returnPercentage: number;
+  };
+  distribution: InvestmentDistribution[];
+  evolution: InvestmentEvolution[];
+}
+
 const reportApi = {
   // Obter relatório de despesas por categoria
   getExpensesByCategory: async (
@@ -1266,6 +1305,27 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<DebtsReport>(response);
+  },
+
+  // Obter relatório de Investimentos
+  getInvestments: async (
+    startDate: string,
+    endDate: string,
+    assetId?: string
+  ): Promise<InvestmentsReport> => {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+    if (assetId) {
+      queryParams.append('assetId', assetId);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/reports/investments?${queryParams}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<InvestmentsReport>(response);
   },
 };
 

@@ -14,5 +14,6 @@ router.get('/cash-flow', ReportController.getCashFlow);
 router.get('/balance-evolution', ReportController.getBalanceEvolution);
 router.get('/goals', ReportController.getGoals);
 router.get('/debts', ReportController.getDebts);
+router.get('/investments', ReportController.getInvestments);
 
 export default router;

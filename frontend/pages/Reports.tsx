@@ -10,6 +10,7 @@ import {
   Target,
   FileText,
   CreditCard,
+  Coins,
 } from 'lucide-react';
 import { ExpensesByCategoryReport } from './reports/ExpensesByCategoryReport';
 import { IncomeByCategoryReport } from './reports/IncomeByCategoryReport';
@@ -17,8 +18,9 @@ import { CashFlowReport } from './reports/CashFlowReport';
 import { BalanceEvolutionReport } from './reports/BalanceEvolutionReport';
 import { GoalsReport } from './reports/GoalsReport';
 import { DebtsReport } from './reports/DebtsReport';
+import { InvestmentsReport } from './reports/InvestmentsReport';
 
-type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | 'balance-evolution' | 'goals' | 'debts' | null;
+type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | 'balance-evolution' | 'goals' | 'debts' | 'investments' | null;
 
 interface ReportCard {
   id: ReportType;
@@ -77,6 +79,14 @@ const reportCards: ReportCard[] = [
     icon: CreditCard,
     color: 'text-red-600 dark:text-red-400',
     bgColor: 'bg-red-50 dark:bg-red-900/20',
+  },
+  {
+    id: 'investments',
+    title: 'Investimentos',
+    description: 'Distribuição por ativos e evolução patrimonial total ou por ativo',
+    icon: Coins,
+    color: 'text-cyan-600 dark:text-cyan-400',
+    bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
   },
   // Futuros relatórios podem ser adicionados aqui:
   // {
@@ -147,6 +157,10 @@ export const Reports: React.FC = () => {
 
   if (selectedReport === 'debts') {
     return <DebtsReport onBack={handleBack} />;
+  }
+
+  if (selectedReport === 'investments') {
+    return <InvestmentsReport onBack={handleBack} />;
   }
 
   // Página principal com cards
