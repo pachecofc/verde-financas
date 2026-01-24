@@ -1,36 +1,26 @@
 import multer from 'multer';
-import path from 'path';
 import { Request } from 'express';
 
-// Configuração de armazenamento do Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Define o diretório onde os arquivos serão salvos
-    // Certifique-se de que este diretório exista!
-    cb(null, path.join(__dirname, '../../uploads/avatars'));
-  },
-  filename: (req, file, cb) => {
-    // userId vem do authMiddleware
-    const userId = (req as any).userId;
-    const ext = path.extname(file.originalname);
-    cb(null, `${userId}-${Date.now()}${ext}`);
-  },
-});
+const MAX_SIZE_BYTES = 300 * 1024; // 300 KB
+const ALLOWED_MIMETYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-// Filtro para aceitar apenas imagens
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true); // Aceita o arquivo
+  const mime = file.mimetype.toLowerCase().split(';')[0].trim();
+  if (ALLOWED_MIMETYPES.includes(mime)) {
+    cb(null, true);
   } else {
-    cb(new Error('Apenas arquivos de imagem são permitidos!') as any, false);
+    cb(new Error('Apenas imagens são permitidas (JPEG, PNG, GIF ou WebP).') as any, false);
   }
 };
 
-// Configuração final do Multer
+/**
+ * Multer em memória para avatar.
+ * - Somente imagens (JPEG, PNG, GIF, WebP).
+ * - Limite de 300 KB.
+ * - Arquivo em req.file.buffer para upload no Supabase Storage.
+ */
 export const uploadAvatar = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // Limite de 5MB
-  },
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: MAX_SIZE_BYTES },
 });

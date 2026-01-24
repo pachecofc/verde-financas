@@ -14,6 +14,15 @@ import { AiAssistant } from './AiAssistant';
 // Definir UserPlan para o frontend, refletindo o enum do Prisma
 type UserPlan = 'BASIC' | 'PREMIUM';
 
+const MAX_AVATAR_BYTES = 300 * 1024; // 300 KB
+
+/** URL para exibir avatar: absoluta (Supabase) ou relativa (legado /uploads/...). */
+function getAvatarSrc(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('http')) return url;
+  return `${import.meta.env.VITE_API_URL}${url}`;
+}
+
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -193,31 +202,35 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setProfileLoading(true);
-      setProfileError(null);
-      setProfileSuccess(null);
-      try {
-        const success = await uploadAvatar(file);
-        if (success) {
-          setProfileSuccess('Avatar atualizado com sucesso!');
-          // O AuthContext já atualiza o estado do usuário e o localStorage
-          // O useEffect acima irá sincronizar o profileForm
-        } else {
-          setProfileError(authError || 'Falha ao fazer upload do avatar.');
-        }
-      } catch (err) {
-        setProfileError(err instanceof Error ? err.message : 'Erro desconhecido ao fazer upload do avatar.');
-      } finally {
-        setProfileLoading(false);
-      }
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setProfileError('Use apenas imagens (JPEG, PNG, GIF ou WebP).');
+      return;
     }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setProfileError('Arquivo muito grande. O limite é 300 KB.');
+      return;
+    }
+    setProfileLoading(true);
+    setProfileError(null);
+    setProfileSuccess(null);
+    try {
+      const success = await uploadAvatar(file);
+      if (success) {
+        setProfileSuccess('Avatar atualizado com sucesso!');
+      } else {
+        setProfileError(authError || 'Falha ao fazer upload do avatar.');
+      }
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'Erro ao fazer upload do avatar.');
+    } finally {
+      setProfileLoading(false);
+    }
+    e.target.value = '';
   };
 
-  // Determina qual avatar exibir
-  const avatarSrc = displayAvatar && !displayAvatar.startsWith('data:')
-    ? `${import.meta.env.VITE_API_URL}${displayAvatar}`
-    : displayAvatar;
+  const avatarSrc = getAvatarSrc(displayAvatar);
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
@@ -265,7 +278,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </div>
             <div className="relative">
                {displayAvatar ? (
-                 <img src={`${import.meta.env.VITE_API_URL}${displayAvatar}`} className="w-10 h-10 rounded-full border-2 border-emerald-100 dark:border-emerald-900/30 object-cover shadow-sm group-hover:border-emerald-500 transition-all" alt="Avatar" />
+                 <img src={getAvatarSrc(displayAvatar)} className="w-10 h-10 rounded-full border-2 border-emerald-100 dark:border-emerald-900/30 object-cover shadow-sm group-hover:border-emerald-500 transition-all" alt="Avatar" />
                ) : (
                  <div className="w-10 h-10 rounded-full border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:border-emerald-500 transition-all shadow-sm"><UserIcon className="w-5 h-5" /></div>
                )}
@@ -318,7 +331,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <div className="flex flex-col items-center gap-4">
                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-emerald-50 dark:border-emerald-900/30 shadow-xl relative bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center transition-transform group-hover:scale-105">
-                    {profileForm.avatar ? <img src={`${import.meta.env.VITE_API_URL}${profileForm.avatar}`} alt="Preview" className="w-full h-full object-cover" /> : <UserIcon className="w-12 h-12 text-emerald-300" />}
+                    {profileForm.avatar ? <img src={getAvatarSrc(profileForm.avatar)} alt="Preview" className="w-full h-full object-cover" /> : <UserIcon className="w-12 h-12 text-emerald-300" />}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all"><Camera className="w-6 h-6" /></div>
                   </div>
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />

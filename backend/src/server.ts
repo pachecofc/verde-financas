@@ -44,8 +44,8 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// Servir arquivos estáticos da pasta 'uploads'
-// Isso permite que o frontend acesse as imagens de perfil via /uploads/avatars/nome-do-arquivo.jpg
+// Servir arquivos estáticos da pasta 'uploads' (avatares antigos apenas)
+// Novos avatares vão para Supabase Storage; /uploads mantido para retrocompatibilidade.
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Rotas de autenticação

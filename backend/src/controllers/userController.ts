@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { UserService } from '../services/userService';
 import { UserPlan } from '@prisma/client';
+import { uploadAvatarToSupabase } from '../services/avatarStorageService';
 
 export class UserController {
   static async updateAvatar(req: AuthenticatedRequest, res: Response) {
@@ -9,13 +10,16 @@ export class UserController {
       if (!req.userId) {
         return res.status(401).json({ error: 'Usuário não autenticado.' });
       }
-      if (!req.file) {
+      if (!req.file || !req.file.buffer) {
         return res.status(400).json({ error: 'Nenhum arquivo de imagem enviado.' });
       }
 
-      const avatarPath = `/uploads/avatars/${req.file.filename}`;
-
-      const updatedUser = await UserService.updateUserAvatar(req.userId, avatarPath);
+      const avatarUrl = await uploadAvatarToSupabase(
+        req.userId,
+        req.file.buffer,
+        req.file.mimetype
+      );
+      const updatedUser = await UserService.updateUserAvatar(req.userId, avatarUrl);
 
       res.status(200).json({
         message: 'Avatar atualizado com sucesso!',
@@ -23,9 +27,9 @@ export class UserController {
       });
     } catch (error) {
       console.error('Erro ao atualizar avatar:', error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : 'Erro interno do servidor ao atualizar avatar.',
-      });
+      const message = error instanceof Error ? error.message : 'Erro interno ao atualizar avatar.';
+      const status = message.includes('não está configurado') || message.includes('não permitido') ? 400 : 500;
+      res.status(status).json({ error: message });
     }
   }
 
