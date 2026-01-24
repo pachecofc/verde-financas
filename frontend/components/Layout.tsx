@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ArrowLeftRight, PieChart, CalendarDays, CreditCard, LogOut,
   Menu, X, Tags, Camera, User as UserIcon, Lock, ChevronDown, ChevronUp, TrendingUp,
   Moon, Sun, Eye, EyeOff, Sparkles, BrainCircuit, HeartPulse, Save,
-  AlertCircle, CheckCircle, Loader2, Coins
+  AlertCircle, CheckCircle, Loader2, Coins, FileText
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,6 +101,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { name: 'Programação', path: '/schedule', icon: CalendarDays },
     { name: 'Investimentos', path: '/investments', icon: TrendingUp },
     { name: 'Saúde Financeira', path: '/health', icon: HeartPulse },
+    { name: 'Relatórios', path: '/reports', icon: FileText },
     { name: 'Contas', path: '/accounts', icon: CreditCard },
     { name: 'Categorias', path: '/categories', icon: Tags },
     { name: 'Ativos', path: '/assets', icon: Coins },

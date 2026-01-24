@@ -12,6 +12,7 @@ import assetRoutes from './routes/assetRoutes';
 import assetHoldingRoutes from './routes/assetHoldingRoutes';
 import goalRoutes from './routes/goalRoutes';
 import scoreRoutes from './routes/scoreRoutes';
+import reportRoutes from './routes/reportRoutes';
 import path from 'path';
 
 const app = express();
@@ -79,6 +80,9 @@ app.use('/api/goals', goalRoutes);
 
 // Rotas de score e gamificação
 app.use('/api/scores', scoreRoutes);
+
+// Rotas de relatórios
+app.use('/api/reports', reportRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {

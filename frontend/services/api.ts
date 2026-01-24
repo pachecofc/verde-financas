@@ -962,6 +962,65 @@ const scoreApi = {
   },
 };
 
+// ============ REPORT API ============
+export interface ExpenseByCategory {
+  categoryId: string;
+  categoryName: string;
+  categoryIcon?: string;
+  categoryColor?: string;
+  totalAmount: number;
+  percentage: number;
+  transactionCount: number;
+}
+
+export interface ExpenseReport {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  totalExpenses: number;
+  expensesByCategory: ExpenseByCategory[];
+  previousPeriod?: {
+    startDate: string;
+    endDate: string;
+    totalExpenses: number;
+    expensesByCategory: ExpenseByCategory[];
+  };
+  comparison?: {
+    totalDifference: number;
+    totalDifferencePercentage: number;
+    categoryComparisons: Array<{
+      categoryId: string;
+      categoryName: string;
+      currentAmount: number;
+      previousAmount: number;
+      difference: number;
+      differencePercentage: number;
+    }>;
+  };
+}
+
+const reportApi = {
+  // Obter relatório de despesas por categoria
+  getExpensesByCategory: async (
+    startDate: string,
+    endDate: string,
+    includeComparison: boolean = true
+  ): Promise<ExpenseReport> => {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+      includeComparison: includeComparison.toString(),
+    });
+
+    const response = await fetch(`${API_BASE_URL}/reports/expenses-by-category?${queryParams}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<ExpenseReport>(response);
+  },
+};
+
 export default {
   category: categoryApi,
   auth: authApi,
@@ -973,4 +1032,5 @@ export default {
   assetHolding: assetHoldingApi,
   goal: goalApi,
   score: scoreApi,
+  report: reportApi,
 };
