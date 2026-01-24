@@ -545,4 +545,186 @@ export class ReportService {
       forecast,
     };
   }
+
+  /**
+   * Gera relatório de Evolução do Saldo / Patrimônio
+   * Mostra evolução do saldo total e patrimônio líquido ao longo dos meses
+   */
+  static async getBalanceEvolutionReport(
+    userId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    // Buscar todas as contas do usuário
+    const accounts = await prisma.account.findMany({
+      where: { userId },
+    });
+
+    // Buscar todos os holdings de ativos
+    const assetHoldings = await prisma.assetHolding.findMany({
+      where: { userId },
+      include: {
+        asset: true,
+      },
+    });
+
+    // Calcular saldo atual total (soma dos saldos atuais das contas)
+    const currentBalance = accounts.reduce((sum, acc) => sum + acc.balance.toNumber(), 0);
+    
+    // Calcular valor atual dos ativos
+    const currentAssetValue = assetHoldings.reduce(
+      (sum, holding) => sum + holding.currentValue.toNumber(),
+      0
+    );
+
+    // Buscar todas as transações do período
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Calcular saldo inicial: saldo atual menos o impacto das transações do período
+    let balanceAdjustment = 0;
+    transactions.forEach(transaction => {
+      const amount = transaction.amount.toNumber();
+      if (transaction.type === 'income') {
+        balanceAdjustment += amount;
+      } else if (transaction.type === 'expense') {
+        balanceAdjustment -= amount;
+      }
+      // Transferências e ajustes não afetam o saldo total
+    });
+
+    const initialBalance = currentBalance - balanceAdjustment;
+    const initialNetWorth = initialBalance + currentAssetValue;
+
+    // Agrupar transações por mês e calcular evolução
+    const monthlyData = new Map<string, {
+      month: string;
+      monthLabel: string;
+      totalBalance: number;
+      assetValue: number;
+      netWorth: number;
+      transactions: number;
+    }>();
+
+    // Calcular saldo mês a mês
+    let runningBalance = initialBalance;
+
+    // Processar transações mês a mês
+    transactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      const capitalizedMonthLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+      let monthData = monthlyData.get(monthKey);
+      if (!monthData) {
+        monthData = {
+          month: monthKey,
+          monthLabel: capitalizedMonthLabel,
+          totalBalance: runningBalance,
+          assetValue: currentAssetValue, // Assumindo que o valor dos ativos é constante por enquanto
+          netWorth: runningBalance + currentAssetValue,
+          transactions: 0,
+        };
+        monthlyData.set(monthKey, monthData);
+      }
+
+      // Atualizar saldo baseado no tipo de transação
+      const amount = transaction.amount.toNumber();
+      
+      if (transaction.type === 'income') {
+        runningBalance += amount;
+      } else if (transaction.type === 'expense') {
+        runningBalance -= amount;
+      }
+      // Transferências e ajustes não alteram o saldo total
+
+      monthData.totalBalance = runningBalance;
+      monthData.netWorth = runningBalance + currentAssetValue;
+      monthData.transactions += 1;
+    });
+
+    // Se não houver transações, criar pelo menos um ponto de dados inicial
+    if (monthlyData.size === 0) {
+      const startMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+      const startMonthLabel = startDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      monthlyData.set(startMonth, {
+        month: startMonth,
+        monthLabel: startMonthLabel.charAt(0).toUpperCase() + startMonthLabel.slice(1),
+        totalBalance: initialBalance,
+        assetValue: currentAssetValue,
+        netWorth: initialNetWorth,
+        transactions: 0,
+      });
+    }
+
+    // Converter para array e ordenar
+    const evolutionData = Array.from(monthlyData.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map((month, index, array) => {
+        // Calcular variação percentual
+        const previousMonth = index > 0 ? array[index - 1] : null;
+        let balanceVariation = 0;
+        let netWorthVariation = 0;
+
+        if (previousMonth) {
+          if (previousMonth.totalBalance !== 0) {
+            balanceVariation = ((month.totalBalance - previousMonth.totalBalance) / Math.abs(previousMonth.totalBalance)) * 100;
+          }
+          if (previousMonth.netWorth !== 0) {
+            netWorthVariation = ((month.netWorth - previousMonth.netWorth) / Math.abs(previousMonth.netWorth)) * 100;
+          }
+        }
+
+        return {
+          ...month,
+          balanceVariation,
+          netWorthVariation,
+        };
+      });
+
+    // Calcular variação total do período
+    const firstMonth = evolutionData[0];
+    const lastMonth = evolutionData[evolutionData.length - 1];
+    
+    const totalBalanceVariation = firstMonth && lastMonth && firstMonth.totalBalance !== 0
+      ? ((lastMonth.totalBalance - firstMonth.totalBalance) / Math.abs(firstMonth.totalBalance)) * 100
+      : 0;
+
+    const totalNetWorthVariation = firstMonth && lastMonth && firstMonth.netWorth !== 0
+      ? ((lastMonth.netWorth - firstMonth.netWorth) / Math.abs(firstMonth.netWorth)) * 100
+      : 0;
+
+    return {
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      },
+      initial: {
+        totalBalance: initialBalance,
+        assetValue: currentAssetValue,
+        netWorth: initialNetWorth,
+      },
+      final: {
+        totalBalance: lastMonth?.totalBalance || initialBalance,
+        assetValue: lastMonth?.assetValue || currentAssetValue,
+        netWorth: lastMonth?.netWorth || initialNetWorth,
+      },
+      evolution: evolutionData,
+      summary: {
+        totalBalanceVariation,
+        totalNetWorthVariation,
+      },
+    };
+  }
 }

@@ -1062,6 +1062,39 @@ export interface CashFlowReport {
   trend: CashFlowTrend | null;
 }
 
+export interface BalanceEvolutionMonth {
+  month: string;
+  monthLabel: string;
+  totalBalance: number;
+  assetValue: number;
+  netWorth: number;
+  transactions: number;
+  balanceVariation: number;
+  netWorthVariation: number;
+}
+
+export interface BalanceEvolutionReport {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  initial: {
+    totalBalance: number;
+    assetValue: number;
+    netWorth: number;
+  };
+  final: {
+    totalBalance: number;
+    assetValue: number;
+    netWorth: number;
+  };
+  evolution: BalanceEvolutionMonth[];
+  summary: {
+    totalBalanceVariation: number;
+    totalNetWorthVariation: number;
+  };
+}
+
 const reportApi = {
   // Obter relatório de despesas por categoria
   getExpensesByCategory: async (
@@ -1116,6 +1149,23 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<CashFlowReport>(response);
+  },
+
+  // Obter relatório de Evolução do Saldo / Patrimônio
+  getBalanceEvolution: async (
+    startDate: string,
+    endDate: string
+  ): Promise<BalanceEvolutionReport> => {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+
+    const response = await fetch(`${API_BASE_URL}/reports/balance-evolution?${queryParams}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<BalanceEvolutionReport>(response);
   },
 };
 

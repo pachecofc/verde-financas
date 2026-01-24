@@ -13,8 +13,9 @@ import {
 import { ExpensesByCategoryReport } from './reports/ExpensesByCategoryReport';
 import { IncomeByCategoryReport } from './reports/IncomeByCategoryReport';
 import { CashFlowReport } from './reports/CashFlowReport';
+import { BalanceEvolutionReport } from './reports/BalanceEvolutionReport';
 
-type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | null;
+type ReportType = 'expenses-by-category' | 'income-by-category' | 'cash-flow' | 'balance-evolution' | null;
 
 interface ReportCard {
   id: ReportType;
@@ -49,6 +50,14 @@ const reportCards: ReportCard[] = [
     icon: DollarSign,
     color: 'text-blue-600 dark:text-blue-400',
     bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+  },
+  {
+    id: 'balance-evolution',
+    title: 'Evolução do Saldo / Patrimônio',
+    description: 'Evolução do saldo total e patrimônio líquido ao longo dos meses com variações percentuais',
+    icon: Wallet,
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
   },
   // Futuros relatórios podem ser adicionados aqui:
   // {
@@ -107,6 +116,10 @@ export const Reports: React.FC = () => {
 
   if (selectedReport === 'cash-flow') {
     return <CashFlowReport onBack={handleBack} />;
+  }
+
+  if (selectedReport === 'balance-evolution') {
+    return <BalanceEvolutionReport onBack={handleBack} />;
   }
 
   // Página principal com cards

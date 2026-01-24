@@ -11,5 +11,6 @@ router.use(authMiddleware);
 router.get('/expenses-by-category', ReportController.getExpensesByCategory);
 router.get('/income-by-category', ReportController.getIncomeByCategory);
 router.get('/cash-flow', ReportController.getCashFlow);
+router.get('/balance-evolution', ReportController.getBalanceEvolution);
 
 export default router;
