@@ -727,4 +727,365 @@ export class ReportService {
       },
     };
   }
+
+  /**
+   * Gera relatório de Metas Financeiras
+   * Mostra progresso, percentual concluído e comparação de datas
+   */
+  static async getGoalsReport(userId: string) {
+    // Buscar todas as metas do usuário
+    const goals = await prisma.goal.findMany({
+      where: { userId },
+      orderBy: [
+        { deadline: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    const now = new Date();
+    const goalsData = goals.map(goal => {
+      const targetAmount = goal.targetAmount.toNumber();
+      const currentAmount = goal.currentAmount.toNumber();
+      const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
+      const isCompleted = currentAmount >= targetAmount;
+      const remaining = Math.max(0, targetAmount - currentAmount);
+
+      // Data prevista (deadline)
+      const expectedDate = goal.deadline ? new Date(goal.deadline) : null;
+
+      // Data real de conclusão (quando currentAmount >= targetAmount)
+      // Usar updatedAt como aproximação se a meta estiver concluída
+      const actualDate = isCompleted ? new Date(goal.updatedAt) : null;
+
+      // Status da meta
+      let status: 'on-track' | 'at-risk' | 'delayed' | 'completed' | 'no-deadline' = 'no-deadline';
+      
+      if (isCompleted) {
+        status = 'completed';
+      } else if (expectedDate) {
+        const daysRemaining = Math.ceil((expectedDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const totalDays = Math.ceil((expectedDate.getTime() - goal.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        const daysElapsed = Math.ceil((now.getTime() - goal.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        const expectedProgress = totalDays > 0 ? (daysElapsed / totalDays) * 100 : 0;
+
+        if (expectedProgress > percentage + 10) {
+          status = 'delayed';
+        } else if (expectedProgress > percentage - 5) {
+          status = 'at-risk';
+        } else {
+          status = 'on-track';
+        }
+      }
+
+      // Calcular progresso esperado baseado no tempo
+      let expectedProgress = 0;
+      if (expectedDate && !isCompleted) {
+        const totalDays = Math.ceil((expectedDate.getTime() - goal.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        const daysElapsed = Math.ceil((now.getTime() - goal.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        expectedProgress = totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
+      }
+
+      return {
+        id: goal.id,
+        name: goal.name,
+        targetAmount,
+        currentAmount,
+        percentage: Math.min(100, percentage),
+        remaining,
+        isCompleted,
+        expectedDate: expectedDate ? expectedDate.toISOString().split('T')[0] : null,
+        actualDate: actualDate ? actualDate.toISOString().split('T')[0] : null,
+        status,
+        icon: goal.icon || null,
+        color: goal.color || null,
+        createdAt: goal.createdAt.toISOString().split('T')[0],
+        expectedProgress,
+      };
+    });
+
+    // Calcular estatísticas gerais
+    const totalGoals = goalsData.length;
+    const completedGoals = goalsData.filter(g => g.isCompleted).length;
+    const onTrackGoals = goalsData.filter(g => g.status === 'on-track').length;
+    const atRiskGoals = goalsData.filter(g => g.status === 'at-risk').length;
+    const delayedGoals = goalsData.filter(g => g.status === 'delayed').length;
+    const totalTarget = goalsData.reduce((sum, g) => sum + g.targetAmount, 0);
+    const totalCurrent = goalsData.reduce((sum, g) => sum + g.currentAmount, 0);
+    const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
+
+    // Calcular progresso cumulativo ao longo do tempo
+    // Agrupar por mês baseado na criação e atualização das metas
+    const cumulativeProgress = new Map<string, {
+      month: string;
+      monthLabel: string;
+      goalsCreated: number;
+      goalsCompleted: number;
+      totalProgress: number;
+      cumulativeAmount: number;
+    }>();
+
+    goals.forEach(goal => {
+      // Mês de criação
+      const createdAt = new Date(goal.createdAt);
+      const createdMonth = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const createdMonthLabel = createdAt.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      
+      let monthData = cumulativeProgress.get(createdMonth);
+      if (!monthData) {
+        monthData = {
+          month: createdMonth,
+          monthLabel: createdMonthLabel.charAt(0).toUpperCase() + createdMonthLabel.slice(1),
+          goalsCreated: 0,
+          goalsCompleted: 0,
+          totalProgress: 0,
+          cumulativeAmount: 0,
+        };
+        cumulativeProgress.set(createdMonth, monthData);
+      }
+      monthData.goalsCreated += 1;
+
+      // Se a meta foi concluída, registrar no mês de conclusão
+      const currentAmount = goal.currentAmount.toNumber();
+      const targetAmount = goal.targetAmount.toNumber();
+      if (currentAmount >= targetAmount) {
+        const updatedAt = new Date(goal.updatedAt);
+        const completedMonth = `${updatedAt.getFullYear()}-${String(updatedAt.getMonth() + 1).padStart(2, '0')}`;
+        const completedMonthLabel = updatedAt.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        
+        let completedMonthData = cumulativeProgress.get(completedMonth);
+        if (!completedMonthData) {
+          completedMonthData = {
+            month: completedMonth,
+            monthLabel: completedMonthLabel.charAt(0).toUpperCase() + completedMonthLabel.slice(1),
+            goalsCreated: 0,
+            goalsCompleted: 0,
+            totalProgress: 0,
+            cumulativeAmount: 0,
+          };
+          cumulativeProgress.set(completedMonth, completedMonthData);
+        }
+        completedMonthData.goalsCompleted += 1;
+      }
+    });
+
+    // Calcular progresso acumulado mês a mês
+    let cumulativeAmount = 0;
+    const cumulativeData = Array.from(cumulativeProgress.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(month => {
+        // Somar o progresso atual de todas as metas até este mês
+        const goalsUpToMonth = goalsData.filter(g => {
+          const goalCreated = new Date(g.createdAt);
+          const goalMonth = `${goalCreated.getFullYear()}-${String(goalCreated.getMonth() + 1).padStart(2, '0')}`;
+          return goalMonth <= month.month;
+        });
+        
+        const currentProgress = goalsUpToMonth.reduce((sum, g) => sum + g.currentAmount, 0);
+        const targetProgress = goalsUpToMonth.reduce((sum, g) => sum + g.targetAmount, 0);
+        const progressPercentage = targetProgress > 0 ? (currentProgress / targetProgress) * 100 : 0;
+
+        return {
+          ...month,
+          cumulativeAmount: currentProgress,
+          cumulativeTarget: targetProgress,
+          progressPercentage,
+        };
+      });
+
+    return {
+      summary: {
+        totalGoals,
+        completedGoals,
+        onTrackGoals,
+        atRiskGoals,
+        delayedGoals,
+        totalTarget,
+        totalCurrent,
+        overallProgress,
+      },
+      goals: goalsData,
+      cumulativeProgress: cumulativeData,
+    };
+  }
+
+  /**
+   * Gera relatório de Dívidas e Obrigações
+   * Baseado em agendamentos recorrentes de despesas
+   */
+  static async getDebtsReport(userId: string): Promise<{
+    summary: {
+      totalDebts: number;
+      totalMonthlyImpact: number;
+      totalDebtAmount: number;
+      totalInterest: number;
+      totalCost: number;
+      totalPaid: number;
+      totalRemaining: number;
+    };
+    debts: Array<{
+      id: string;
+      description: string;
+      amount: number;
+      monthlyImpact: number;
+      frequency: string;
+      startDate: string;
+      lastPaymentDate: string;
+      totalInstallments: number;
+      remainingInstallments: number;
+      paidInstallments: number;
+      interestRate: number;
+      estimatedInterest: number;
+      totalAmount: number;
+      totalInterest: number;
+      totalCost: number;
+      paidAmount: number;
+      remainingAmount: number;
+      remainingCost: number;
+      categoryName: string;
+      categoryIcon: string | null;
+      categoryColor: string | null;
+      accountName: string;
+      daysUntilNextPayment: number;
+    }>;
+  }> {
+    // Buscar todos os agendamentos de despesas recorrentes
+    const schedules = await prisma.schedule.findMany({
+      where: {
+        userId,
+        type: 'expense',
+        frequency: {
+          in: ['monthly', 'weekly'],
+        },
+      },
+      include: {
+        category: true,
+        account: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    const now = new Date();
+    const debtsData = schedules.map(schedule => {
+      const amount = schedule.amount.toNumber();
+      const scheduleDate = new Date(schedule.date);
+      
+      // Calcular impacto mensal
+      let monthlyImpact = 0;
+      if (schedule.frequency === 'monthly') {
+        monthlyImpact = amount;
+      } else if (schedule.frequency === 'weekly') {
+        monthlyImpact = amount * 4.33; // Média de semanas por mês
+      }
+
+      // Estimar juros (taxa padrão de 2% ao mês para dívidas)
+      // Em um sistema real, isso viria de um campo específico
+      const interestRate = 0.02; // 2% ao mês
+      const estimatedInterest = amount * interestRate;
+
+      // Calcular parcelas pagas e restantes
+      // Para monthly: contar meses desde a data inicial até hoje
+      // Para weekly: contar semanas desde a data inicial até hoje
+      let paidInstallments = 0;
+      let totalInstallments = 0;
+      
+      if (schedule.frequency === 'monthly') {
+        // Calcular meses desde a data inicial
+        const startDate = new Date(schedule.date);
+        const monthsDiff = (now.getFullYear() - startDate.getFullYear()) * 12 + 
+                          (now.getMonth() - startDate.getMonth());
+        paidInstallments = Math.max(0, monthsDiff);
+        
+        // Estimar total de parcelas (assumindo 12 meses ou até a data atual + 12 meses)
+        const estimatedEndDate = new Date(startDate);
+        estimatedEndDate.setMonth(estimatedEndDate.getMonth() + 12);
+        totalInstallments = Math.max(1, Math.ceil(
+          (estimatedEndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+        ));
+      } else if (schedule.frequency === 'weekly') {
+        // Calcular semanas desde a data inicial
+        const startDate = new Date(schedule.date);
+        const weeksDiff = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+        paidInstallments = Math.max(0, weeksDiff);
+        
+        // Estimar total de parcelas (assumindo 52 semanas ou 1 ano)
+        totalInstallments = 52;
+      }
+
+      const remainingInstallments = Math.max(0, totalInstallments - paidInstallments);
+      
+      // Calcular prazo de quitação (data da última parcela)
+      const lastPaymentDate = new Date(scheduleDate);
+      if (schedule.frequency === 'monthly') {
+        lastPaymentDate.setMonth(lastPaymentDate.getMonth() + (totalInstallments - 1));
+      } else if (schedule.frequency === 'weekly') {
+        lastPaymentDate.setDate(lastPaymentDate.getDate() + ((totalInstallments - 1) * 7));
+      }
+
+      // Calcular valor total (valor das parcelas + juros estimados)
+      const totalAmount = amount * totalInstallments;
+      const totalInterest = estimatedInterest * totalInstallments;
+      const totalCost = totalAmount + totalInterest;
+
+      // Calcular valor já pago
+      const paidAmount = amount * paidInstallments;
+      const remainingAmount = totalAmount - paidAmount;
+
+      // Calcular custo total restante (incluindo juros)
+      const remainingCost = remainingAmount + (estimatedInterest * remainingInstallments);
+
+      return {
+        id: schedule.id,
+        description: schedule.description,
+        amount,
+        monthlyImpact,
+        frequency: schedule.frequency,
+        startDate: schedule.date.toISOString().split('T')[0],
+        lastPaymentDate: lastPaymentDate.toISOString().split('T')[0],
+        totalInstallments,
+        remainingInstallments,
+        paidInstallments,
+        interestRate: interestRate * 100, // Em percentual
+        estimatedInterest,
+        totalAmount,
+        totalInterest,
+        totalCost,
+        paidAmount,
+        remainingAmount,
+        remainingCost,
+        categoryName: schedule.category?.name || 'Sem categoria',
+        categoryIcon: schedule.category?.icon || null,
+        categoryColor: schedule.category?.color || null,
+        accountName: schedule.account.name,
+        daysUntilNextPayment: Math.ceil((scheduleDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      };
+    });
+
+    // Ordenar por custo total (mais caras primeiro)
+    const sortedDebts = debtsData.sort((a, b) => b.totalCost - a.totalCost);
+
+    // Calcular impacto mensal total
+    const totalMonthlyImpact = debtsData.reduce((sum, debt) => sum + debt.monthlyImpact, 0);
+
+    // Calcular totais
+    const totalDebtAmount = debtsData.reduce((sum, debt) => sum + debt.totalAmount, 0);
+    const totalInterest = debtsData.reduce((sum, debt) => sum + debt.totalInterest, 0);
+    const totalCost = debtsData.reduce((sum, debt) => sum + debt.totalCost, 0);
+    const totalPaid = debtsData.reduce((sum, debt) => sum + debt.paidAmount, 0);
+    const totalRemaining = debtsData.reduce((sum, debt) => sum + debt.remainingCost, 0);
+
+    return {
+      summary: {
+        totalDebts: debtsData.length,
+        totalMonthlyImpact,
+        totalDebtAmount,
+        totalInterest,
+        totalCost,
+        totalPaid,
+        totalRemaining,
+      },
+      debts: sortedDebts,
+    };
+  }
 }

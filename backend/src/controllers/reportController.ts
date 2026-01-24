@@ -196,4 +196,40 @@ export class ReportController {
       });
     }
   }
+
+  /**
+   * GET /api/reports/goals
+   * Gera relatório de Metas Financeiras
+   */
+  static async getGoals(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+
+      const report = await ReportService.getGoalsReport(userId);
+
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to generate report',
+      });
+    }
+  }
+
+  /**
+   * GET /api/reports/debts
+   * Gera relatório de Dívidas e Obrigações
+   */
+  static async getDebts(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+
+      const report = await ReportService.getDebtsReport(userId);
+
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to generate report',
+      });
+    }
+  }
 }

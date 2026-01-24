@@ -1095,6 +1095,88 @@ export interface BalanceEvolutionReport {
   };
 }
 
+export interface GoalReportData {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  percentage: number;
+  remaining: number;
+  isCompleted: boolean;
+  expectedDate: string | null;
+  actualDate: string | null;
+  status: 'on-track' | 'at-risk' | 'delayed' | 'completed' | 'no-deadline';
+  icon: string | null;
+  color: string | null;
+  createdAt: string;
+  expectedProgress: number;
+}
+
+export interface CumulativeProgress {
+  month: string;
+  monthLabel: string;
+  goalsCreated: number;
+  goalsCompleted: number;
+  totalProgress: number;
+  cumulativeAmount: number;
+  cumulativeTarget: number;
+  progressPercentage: number;
+}
+
+export interface GoalsReport {
+  summary: {
+    totalGoals: number;
+    completedGoals: number;
+    onTrackGoals: number;
+    atRiskGoals: number;
+    delayedGoals: number;
+    totalTarget: number;
+    totalCurrent: number;
+    overallProgress: number;
+  };
+  goals: GoalReportData[];
+  cumulativeProgress: CumulativeProgress[];
+}
+
+export interface DebtData {
+  id: string;
+  description: string;
+  amount: number;
+  monthlyImpact: number;
+  frequency: 'monthly' | 'weekly';
+  startDate: string;
+  lastPaymentDate: string;
+  totalInstallments: number;
+  remainingInstallments: number;
+  paidInstallments: number;
+  interestRate: number;
+  estimatedInterest: number;
+  totalAmount: number;
+  totalInterest: number;
+  totalCost: number;
+  paidAmount: number;
+  remainingAmount: number;
+  remainingCost: number;
+  categoryName: string;
+  categoryIcon: string | null;
+  categoryColor: string | null;
+  accountName: string;
+  daysUntilNextPayment: number;
+}
+
+export interface DebtsReport {
+  summary: {
+    totalDebts: number;
+    totalMonthlyImpact: number;
+    totalDebtAmount: number;
+    totalInterest: number;
+    totalCost: number;
+    totalPaid: number;
+    totalRemaining: number;
+  };
+  debts: DebtData[];
+}
+
 const reportApi = {
   // Obter relatório de despesas por categoria
   getExpensesByCategory: async (
@@ -1166,6 +1248,24 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<BalanceEvolutionReport>(response);
+  },
+
+  // Obter relatório de Metas Financeiras
+  getGoals: async (): Promise<GoalsReport> => {
+    const response = await fetch(`${API_BASE_URL}/reports/goals`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<GoalsReport>(response);
+  },
+
+  // Obter relatório de Dívidas e Obrigações
+  getDebts: async (): Promise<DebtsReport> => {
+    const response = await fetch(`${API_BASE_URL}/reports/debts`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<DebtsReport>(response);
   },
 };
 

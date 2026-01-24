@@ -12,5 +12,7 @@ router.get('/expenses-by-category', ReportController.getExpensesByCategory);
 router.get('/income-by-category', ReportController.getIncomeByCategory);
 router.get('/cash-flow', ReportController.getCashFlow);
 router.get('/balance-evolution', ReportController.getBalanceEvolution);
+router.get('/goals', ReportController.getGoals);
+router.get('/debts', ReportController.getDebts);
 
 export default router;
