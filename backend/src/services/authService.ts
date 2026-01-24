@@ -1,0 +1,196 @@
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { prisma } from '../prisma';
+import { JWT_SECRET, JWT_EXPIRATION } from '../config/jwt';
+import { AuthRequest, AuthResponse } from '../types';
+import { sendEmail } from '../config/mailer';
+import crypto from 'crypto';
+
+// Adicionar a URL do frontend para o link de reset
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+export class AuthService {
+  // Registrar novo usuário
+  static async signup(data: AuthRequest): Promise<AuthResponse> {
+    const { email, password, name } = data;
+
+    // Verificar se usuário já existe
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new Error('Usuário já existe');
+    }
+
+    // Hash da senha
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Criar usuário
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name: name || email.split('@')[0],
+        password: hashedPassword,
+      },
+    });
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRATION }
+    );
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    };
+  }
+
+  // Fazer login
+  static async login(data: AuthRequest): Promise<AuthResponse> {
+    const { email, password } = data;
+
+    // Buscar usuário
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Verificar senha
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      throw new Error('Senha inválida');
+    }
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRATION }
+    );
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    };
+  }
+
+  // Verificar token JWT
+  static verifyToken(token: string) {
+    try {
+      return jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      throw new Error('Token inválido');
+    }
+  }
+
+  // Solicitar redefinição de senha
+  static async requestPasswordReset(email: string): Promise<void> {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    // Não informar se o usuário existe por segurança
+    if (!user) {
+      console.log(`Attempted password reset for non-existent email: ${email}`);
+      // Ainda assim, retornamos sucesso para evitar enumeração de usuários
+      return;
+    }
+
+    // Gerar um token de redefinição único e seguro
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpires = new Date(Date.now() + 3600000); // Token válido por 1 hora
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetTokenExpires,
+      },
+    });
+
+    const resetUrl = `${FRONTEND_URL}/#/reset-password/${resetToken}`;
+
+    const emailHtml = `
+      <p>Você solicitou a redefinição de sua senha.</p>
+      <p>Por favor, clique no link a seguir para redefinir sua senha:</p>
+      <p><a href="${resetUrl}">Redefinir Senha</a></p>
+      <p>Este link é válido por 1 hora.</p>
+      <p>Se você não solicitou isso, por favor, ignore este e-mail.</p>
+    `;
+
+    await sendEmail(user.email, 'Redefinição de Senha para seu App de Finanças', emailHtml);
+  }
+
+  // Redefinir senha
+  static async resetPassword(token: string, newPasswordPlain: string): Promise<void> {
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpires: {
+          gt: new Date(), // Verifica se o token não expirou
+        },
+      },
+    });
+
+    if (!user) {
+      throw new Error('Token de redefinição inválido ou expirado.');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPasswordPlain, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null, // Limpa o token após o uso
+        passwordResetExpires: null, // Limpa a expiração
+      },
+    });
+  }
+
+  // Alterar senha do usuário logado
+  static async changePassword(
+    userId: string,
+    currentPasswordPlain: string,
+    newPasswordPlain: string
+  ): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('Usuário não encontrado.');
+    }
+
+    // Verificar se a senha atual está correta
+    const passwordMatch = await bcrypt.compare(currentPasswordPlain, user.password);
+
+    if (!passwordMatch) {
+      throw new Error('Senha atual incorreta.');
+    }
+
+    // Fazer hash da nova senha
+    const newHashedPassword = await bcrypt.hash(newPasswordPlain, 10);
+
+    // Atualizar a senha no banco de dados
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: newHashedPassword,
+      },
+    });
+  }
+}

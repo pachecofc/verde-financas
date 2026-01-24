@@ -1,0 +1,7 @@
+{
+  "name": "VerdeFinanças - Gestão Financeira Pessoal",
+  "description": "Um aplicativo de gestão financeira elegante e intuitivo com foco em simplicidade, controle de gastos e planejamento de orçamentos.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
