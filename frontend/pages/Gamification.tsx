@@ -23,7 +23,7 @@ export const Gamification: React.FC = () => {
         color: 'text-rose-600', 
         bg: 'bg-rose-50', 
         border: 'border-rose-100',
-        message: 'Toda jornada começa no zero — continue avançando.'
+        message: 'Toda jornada começa no zero — não desista.'
       };
     }
     if (score >= 200 && score <= 349) {
@@ -50,7 +50,7 @@ export const Gamification: React.FC = () => {
         color: 'text-emerald-600', 
         bg: 'bg-emerald-50', 
         border: 'border-emerald-100',
-        message: 'Você está no caminho certo para a liberdade financeira plena.'
+        message: 'Este é o início de sua jornada para a liberdade financeira plena.'
       };
     }
     if (score >= 700 && score <= 849) {
