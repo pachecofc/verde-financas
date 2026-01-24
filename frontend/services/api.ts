@@ -1000,6 +1000,37 @@ export interface ExpenseReport {
   };
 }
 
+export interface IncomeByCategory {
+  categoryId: string;
+  categoryName: string;
+  categoryIcon?: string;
+  categoryColor?: string;
+  totalAmount: number;
+  percentage: number;
+  transactionCount: number;
+}
+
+export interface MonthlyEvolution {
+  month: string;
+  monthLabel: string;
+  total: number;
+  byCategory: Array<{
+    categoryId: string;
+    categoryName: string;
+    amount: number;
+  }>;
+}
+
+export interface IncomeReport {
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  totalIncome: number;
+  incomeByCategory: IncomeByCategory[];
+  monthlyEvolution: MonthlyEvolution[];
+}
+
 const reportApi = {
   // Obter relatório de despesas por categoria
   getExpensesByCategory: async (
@@ -1018,6 +1049,23 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<ExpenseReport>(response);
+  },
+
+  // Obter relatório de receitas por categoria
+  getIncomeByCategory: async (
+    startDate: string,
+    endDate: string
+  ): Promise<IncomeReport> => {
+    const queryParams = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+
+    const response = await fetch(`${API_BASE_URL}/reports/income-by-category?${queryParams}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse<IncomeReport>(response);
   },
 };
 

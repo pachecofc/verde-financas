@@ -15,8 +15,11 @@ export const Dashboard: React.FC = () => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // Aguardar dois frames para garantir que o DOM está totalmente renderizado
     const handle = requestAnimationFrame(() => {
-      setIsMounted(true);
+      requestAnimationFrame(() => {
+        setIsMounted(true);
+      });
     });
     return () => cancelAnimationFrame(handle);
   }, []);
@@ -196,9 +199,9 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="h-[350px] w-full">
+        <div className="h-[350px] w-full min-h-[350px] min-w-0">
           {isMounted && (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={350} minWidth={0}>
               <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 
@@ -276,9 +279,9 @@ export const Dashboard: React.FC = () => {
         {/* Despesas por Categoria */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6">Gastos por Categoria</h3>
-          <div className="h-[250px] w-full">
+          <div className="h-[250px] w-full min-h-[250px] min-w-0">
             {isMounted && expenseByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minHeight={250} minWidth={0}>
                 <RePieChart>
                   <Pie
                     data={expenseByCategory}

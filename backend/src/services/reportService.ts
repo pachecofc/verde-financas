@@ -233,4 +233,136 @@ export class ReportService {
 
     return report;
   }
+
+  /**
+   * Gera relatório de receitas por categoria com evolução mês a mês
+   */
+  static async getIncomeByCategoryReport(
+    userId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    // Buscar todas as receitas do período
+    const incomes = await prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'income',
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        categoryId: {
+          not: null,
+        },
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Agrupar por categoria
+    const categoryMap = new Map<string, {
+      categoryId: string;
+      categoryName: string;
+      categoryIcon?: string;
+      categoryColor?: string;
+      totalAmount: number;
+      transactionCount: number;
+    }>();
+
+    incomes.forEach(income => {
+      if (!income.categoryId || !income.category) return;
+
+      const existing = categoryMap.get(income.categoryId);
+      const amount = income.amount.toNumber();
+
+      if (existing) {
+        existing.totalAmount += amount;
+        existing.transactionCount += 1;
+      } else {
+        categoryMap.set(income.categoryId, {
+          categoryId: income.categoryId,
+          categoryName: income.category.name,
+          categoryIcon: income.category.icon || undefined,
+          categoryColor: income.category.color || undefined,
+          totalAmount: amount,
+          transactionCount: 1,
+        });
+      }
+    });
+
+    // Calcular total e porcentagens
+    const totalIncome = Array.from(categoryMap.values())
+      .reduce((sum, cat) => sum + cat.totalAmount, 0);
+
+    const incomeByCategory = Array.from(categoryMap.values())
+      .map(cat => ({
+        ...cat,
+        percentage: totalIncome > 0 ? (cat.totalAmount / totalIncome) * 100 : 0,
+      }))
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+
+    // Calcular evolução mês a mês
+    const monthlyEvolution = new Map<string, {
+      month: string;
+      monthLabel: string;
+      total: number;
+      byCategory: Map<string, number>;
+    }>();
+
+    incomes.forEach(income => {
+      if (!income.categoryId) return;
+
+      const date = new Date(income.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+      let monthData = monthlyEvolution.get(monthKey);
+      if (!monthData) {
+        monthData = {
+          month: monthKey,
+          monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+          total: 0,
+          byCategory: new Map(),
+        };
+        monthlyEvolution.set(monthKey, monthData);
+      }
+
+      const amount = income.amount.toNumber();
+      monthData.total += amount;
+
+      const categoryAmount = monthData.byCategory.get(income.categoryId) || 0;
+      monthData.byCategory.set(income.categoryId, categoryAmount + amount);
+    });
+
+    // Converter evolução mensal para array ordenado
+    const monthlyEvolutionArray = Array.from(monthlyEvolution.values())
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(month => ({
+        month: month.month,
+        monthLabel: month.monthLabel,
+        total: month.total,
+        byCategory: Array.from(month.byCategory.entries()).map(([categoryId, amount]) => {
+          const category = categoryMap.get(categoryId);
+          return {
+            categoryId,
+            categoryName: category?.categoryName || 'Desconhecida',
+            amount,
+          };
+        }),
+      }));
+
+    return {
+      period: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      },
+      totalIncome,
+      incomeByCategory,
+      monthlyEvolution: monthlyEvolutionArray,
+    };
+  }
 }

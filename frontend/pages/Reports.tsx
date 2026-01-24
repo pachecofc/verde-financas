@@ -11,8 +11,9 @@ import {
   FileText,
 } from 'lucide-react';
 import { ExpensesByCategoryReport } from './reports/ExpensesByCategoryReport';
+import { IncomeByCategoryReport } from './reports/IncomeByCategoryReport';
 
-type ReportType = 'expenses-by-category' | null;
+type ReportType = 'expenses-by-category' | 'income-by-category' | null;
 
 interface ReportCard {
   id: ReportType;
@@ -31,6 +32,14 @@ const reportCards: ReportCard[] = [
     icon: PieChart,
     color: 'text-red-600 dark:text-red-400',
     bgColor: 'bg-red-50 dark:bg-red-900/20',
+  },
+  {
+    id: 'income-by-category',
+    title: 'Receitas por Categoria',
+    description: 'Total de receitas, distribuição por categorias e evolução mês a mês',
+    icon: TrendingUp,
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
   },
   // Futuros relatórios podem ser adicionados aqui:
   // {
@@ -81,6 +90,10 @@ export const Reports: React.FC = () => {
   // Se um relatório foi selecionado, mostrar o relatório
   if (selectedReport === 'expenses-by-category') {
     return <ExpensesByCategoryReport onBack={handleBack} />;
+  }
+
+  if (selectedReport === 'income-by-category') {
+    return <IncomeByCategoryReport onBack={handleBack} />;
   }
 
   // Página principal com cards

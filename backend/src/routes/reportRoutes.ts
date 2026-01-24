@@ -9,5 +9,6 @@ router.use(authMiddleware);
 
 // Rotas de relatórios
 router.get('/expenses-by-category', ReportController.getExpensesByCategory);
+router.get('/income-by-category', ReportController.getIncomeByCategory);
 
 export default router;
