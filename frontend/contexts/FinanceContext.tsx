@@ -695,11 +695,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const message = error instanceof Error ? error.message : 'Erro ao criar transação';
         console.error('Erro ao criar transação:', error);
         toast.error(message);
-        // Continuar para salvar localmente em caso de erro
+        // Não salvar localmente quando houver erro do backend (ex: validações)
+        return;
       }
     }
 
-    // Salvar localmente (para transferências, ajustes ou quando não autenticado)
+    // Salvar localmente (apenas quando não autenticado ou para transferências/ajustes quando autenticado mas sem backend)
     setState(prev => {
       const newId = generateUniqueId('tr');
       const updatedAccounts = prev.accounts.map(acc => {
@@ -806,11 +807,12 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const message = error instanceof Error ? error.message : 'Erro ao atualizar transação';
         console.error('Erro ao atualizar transação:', error);
         toast.error(message);
-        // Continuar para atualizar localmente em caso de erro
+        // Não atualizar localmente quando houver erro do backend (ex: validações)
+        return;
       }
     }
 
-    // Atualizar localmente
+    // Atualizar localmente (apenas quando não autenticado)
     setState(prev => {
       const oldTr = prev.transactions.find(t => t.id === id);
       if (!oldTr) return prev;
