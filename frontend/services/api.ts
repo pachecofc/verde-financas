@@ -352,13 +352,14 @@ export const authApi = {
     const userStr = localStorage.getItem('auth_user');
     if (userStr) {
       try {
-        // Ao parsear, garantir que o avatarUrl seja incluído se existir
+        // Ao parsear, garantir que avatarUrl e plan sejam incluídos se existirem
         const parsedUser = JSON.parse(userStr);
         return {
           id: parsedUser.id,
           name: parsedUser.name,
           email: parsedUser.email,
-          avatarUrl: parsedUser.avatarUrl, // Incluir avatarUrl
+          avatarUrl: parsedUser.avatarUrl,
+          plan: parsedUser.plan,
         };
       } catch {
         return null;

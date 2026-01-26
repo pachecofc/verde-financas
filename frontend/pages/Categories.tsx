@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'; // Adiciona
 import { useFinance } from '../contexts/FinanceContext';
 import { Plus, Trash2, Edit2, ChevronRight, X, Smile, Loader2, AlertCircle, RefreshCw, MoreVertical, Search, Tags } from 'lucide-react';
 import { Category } from '../types';
+import { authApi } from '../services/api';
 
 // Importa os componentes do Radix UI Dropdown Menu
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -35,6 +36,7 @@ export const Categories: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState(''); // NOVO: Estado para o termo de busca
   const pickerRef = useRef<HTMLDivElement>(null);
+  const hasLoadedCategories = useRef(false); // Ref para rastrear se já tentamos carregar as categorias
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,6 +45,31 @@ export const Categories: React.FC = () => {
     color: '#10b981',
     parentId: ''
   });
+
+  // Carregar categorias quando a página for montada ou quando as categorias estiverem vazias (se autenticado)
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (authApi.isAuthenticated() && categories.length === 0 && !categoriesLoading && !hasLoadedCategories.current) {
+        console.log('Categories: Carregando categorias...');
+        hasLoadedCategories.current = true;
+        try {
+          await refreshCategories();
+        } catch (err) {
+          console.error('Erro ao carregar categorias:', err);
+          hasLoadedCategories.current = false; // Permite tentar novamente em caso de erro
+        }
+      }
+    };
+    
+    loadCategories();
+  }, [categories.length, categoriesLoading, refreshCategories]);
+
+  // Resetar o ref quando as categorias forem carregadas com sucesso
+  useEffect(() => {
+    if (categories.length > 0) {
+      hasLoadedCategories.current = false;
+    }
+  }, [categories.length]);
 
   // Fecha o seletor ao clicar fora
   useEffect(() => {
