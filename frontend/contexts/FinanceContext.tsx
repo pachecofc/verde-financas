@@ -3,6 +3,7 @@ import { FinanceState, Category, Account, Transaction, Budget, Schedule, UserPro
 import { INITIAL_CATEGORIES, INITIAL_ACCOUNTS } from '../constants';
 import api, { authApi, categoryApi } from '../services/api';
 import { toast } from 'sonner';
+import { useAuth } from './AuthContext';
 
 interface FinanceContextType extends FinanceState {
   addCategory: (c: Omit<Category, 'id'>) => Promise<void>;
@@ -51,6 +52,9 @@ const ACHIEVEMENTS: Achievement[] = [
 ];
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Usar AuthContext para detectar mudanças de autenticação
+  const { isAuthenticated: authIsAuthenticated } = useAuth();
+  
   const [state, setState] = useState<FinanceState>(() => {
     const saved = localStorage.getItem('verde_financas_state');
     const parsed = saved ? JSON.parse(saved) : null;
@@ -70,7 +74,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       assets: isAuth ? [] : (parsed?.assets || []),
       assetHoldings: isAuth ? [] : (parsed?.assetHoldings || []),
       goals: parsed?.goals || [],
-      user: isAuth ? (parsed?.user ? { ...parsed.user, score: 0, achievements: [] } : null) : (parsed?.user || { name: 'Visitante', email: '', plan: 'basic', score: 0, achievements: [] }),
+      user: isAuth ? (parsed?.user ? { ...parsed.user, score: parsed.user.score ?? 0, achievements: parsed.user.achievements ?? [] } : null) : (parsed?.user || { name: 'Visitante', email: '', plan: 'basic', score: 0, achievements: [] }),
       theme: parsed?.theme || 'light',
     };
   });
@@ -342,11 +346,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Buscar score e conquistas do backend
   const refreshUserScore = useCallback(async () => {
     if (!isBackendAuthenticated()) {
+      console.log('refreshUserScore: Usuário não autenticado, saindo.');
       return;
     }
 
     try {
+      console.log('refreshUserScore: Buscando score do backend...');
       const scoreData = await api.score.getUserScore();
+      console.log('refreshUserScore: Score recebido do backend:', scoreData.score);
       setState(prev => ({
         ...prev,
         user: prev.user ? {
@@ -362,14 +369,16 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           })),
         } : null,
       }));
+      console.log('refreshUserScore: Score atualizado no estado.');
     } catch (error) {
       console.error('Erro ao buscar score do backend:', error);
     }
   }, [isBackendAuthenticated]);
 
   useEffect(() => {
-    console.log('useEffect principal: isBackendAuthenticated:', isBackendAuthenticated());
-    if (isBackendAuthenticated()) {
+    const isAuth = authIsAuthenticated || isBackendAuthenticated();
+    console.log('useEffect principal: authIsAuthenticated:', authIsAuthenticated, 'isBackendAuthenticated():', isBackendAuthenticated(), 'isAuth:', isAuth);
+    if (isAuth) {
       // Sempre buscar categorias do backend quando autenticado
       console.log('useEffect principal: Chamando ensureDefaultCategories.');
       ensureDefaultCategories().catch(err => console.error('Erro ao garantir categorias padrão:', err));
@@ -393,7 +402,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isCreatingDefaultCategories.current = false;
       hasInitialized.current = false; // Reset flag quando desautenticado
     }
-  }, [isBackendAuthenticated, ensureDefaultCategories, refreshTransactions, refreshBudgets, refreshSchedules, refreshAssets, refreshAssetHoldings, refreshGoals]);
+  }, [authIsAuthenticated, ensureDefaultCategories, refreshTransactions, refreshBudgets, refreshSchedules, refreshAssets, refreshAssetHoldings, refreshGoals, refreshUserScore]);
 
   useEffect(() => {
     localStorage.setItem('verde_financas_state', JSON.stringify(state));
