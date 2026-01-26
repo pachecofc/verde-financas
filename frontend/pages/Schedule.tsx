@@ -4,7 +4,7 @@ import { useFinance } from '../contexts/FinanceContext';
 import { useAccounts } from '../contexts/AccountContext';
 import { 
   Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-  Trash2, Edit2, CheckCircle2, AlertCircle, Clock, ArrowRightLeft, ChevronRight as ChevronRightSmall, MoreVertical
+  Trash2, Edit2, CheckCircle2, AlertCircle, Clock, ArrowRightLeft, ChevronRight as ChevronRightSmall, MoreVertical, Loader2
 } from 'lucide-react';
 import { Schedule as ScheduleType, TransactionType } from '../types';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ export const Schedule: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [payingScheduleId, setPayingScheduleId] = useState<string | null>(null);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -182,7 +183,8 @@ export const Schedule: React.FC = () => {
     }
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = (force = false) => {
+    if (!force && isSubmitting) return;
     setShowModal(false);
     setEditingId(null);
     setFormData({
@@ -197,9 +199,10 @@ export const Schedule: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
+
     const finalCategoryId = (formData.type === 'transfer' || formData.type === 'adjustment')
       ? `sys-${formData.type}`
       : formData.categoryId;
@@ -215,12 +218,18 @@ export const Schedule: React.FC = () => {
       type: formData.type
     };
 
-    if (editingId) {
-      updateSchedule(editingId, data);
-    } else {
-      addSchedule(data);
+    try {
+      if (editingId) {
+        await updateSchedule(editingId, data);
+      } else {
+        await addSchedule(data);
+      }
+      handleCloseModal(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar agendamento.');
+    } finally {
+      setIsSubmitting(false);
     }
-    handleCloseModal();
   };
 
   const isScheduledOnDay = (day: number, sDate: string) => {
@@ -430,7 +439,7 @@ export const Schedule: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleCloseModal} />
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={isSubmitting ? undefined : handleCloseModal} />
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 p-6 transition-all" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">{editingId ? 'Editar Agendamento' : 'Agendar Lançamento'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -497,8 +506,19 @@ export const Schedule: React.FC = () => {
                 </select>
               </div>
 
-              <button type="submit" className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg dark:shadow-none mt-4 transition-all active:scale-[0.98]">
-                {editingId ? 'Salvar Alterações' : 'Salvar Agendamento'}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg dark:shadow-none mt-4 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <span>{editingId ? 'Salvar Alterações' : 'Salvar Agendamento'}</span>
+                )}
               </button>
             </form>
           </div>
