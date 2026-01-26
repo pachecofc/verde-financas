@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
+import { useAccounts } from '../contexts/AccountContext';
 import { 
   Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
   Trash2, Edit2, CheckCircle2, AlertCircle, Clock, ArrowRightLeft, ChevronRight as ChevronRightSmall, MoreVertical
@@ -11,9 +12,10 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 export const Schedule: React.FC = () => {
   const { 
-    schedules, categories, accounts, theme,
+    schedules, categories, theme,
     addSchedule, updateSchedule, deleteSchedule, addTransaction 
   } = useFinance();
+  const { accounts } = useAccounts();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
@@ -429,7 +431,7 @@ export const Schedule: React.FC = () => {
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleCloseModal} />
-          <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 p-6 transition-all">
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in duration-300 p-6 transition-all" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">{editingId ? 'Editar Agendamento' : 'Agendar Lançamento'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-3 gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
@@ -460,14 +462,16 @@ export const Schedule: React.FC = () => {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Conta</label>
                   <select required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all" value={formData.accountId} onChange={e => setFormData({...formData, accountId: e.target.value})}>
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    <option value="">Escolha...</option>
+                    {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
                 </div>
                 {formData.type === 'transfer' ? (
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Conta Destino</label>
                     <select required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all" value={formData.toAccountId} onChange={e => setFormData({...formData, toAccountId: e.target.value})}>
-                      {accounts.filter(a => a.id !== formData.accountId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      <option value="">Escolha...</option>
+                      {accounts.filter(a => a.id !== formData.accountId).slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                     </select>
                   </div>
                 ) : (
