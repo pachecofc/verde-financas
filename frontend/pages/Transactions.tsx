@@ -15,6 +15,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 type ImportStep = 'upload' | 'mapping' | 'review';
 
+type TransactionRow = { transaction: Transaction; creditView: boolean };
+
 export const Transactions: React.FC = () => {
   const { 
     transactions, categories, assets, user, theme,
@@ -113,6 +115,17 @@ export const Transactions: React.FC = () => {
     if (!cat.parentId) return `${cat.icon} ${cat.name}`;
     const parent = categories.find(c => c.id === cat.parentId);
     return `${parent?.icon || ''} ${parent?.name || ''} > ${cat.icon} ${cat.name}`;
+  };
+
+  const handleDeleteTransaction = (t: Transaction) => {
+    const isTransfer = t.type === 'transfer' && t.toAccountId;
+    if (isTransfer) {
+      const ok = window.confirm(
+        'Esta transferência será removida da conta origem e da conta destino. Deseja excluir?'
+      );
+      if (!ok) return;
+    }
+    deleteTransaction(t.id);
   };
 
   const handleEdit = (t: Transaction) => {
@@ -412,13 +425,25 @@ export const Transactions: React.FC = () => {
     });
   };
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => {
+  const filteredTransactions = useMemo((): TransactionRow[] => {
+    const rows: TransactionRow[] = [];
+    for (const t of transactions) {
       const matchSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory = !filters.categoryId || t.categoryId === filters.categoryId;
-      const matchAccount = !filters.accountId || t.accountId === filters.accountId;
-      return matchSearch && matchCategory && matchAccount;
-    });
+      if (!matchSearch || !matchCategory) continue;
+
+      const isTransfer = t.type === 'transfer' && t.toAccountId;
+      const matchOrigin = !filters.accountId || t.accountId === filters.accountId;
+      const matchDest = isTransfer && filters.accountId && t.toAccountId === filters.accountId;
+
+      if (!filters.accountId) {
+        if (matchOrigin) rows.push({ transaction: t, creditView: false });
+        continue;
+      }
+      if (matchOrigin) rows.push({ transaction: t, creditView: false });
+      else if (matchDest) rows.push({ transaction: t, creditView: true });
+    }
+    return rows;
   }, [transactions, searchTerm, filters]);
 
   return (
@@ -475,8 +500,8 @@ export const Transactions: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-              {filteredTransactions.map(t => (
-                <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group text-sm">
+              {filteredTransactions.map(({ transaction: t, creditView }) => (
+                <tr key={creditView ? `${t.id}-credit` : t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group text-sm">
                   <td className="px-6 py-4">
                      <p className="font-bold text-slate-900 dark:text-slate-100">{t.description}</p>
                      <p className="text-[10px] text-slate-400">
@@ -489,18 +514,26 @@ export const Transactions: React.FC = () => {
                      </span>
                   </td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
-                     {accounts.find(a => a.id === t.accountId)?.name || '---'}
-                     {t.type === 'transfer' && t.toAccountId && (
-                       <span className="block text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                         → {accounts.find(a => a.id === t.toAccountId)?.name || '---'}
+                     {creditView ? (
+                       <span className="text-slate-500 dark:text-slate-400">
+                         De: {accounts.find(a => a.id === t.accountId)?.name || '---'}
                        </span>
+                     ) : (
+                       <>
+                         {accounts.find(a => a.id === t.accountId)?.name || '---'}
+                         {t.type === 'transfer' && t.toAccountId && (
+                           <span className="block text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                             → {accounts.find(a => a.id === t.toAccountId)?.name || '---'}
+                           </span>
+                         )}
+                       </>
                      )}
                   </td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                      {t.assetId ? (assets.find(a => a.id === t.assetId)?.name || '---') : '---'}
                   </td>
-                  <td className={`px-6 py-4 font-black text-right ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900 dark:text-slate-100'}`}>
-                    {t.type === 'income' ? '+' : '-'} {formatCurrency(Math.abs(t.amount))}
+                  <td className={`px-6 py-4 font-black text-right ${creditView || t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                    {creditView || t.type === 'income' ? '+' : '-'} {formatCurrency(Math.abs(t.amount))}
                   </td>
                   <td className="px-6 py-4 text-right">
                      {/* Botões de Editar/Excluir para Desktop (visíveis no hover) */}
@@ -508,7 +541,7 @@ export const Transactions: React.FC = () => {
                        <button onClick={() => handleEdit(t)} className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all">
                          <Edit2 className="w-4 h-4" />
                        </button>
-                       <button onClick={() => deleteTransaction(t.id)} className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all">
+                       <button onClick={() => handleDeleteTransaction(t)} className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all">
                          <Trash2 className="w-4 h-4" />
                        </button>
                      </div>
@@ -539,7 +572,7 @@ export const Transactions: React.FC = () => {
                              <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
                              <DropdownMenu.Item
                                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer outline-none transition-colors"
-                               onSelect={() => deleteTransaction(t.id)}
+                               onSelect={() => handleDeleteTransaction(t)}
                              >
                                <Trash2 className="w-4 h-4" /> Excluir
                              </DropdownMenu.Item>

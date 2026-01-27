@@ -29,7 +29,10 @@ export const Dashboard: React.FC = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
+  const totalBalance = accounts.reduce((acc, curr) => {
+    const value = typeof curr.balance === 'number' && !isNaN(curr.balance) ? curr.balance : 0;
+    return acc + value;
+  }, 0);
   
   const currentMonthTransactions = transactions.filter(t => t.date.startsWith(selectedMonth));
   const totalIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -171,7 +174,9 @@ export const Dashboard: React.FC = () => {
 
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
           <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Saldo Líquido</p>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{formatCurrency(totalBalance)}</h3>
+          <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+            {formatCurrency(totalIncome - totalExpense)}
+          </h3>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
