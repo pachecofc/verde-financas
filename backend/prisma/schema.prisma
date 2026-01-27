@@ -44,6 +44,7 @@ model User {
   goals                 Goal[]
   userScore             UserScore?
   userAchievements      UserAchievement[]
+  refreshTokens         RefreshToken[]
   @@map("users")
 }
 
@@ -112,6 +113,18 @@ model Account {
   scheduleTo   Schedule[] @relation("ScheduleToAccount") // Agendamentos para esta conta (transferências)
 
   @@map("accounts")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  @@map("refresh_tokens")
 }
 
 // Budget

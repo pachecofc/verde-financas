@@ -1,8 +1,23 @@
 import { Router, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/authMiddleware';
+import { RefreshTokenService } from '../services/refreshTokenService';
+import { REFRESH_TOKEN_EXPIRATION_DAYS } from '../config/jwt';
 
 const router = Router();
+
+const REFRESH_COOKIE_NAME = 'refresh_token';
+
+function getRefreshCookieOptions() {
+  const maxAge = REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60 * 1000;
+  return {
+    httpOnly: true as const,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'strict' as const,
+    path: '/api/auth',
+    maxAge,
+  };
+}
 
 // POST /api/auth/signup
 router.post('/signup', async (req: AuthenticatedRequest, res: Response) => {
@@ -14,6 +29,11 @@ router.post('/signup', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const result = await AuthService.signup({ email, password, name });
+
+    // Criar refresh token e enviar em cookie HttpOnly
+    const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({
@@ -32,6 +52,11 @@ router.post('/login', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const result = await AuthService.login({ email, password });
+
+    // Criar refresh token e enviar em cookie HttpOnly
+    const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+
     res.status(200).json(result);
   } catch (error) {
     res.status(401).json({
@@ -111,6 +136,59 @@ router.put('/change-password', authMiddleware, async (req: AuthenticatedRequest,
     console.error('Erro na rota /change-password:', error);
     res.status(400).json({ // 400 Bad Request para erros de senha incorreta ou validação
       error: error instanceof Error ? error.message : 'Falha ao alterar senha.',
+    });
+  }
+});
+
+// POST /api/auth/refresh - Renovar access token usando refresh token rotativo
+router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'Refresh token não encontrado' });
+    }
+
+    const { newToken, user } = await RefreshTokenService.rotateRefreshToken(refreshToken);
+
+    // Atualiza cookie com novo refresh token
+    res.cookie(REFRESH_COOKIE_NAME, newToken, getRefreshCookieOptions());
+
+    // Gera novo access token curto para o usuário
+    const accessToken = AuthService['generateAccessToken']({ id: user.id, email: user.email });
+
+    return res.status(200).json({
+      token: accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl || undefined,
+        plan: user.plan || undefined,
+      },
+    });
+  } catch (error) {
+    console.error('Erro na rota /refresh:', error);
+    // Em caso de erro, limpar cookie para evitar loops
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/auth' });
+    return res.status(401).json({
+      error: error instanceof Error ? error.message : 'Falha ao renovar sessão',
+    });
+  }
+});
+
+// POST /api/auth/logout - Revogar refresh token e limpar cookie
+router.post('/logout', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+    if (refreshToken) {
+      await RefreshTokenService.revokeToken(refreshToken);
+      res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/auth' });
+    }
+    return res.status(200).json({ message: 'Logout realizado com sucesso.' });
+  } catch (error) {
+    console.error('Erro na rota /logout:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Falha ao realizar logout',
     });
   }
 });

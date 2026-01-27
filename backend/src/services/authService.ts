@@ -10,6 +10,14 @@ import crypto from 'crypto';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 export class AuthService {
+  private static generateAccessToken(user: { id: string; email: string }) {
+    return jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRATION }
+    );
+  }
+
   // Registrar novo usuário
   static async signup(data: AuthRequest): Promise<AuthResponse> {
     const { email, password, name } = data;
@@ -35,12 +43,8 @@ export class AuthService {
       },
     });
 
-    // Gerar token JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRATION }
-    );
+    // Gerar token JWT de acesso (curta duração)
+    const token = this.generateAccessToken({ id: user.id, email: user.email });
 
     return {
       token,
@@ -74,12 +78,8 @@ export class AuthService {
       throw new Error('Senha inválida');
     }
 
-    // Gerar token JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRATION }
-    );
+    // Gerar token JWT de acesso (curta duração)
+    const token = this.generateAccessToken({ id: user.id, email: user.email });
 
     return {
       token,

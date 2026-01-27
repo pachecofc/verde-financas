@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { prisma } from './prisma';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -29,6 +30,7 @@ app.use(cors({
   optionsSuccessStatus: 204,
   maxAge: 86400,
 }));
+app.use(cookieParser());
 app.use(express.json());
 
 // Rota de teste do backend

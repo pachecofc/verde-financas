@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<ExtendedAuthUser | null>(() => {
-    // Recupera usuário do localStorage ao inicializar
+    // Recupera usuário do localStorage ao inicializar (será validado via refresh)
     return authApi.getStoredUser() as ExtendedAuthUser | null; // Cast para ExtendedAuthUser
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -78,10 +78,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Logout
-  const logout = useCallback(() => {
-    authApi.clearAuth();
-    setUser(null);
-    setError(null);
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Mesmo em caso de erro no backend, limpar estado local
+    } finally {
+      authApi.clearAuth();
+      setUser(null);
+      setError(null);
+    }
   }, []);
 
   // Limpar erro
@@ -178,18 +187,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Verifica token ao carregar (opcional: pode adicionar verificação com backend)
+  // Verifica sessão ao carregar tentando renovar via refresh token (cookie HttpOnly)
   useEffect(() => {
-    const storedUser = authApi.getStoredUser();
-    const hasToken = authApi.isAuthenticated();
-    
-    if (storedUser && hasToken) {
-      setUser(storedUser);
-    } else if (!hasToken) {
-      // Se não tem token, limpa tudo
-      authApi.clearAuth();
-      setUser(null);
-    }
+    const bootstrap = async () => {
+      const storedUser = authApi.getStoredUser();
+      try {
+        // Tentativa de renovar access token se houver refresh token válido
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+          .then(async res => {
+            if (!res.ok) throw new Error('Falha ao renovar sessão');
+            const data = await res.json();
+            authApi.setAuth(data.token, data.user || storedUser || null as any);
+            setUser((data.user || storedUser) as ExtendedAuthUser | null);
+          })
+          .catch(() => {
+            authApi.clearAuth();
+            setUser(null);
+          });
+      } catch {
+        authApi.clearAuth();
+        setUser(null);
+      }
+    };
+    bootstrap();
   }, []);
 
   return (

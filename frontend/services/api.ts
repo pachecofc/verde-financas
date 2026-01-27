@@ -1,9 +1,12 @@
 // Configuração base da API
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api';
 
-// Função para obter o token de autenticação
+// Access token mantido apenas em memória
+let accessToken: string | null = null;
+
+// Função para obter o token de autenticação (somente em memória)
 const getAuthToken = (): string | null => {
-  return localStorage.getItem('auth_token');
+  return accessToken;
 };
 
 // Headers padrão para requisições autenticadas
@@ -22,6 +25,27 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
   }
   return response.json();
+};
+
+// Função para renovar o access token usando o refresh token (cookie HttpOnly)
+const refreshAccessToken = async (): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    accessToken = null;
+    throw new Error('Falha ao renovar sessão');
+  }
+
+  const data = await response.json();
+  accessToken = data.token;
+
+  // Opcional: atualizar usuário armazenado no localStorage se vier no payload
+  if (data.user) {
+    localStorage.setItem('auth_user', JSON.stringify(data.user));
+  }
 };
 
 // ============ CATEGORY API ============
@@ -74,51 +98,127 @@ export interface CreateMultipleCategoriesPayload {
 export const categoryApi = {
   // Listar todas as categorias
   getAll: async (): Promise<CategoryApiData[]> => {
-    const response = await fetch(`${API_BASE_URL}/categories`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<CategoryApiData[]>(response);
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/categories`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<CategoryApiData[]>(response);
+    };
+
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar nova categoria
   create: async (data: CreateCategoryPayload): Promise<CategoryApiData> => {
-    const response = await fetch(`${API_BASE_URL}/categories`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return handleResponse<CategoryApiData>(response);
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/categories`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<CategoryApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar múltiplas categorias
   createMultiple: async (data: CreateMultipleCategoriesPayload[]): Promise<CategoryApiData[]> => {
-    const response = await fetch(`${API_BASE_URL}/categories/batch`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return handleResponse<CategoryApiData[]>(response);
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/categories/batch`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<CategoryApiData[]>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Atualizar categoria existente
   update: async (id: string, data: UpdateCategoryPayload): Promise<CategoryApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
-    });
-    return handleResponse<CategoryApiData>(response);
+      });
+      return handleResponse<CategoryApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Deletar categoria
   delete: async (id: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
-    });
-    return handleResponse<{ message: string }>(response);
-  },
+        });
+        return handleResponse<{ message: string }>(response);
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  }
 };
 
 // ============ ACCOUNT API ============
@@ -167,44 +267,102 @@ const accountApi = {
 
   // Obter uma única conta por ID
   getAccountById: async (id: string): Promise<Account> => {
-    const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<Account>(response);
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<Account>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar uma nova conta
   createAccount: async (data: CreateAccountPayload): Promise<Account> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/accounts`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<Account>(response);
+      return handleResponse<Account>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Atualizar uma conta existente
   updateAccount: async (id: string, data: UpdateAccountPayload): Promise<Account> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/accounts/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
-    });
-    return handleResponse<Account>(response);
+      });
+      return handleResponse<Account>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Deletar uma conta
   deleteAccount: async (id: string, force?: boolean): Promise<{ message: string }> => {
     const query = force ? '?force=true' : '';
-    const response = await fetch(`${API_BASE_URL}/accounts/${id}${query}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    // O backend retorna 200 com mensagem ou 409 com erro se houver transações
-    // handleResponse já lida com erros, então aqui só precisamos do sucesso
-    return handleResponse<{ message: string }>(response);
-  },
+    const doRequest = async () => {
+        const response = await fetch(`${API_BASE_URL}/accounts/${id}${query}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  }
 };
 
 // ============ AUTH API ============
@@ -264,6 +422,7 @@ export const authApi = {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     return handleResponse<AuthResponse>(response);
@@ -274,6 +433,7 @@ export const authApi = {
     const response = await fetch(`${API_BASE_URL}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     return handleResponse<AuthResponse>(response);
@@ -284,6 +444,7 @@ export const authApi = {
     const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     return handleResponse<{ message: string }>(response);
@@ -336,6 +497,7 @@ export const authApi = {
     const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
       method: 'PUT',
       headers: getAuthHeaders(),
+      credentials: 'include',
       body: JSON.stringify(data),
     });
     return handleResponse<{ message: string }>(response);
@@ -343,7 +505,7 @@ export const authApi = {
 
   // Armazenar token e dados do usuário no localStorage
   setAuth: (token: string, user: AuthUser): void => {
-    localStorage.setItem('auth_token', token);
+    accessToken = token;
     localStorage.setItem('auth_user', JSON.stringify(user));
   },
 
@@ -370,7 +532,7 @@ export const authApi = {
 
   // Remover token e dados do usuário do localStorage
   clearAuth: (): void => {
-    localStorage.removeItem('auth_token');
+    accessToken = null;
     localStorage.removeItem('auth_user');
   },
 
@@ -452,6 +614,7 @@ const transactionApi = {
     endDate?: string;
     accountId?: string;
   }): Promise<TransactionApiData[]> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams();
     if (filters?.categoryId) queryParams.append('categoryId', filters.categoryId);
     if (filters?.type) queryParams.append('type', filters.type);
@@ -472,60 +635,119 @@ const transactionApi = {
       ...t,
       amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount,
     }));
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Obter uma transação por ID
   getById: async (id: string): Promise<TransactionApiData> => {
-    const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    });
-    const data = await handleResponse<TransactionApiData>(response);
-    return {
-      ...data,
-      amount: typeof data.amount === 'string' ? parseFloat(data.amount) : data.amount,
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<TransactionApiData>(response);
     };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar nova transação
   create: async (data: CreateTransactionPayload): Promise<TransactionApiData> => {
-    const response = await fetch(`${API_BASE_URL}/transactions`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    const result = await handleResponse<TransactionApiData>(response);
-    return {
-      ...result,
-      amount: typeof result.amount === 'string' ? parseFloat(result.amount) : result.amount,
+    const doRequest = async () => {
+        const response = await fetch(`${API_BASE_URL}/transactions`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<TransactionApiData>(response);
     };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;  
+        }
+      }
+      throw error;
+    }
   },
-
   // Atualizar transação existente
   update: async (id: string, data: UpdateTransactionPayload): Promise<TransactionApiData> => {
-    const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    const result = await handleResponse<TransactionApiData>(response);
-    return {
-      ...result,
-      amount: typeof result.amount === 'string' ? parseFloat(result.amount) : result.amount,
+    const doRequest = async () => {
+        const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<TransactionApiData>(response);
     };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Deletar transação
   delete: async (id: string): Promise<{ message: string }> => {
-    const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    return handleResponse<{ message: string }>(response);
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
-// ============ BUDGET API ============
 export interface BudgetApiData {
   id: string;
   userId: string;
@@ -592,98 +814,248 @@ export interface UpdateSchedulePayload {
 const budgetApi = {
   // Obter todos os orçamentos do usuário
   getAll: async (): Promise<BudgetApiData[]> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/budgets`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<BudgetApiData[]>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Obter um orçamento por ID
   getById: async (id: string): Promise<BudgetApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<BudgetApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar novo orçamento
   create: async (data: CreateBudgetPayload): Promise<BudgetApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/budgets`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse<BudgetApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Atualizar orçamento existente
   update: async (id: string, data: UpdateBudgetPayload): Promise<BudgetApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse<BudgetApiData>(response);
+      return handleResponse<BudgetApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Deletar orçamento
   delete: async (id: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/budgets/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
+        method: 'DELETE',
+         headers: getAuthHeaders(),
     });
-    return handleResponse<{ message: string }>(response);
+      return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
 const scheduleApi = {
   // Obter todos os agendamentos do usuário
   getAll: async (): Promise<ScheduleApiData[]> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/schedules`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<ScheduleApiData[]>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Obter um agendamento por ID
   getById: async (id: string): Promise<ScheduleApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<ScheduleApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar novo agendamento
   create: async (data: CreateSchedulePayload): Promise<ScheduleApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/schedules`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse<ScheduleApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Atualizar agendamento existente
   update: async (id: string, data: UpdateSchedulePayload): Promise<ScheduleApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse<ScheduleApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Deletar agendamento
   delete: async (id: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
     return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
@@ -711,49 +1083,122 @@ export interface UpdateAssetPayload {
 const assetApi = {
   // Obter todos os ativos do usuário
   getAll: async (): Promise<AssetApiData[]> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/assets`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<AssetApiData[]>(response);
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter um ativo por ID
   getById: async (id: string): Promise<AssetApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/assets/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<AssetApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Criar novo ativo
   create: async (data: CreateAssetPayload): Promise<AssetApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/assets`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    return handleResponse<AssetApiData>(response);
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<AssetApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Atualizar ativo existente
   update: async (id: string, data: UpdateAssetPayload): Promise<AssetApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/assets/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse<AssetApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 
   // Deletar ativo
   delete: async (id: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/assets/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
     return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
@@ -780,6 +1225,7 @@ export interface UpdateAssetHoldingValuePayload {
 const assetHoldingApi = {
   // Obter todos os holdings do usuário
   getAll: async (): Promise<AssetHoldingApiData[]> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/asset-holdings`, {
       method: 'GET',
       headers: getAuthHeaders(),
@@ -790,10 +1236,24 @@ const assetHoldingApi = {
       ...h,
       currentValue: typeof h.currentValue === 'string' ? parseFloat(h.currentValue) : h.currentValue,
     }));
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter um holding por ID
   getById: async (id: string): Promise<AssetHoldingApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/asset-holdings/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(),
@@ -803,10 +1263,24 @@ const assetHoldingApi = {
       ...data,
       currentValue: typeof data.currentValue === 'string' ? parseFloat(data.currentValue) : data.currentValue,
     };
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Atualizar o valor atual de um holding
   updateValue: async (id: string, data: UpdateAssetHoldingValuePayload): Promise<AssetHoldingApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/asset-holdings/${id}/value`, {
       method: 'PUT',
       headers: getAuthHeaders(),
@@ -817,15 +1291,43 @@ const assetHoldingApi = {
       ...result,
       currentValue: typeof result.currentValue === 'string' ? parseFloat(result.currentValue) : result.currentValue,
     };
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Deletar um holding
   delete: async (id: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/asset-holdings/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
     return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
@@ -864,6 +1366,7 @@ export interface UpdateGoalPayload {
 const goalApi = {
   // Obter todas as metas do usuário
   getAll: async (): Promise<GoalApiData[]> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/goals`, {
       method: 'GET',
       headers: getAuthHeaders(),
@@ -875,10 +1378,24 @@ const goalApi = {
       targetAmount: typeof g.targetAmount === 'string' ? parseFloat(g.targetAmount) : g.targetAmount,
       currentAmount: typeof g.currentAmount === 'string' ? parseFloat(g.currentAmount) : g.currentAmount,
     }));
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter uma meta por ID
   getById: async (id: string): Promise<GoalApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/goals/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(),
@@ -889,45 +1406,91 @@ const goalApi = {
       targetAmount: typeof data.targetAmount === 'string' ? parseFloat(data.targetAmount) : data.targetAmount,
       currentAmount: typeof data.currentAmount === 'string' ? parseFloat(data.currentAmount) : data.currentAmount,
     };
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Criar nova meta
   create: async (data: CreateGoalPayload): Promise<GoalApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/goals`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    const result = await handleResponse<GoalApiData>(response);
-    return {
-      ...result,
-      targetAmount: typeof result.targetAmount === 'string' ? parseFloat(result.targetAmount) : result.targetAmount,
-      currentAmount: typeof result.currentAmount === 'string' ? parseFloat(result.currentAmount) : result.currentAmount,
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<GoalApiData>(response);
     };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Atualizar meta existente
   update: async (id: string, data: UpdateGoalPayload): Promise<GoalApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/goals/${id}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-    const result = await handleResponse<GoalApiData>(response);
-    return {
-      ...result,
-      targetAmount: typeof result.targetAmount === 'string' ? parseFloat(result.targetAmount) : result.targetAmount,
-      currentAmount: typeof result.currentAmount === 'string' ? parseFloat(result.currentAmount) : result.currentAmount,
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse<GoalApiData>(response);
     };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Deletar meta
   delete: async (id: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/goals/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
     return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
@@ -946,20 +1509,49 @@ export interface ScoreApiData {
 const scoreApi = {
   // Obter score e conquistas do usuário
   getUserScore: async (): Promise<ScoreApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/scores`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<ScoreApiData>(response);
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Recalcular score do usuário
   recalculateScore: async (): Promise<ScoreApiData> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/scores/recalculate`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
     return handleResponse<ScoreApiData>(response);
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
 };
 
@@ -1343,6 +1935,7 @@ const reportApi = {
     endDate: string,
     includeComparison: boolean = true
   ): Promise<ExpenseReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams({
       startDate,
       endDate,
@@ -1354,13 +1947,27 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<ExpenseReport>(response);
+      };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório de receitas por categoria
   getIncomeByCategory: async (
     startDate: string,
     endDate: string
   ): Promise<IncomeReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams({
       startDate,
       endDate,
@@ -1371,14 +1978,28 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<IncomeReport>(response);
+        };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório de Fluxo de Caixa
   getCashFlow: async (
     startDate: string,
     endDate: string,
     granularity: 'daily' | 'weekly' | 'monthly' = 'monthly'
   ): Promise<CashFlowReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams({
       startDate,
       endDate,
@@ -1390,13 +2011,27 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<CashFlowReport>(response);
+        };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório de Evolução do Saldo / Patrimônio
   getBalanceEvolution: async (
     startDate: string,
     endDate: string
   ): Promise<BalanceEvolutionReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams({
       startDate,
       endDate,
@@ -1407,32 +2042,74 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<BalanceEvolutionReport>(response);
+          };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório de Metas Financeiras
   getGoals: async (): Promise<GoalsReport> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/reports/goals`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<GoalsReport>(response);
+        };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório de Dívidas e Obrigações
   getDebts: async (): Promise<DebtsReport> => {
+    const doRequest = async () => {
     const response = await fetch(`${API_BASE_URL}/reports/debts`, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
     return handleResponse<DebtsReport>(response);
+          };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório de Investimentos
   getInvestments: async (
     startDate: string,
     endDate: string,
     assetId?: string
   ): Promise<InvestmentsReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams({
       startDate,
       endDate,
@@ -1446,13 +2123,28 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<InvestmentsReport>(response);
-  },
+        };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
 
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
   // Obter relatório de Orçamento
   getBudget: async (
     startDate: string,
     endDate: string
   ): Promise<BudgetReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams({
       startDate,
       endDate,
@@ -1463,10 +2155,24 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<BudgetReport>(response);
+        };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
   },
-
   // Obter relatório Anual
   getAnnual: async (year?: number): Promise<AnnualReport> => {
+    const doRequest = async () => {
     const queryParams = new URLSearchParams();
     if (year) {
       queryParams.append('year', year.toString());
@@ -1481,7 +2187,21 @@ const reportApi = {
       headers: getAuthHeaders(),
     });
     return handleResponse<AnnualReport>(response);
-  },
+        };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+          }
+        }
+      throw error;
+    }
+  }
 };
 
 export default {

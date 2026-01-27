@@ -22,7 +22,10 @@ export const authMiddleware = (
     req.userId = decoded.userId;
     req.email = decoded.email;
     next();
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expirado' });
+    }
     return res.status(401).json({ error: 'Invalid token' });
   }
 };
