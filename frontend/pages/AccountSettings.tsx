@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authApi, UpdatedUserResponse, ChangePasswordPayload } from '../services/api';
 import {
-  User, Mail, Lock, Trash2, Crown, X, Eye, EyeOff, Camera, Save, AlertCircle, CheckCircle, Loader2, ArrowLeft
+  User, Mail, Lock, Trash2, Crown, X, Eye, EyeOff, Camera, Save, AlertCircle, CheckCircle, Loader2, ArrowLeft, Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
+import { TwoFactorModal } from '../components/TwoFactorModal';
 
 const MAX_AVATAR_BYTES = 300 * 1024; // 300 KB
 
@@ -17,7 +19,7 @@ function getAvatarSrc(url: string): string {
 
 type UserPlan = 'BASIC' | 'PREMIUM';
 
-type TabType = 'account' | 'subscription';
+type TabType = 'account' | 'subscription' | 'security';
 
 export const AccountSettings: React.FC = () => {
   const navigate = useNavigate();
@@ -50,6 +52,19 @@ export const AccountSettings: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Estados para 2FA
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
+  const [showTwoFactorSetup, setShowTwoFactorSetup] = useState(false);
+  const [twoFactorSetupData, setTwoFactorSetupData] = useState<{
+    qrCodeUrl: string;
+    secret: string;
+    backupCodes: string[];
+  } | null>(null);
+  const [showDisable2FAModal, setShowDisable2FAModal] = useState(false);
+  const [disable2FAPassword, setDisable2FAPassword] = useState('');
 
   // Sincronizar formulário com dados do usuário
   useEffect(() => {
@@ -215,6 +230,84 @@ export const AccountSettings: React.FC = () => {
 
   const displayAvatar = authUser?.avatarUrl || '';
 
+  // Carregar status do 2FA
+  useEffect(() => {
+    const load2FAStatus = async () => {
+      try {
+        const status = await authApi.getTwoFactorStatus();
+        setTwoFactorEnabled(status.enabled);
+      } catch (err) {
+        console.error('Erro ao carregar status do 2FA:', err);
+      }
+    };
+    if (authUser) {
+      load2FAStatus();
+    }
+  }, [authUser]);
+
+  // Iniciar setup de 2FA
+  const handleSetup2FA = async () => {
+    setTwoFactorLoading(true);
+    setTwoFactorError(null);
+    try {
+      const setupData = await authApi.setupTwoFactor();
+      setTwoFactorSetupData({
+        qrCodeUrl: setupData.qrCodeUrl,
+        secret: setupData.secret,
+        backupCodes: [], // Será preenchido após habilitar
+      });
+      setShowTwoFactorSetup(true);
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Erro ao configurar 2FA');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  // Verificar código durante setup
+  const handleVerify2FASetup = async (code: string): Promise<boolean> => {
+    if (!twoFactorSetupData) return false;
+    try {
+      const result = await authApi.enableTwoFactor(twoFactorSetupData.secret, code);
+      setTwoFactorSetupData({
+        ...twoFactorSetupData,
+        backupCodes: result.backupCodes,
+      });
+      setTwoFactorEnabled(true);
+      return true;
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Erro ao habilitar 2FA');
+      return false;
+    }
+  };
+
+  // Completar setup
+  const handleComplete2FASetup = () => {
+    setShowTwoFactorSetup(false);
+    setTwoFactorSetupData(null);
+    setTwoFactorError(null);
+  };
+
+  // Desabilitar 2FA
+  const handleDisable2FA = async () => {
+    if (!disable2FAPassword) {
+      setTwoFactorError('Por favor, digite sua senha');
+      return;
+    }
+    setTwoFactorLoading(true);
+    setTwoFactorError(null);
+    try {
+      await authApi.disableTwoFactor(disable2FAPassword);
+      setTwoFactorEnabled(false);
+      setShowDisable2FAModal(false);
+      setDisable2FAPassword('');
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Erro ao desabilitar 2FA');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -254,6 +347,19 @@ export const AccountSettings: React.FC = () => {
           <div className="flex items-center gap-2">
             <Crown className="w-5 h-5" />
             Gerenciar Assinatura
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`px-6 py-3 font-bold transition-colors border-b-2 ${
+            activeTab === 'security'
+              ? 'border-emerald-600 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Segurança
           </div>
         </button>
       </div>
@@ -531,7 +637,168 @@ export const AccountSettings: React.FC = () => {
             </button>
           </form>
         )}
+
+        {activeTab === 'security' && (
+          <div className="space-y-6">
+            {/* Mensagens de feedback */}
+            {twoFactorError && (
+              <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-2xl p-4 flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
+                <p className="text-rose-700 dark:text-rose-300 text-sm font-medium">{twoFactorError}</p>
+              </div>
+            )}
+
+            {/* Status do 2FA */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 mb-2">
+                  Autenticação de Dois Fatores (2FA)
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Adicione uma camada extra de segurança à sua conta usando um aplicativo autenticador.
+                </p>
+              </div>
+
+              {showTwoFactorSetup && twoFactorSetupData ? (
+                <TwoFactorSetup
+                  qrCodeUrl={twoFactorSetupData.qrCodeUrl}
+                  secret={twoFactorSetupData.secret}
+                  backupCodes={twoFactorSetupData.backupCodes}
+                  onVerify={handleVerify2FASetup}
+                  onComplete={handleComplete2FASetup}
+                  onCancel={() => {
+                    setShowTwoFactorSetup(false);
+                    setTwoFactorSetupData(null);
+                    setTwoFactorError(null);
+                  }}
+                />
+              ) : twoFactorEnabled ? (
+                <div className="space-y-4">
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      <h4 className="text-lg font-black text-emerald-900 dark:text-emerald-100">
+                        2FA Habilitado
+                      </h4>
+                    </div>
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                      Sua conta está protegida com autenticação de dois fatores. Você precisará usar um código do seu aplicativo autenticador sempre que fizer login ou realizar ações sensíveis.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowDisable2FAModal(true)}
+                    disabled={twoFactorLoading}
+                    className="w-full px-6 py-3 bg-rose-600 dark:bg-rose-500 hover:bg-rose-700 dark:hover:bg-rose-400 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {twoFactorLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="w-5 h-5" />
+                        Desabilitar 2FA
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSetup2FA}
+                  disabled={twoFactorLoading}
+                  className="w-full px-6 py-3 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {twoFactorLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Configurando...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-5 h-5" />
+                      Habilitar 2FA
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal para desabilitar 2FA */}
+      {showDisable2FAModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                Desabilitar 2FA
+              </h3>
+              <button
+                onClick={() => {
+                  setShowDisable2FAModal(false);
+                  setDisable2FAPassword('');
+                  setTwoFactorError(null);
+                }}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Para desabilitar a autenticação de dois fatores, digite sua senha atual.
+            </p>
+            {twoFactorError && (
+              <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl p-4">
+                <p className="text-rose-700 dark:text-rose-300 text-sm">{twoFactorError}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Senha Atual
+              </label>
+              <input
+                type="password"
+                value={disable2FAPassword}
+                onChange={(e) => {
+                  setDisable2FAPassword(e.target.value);
+                  setTwoFactorError(null);
+                }}
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
+                placeholder="••••••••"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDisable2FAModal(false);
+                  setDisable2FAPassword('');
+                  setTwoFactorError(null);
+                }}
+                className="flex-1 px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDisable2FA}
+                disabled={twoFactorLoading || !disable2FAPassword}
+                className="flex-1 px-6 py-3 bg-rose-600 dark:bg-rose-500 hover:bg-rose-700 dark:hover:bg-rose-400 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {twoFactorLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Desabilitando...
+                  </>
+                ) : (
+                  'Desabilitar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

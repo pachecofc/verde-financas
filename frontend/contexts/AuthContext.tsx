@@ -13,7 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   isLoggingOut: boolean;
   error: string | null;
-  login: (data: LoginPayload) => Promise<boolean>;
+  login: (data: LoginPayload) => Promise<boolean | { requiresTwoFactor: true; user: ExtendedAuthUser }>;
   signup: (data: SignupPayload) => Promise<boolean>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -22,6 +22,7 @@ interface AuthContextType {
   uploadAvatar: (file: File) => Promise<boolean>;
   updateUserProfile: (data: Partial<UpdatedUserResponse>) => Promise<boolean>;
   changePassword: (data: ChangePasswordPayload) => Promise<boolean>;
+  verifyLoginTwoFactor: (userId: string, code: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,20 +40,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user && authApi.isAuthenticated();
 
   // Login
-  const login = useCallback(async (data: LoginPayload): Promise<boolean> => {
+  const login = useCallback(async (data: LoginPayload): Promise<boolean | { requiresTwoFactor: true; user: ExtendedAuthUser }> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await authApi.login(data);
-      // O response.user do authApi.login pode não ter 'plan' ou 'avatarUrl' se o backend não retornar
-      // Mas o AuthUser do api.ts já foi atualizado para incluir esses campos como opcionais
-      // O setAuth e setUser devem lidar com isso
-      authApi.setAuth(response.token, response.user);
-      setUser(response.user as ExtendedAuthUser); // Cast para ExtendedAuthUser 
+      
+      // Se 2FA for necessário, retornar informação especial
+      if ('requiresTwoFactor' in response && response.requiresTwoFactor) {
+        return {
+          requiresTwoFactor: true,
+          user: response.user as ExtendedAuthUser,
+        };
+      }
+
+      // Login normal
+      const authResponse = response as { token: string; user: ExtendedAuthUser };
+      authApi.setAuth(authResponse.token, authResponse.user);
+      setUser(authResponse.user);
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao fazer login';
+      setError(message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Verificar código 2FA após login
+  const verifyLoginTwoFactor = useCallback(async (userId: string, code: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authApi.verifyLoginTwoFactor(userId, code);
+      authApi.setAuth(response.token, response.user);
+      setUser(response.user as ExtendedAuthUser);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao verificar código 2FA';
       setError(message);
       return false;
     } finally {
@@ -237,6 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       uploadAvatar,
       updateUserProfile,
       changePassword,
+      verifyLoginTwoFactor,
     }}>
       {children}
     </AuthContext.Provider>

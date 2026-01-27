@@ -32,6 +32,9 @@ model User {
   avatarUrl            String?
   plan                 UserPlan  @default(BASIC)
   deletedAt            DateTime? // Soft delete: marca quando a conta foi solicitada para exclusão
+  twoFactorSecret      String?   // Secret TOTP criptografado
+  twoFactorEnabled     Boolean   @default(false) // Status do 2FA
+  twoFactorBackupCodes String[]  // Códigos de backup (criptografados)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

@@ -390,6 +390,7 @@ export interface AuthUser {
 export interface AuthResponse {
   token: string;
   user: AuthUser;
+  requiresTwoFactor?: boolean;
 }
 
 export interface ForgotPasswordPayload {
@@ -418,12 +419,23 @@ export interface ChangePasswordPayload {
 
 export const authApi = {
   // Login de usuário existente
-  login: async (data: LoginPayload): Promise<AuthResponse> => {
+  login: async (data: LoginPayload): Promise<AuthResponse | { requiresTwoFactor: true; user: AuthUser }> => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify(data),
+    });
+    return handleResponse<AuthResponse | { requiresTwoFactor: true; user: AuthUser }>(response);
+  },
+
+  // Verificar código 2FA após login
+  verifyLoginTwoFactor: async (userId: string, twoFactorCode: string): Promise<AuthResponse> => {
+    const response = await fetch(`${API_BASE_URL}/auth/login/verify-2fa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId, twoFactorCode }),
     });
     return handleResponse<AuthResponse>(response);
   },
@@ -553,6 +565,136 @@ export const authApi = {
         method: 'DELETE',
         headers: getAuthHeaders(),
         credentials: 'include',
+      });
+      return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // ============ 2FA METHODS ============
+
+  // Obter status do 2FA
+  getTwoFactorStatus: async (): Promise<{ enabled: boolean; remainingBackupCodes: number }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/status`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return handleResponse<{ enabled: boolean; remainingBackupCodes: number }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // Configurar 2FA (gerar secret e QR code)
+  setupTwoFactor: async (): Promise<{ secret: string; qrCodeUrl: string; otpauthUrl: string }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/setup`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return handleResponse<{ secret: string; qrCodeUrl: string; otpauthUrl: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // Habilitar 2FA
+  enableTwoFactor: async (secret: string, verificationCode: string): Promise<{ message: string; backupCodes: string[] }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/enable`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ secret, verificationCode }),
+      });
+      return handleResponse<{ message: string; backupCodes: string[] }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // Desabilitar 2FA
+  disableTwoFactor: async (password: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ password }),
+      });
+      return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // Verificar código 2FA
+  verifyTwoFactor: async (code: string): Promise<{ message: string }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/verify`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ code }),
       });
       return handleResponse<{ message: string }>(response);
     };

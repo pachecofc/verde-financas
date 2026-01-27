@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { requireTwoFactor } from '../middleware/twoFactorMiddleware';
 import { uploadAvatar } from '../middleware/uploadMiddleware';
 import { UserController } from '../controllers/userController';
 import multer from 'multer';
@@ -28,8 +29,8 @@ router.put('/profile/avatar', authMiddleware, handleAvatarUpload, UserController
 // Rota para atualizar outras informações do perfil (nome, email, etc.)
 router.put('/profile', authMiddleware, UserController.updateProfile);
 
-// Rota para excluir conta (soft delete)
-router.delete('/delete-account', authMiddleware, UserController.deleteAccount);
+// Rota para excluir conta (soft delete) - requer 2FA se habilitado
+router.delete('/delete-account', authMiddleware, requireTwoFactor, UserController.deleteAccount);
 
 // Rota para reativar conta
 router.post('/reactivate-account', authMiddleware, UserController.reactivateAccount);

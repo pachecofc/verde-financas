@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { prisma } from './prisma';
 import authRoutes from './routes/authRoutes';
+import twoFactorRoutes from './routes/twoFactorRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import transactionRoutes from './routes/transactionRoutes';
 import userRoutes from './routes/userRoutes';
@@ -73,6 +74,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Rotas de autenticação
 app.use('/api/auth', authRoutes);
+// Rotas de 2FA (dentro de /api/auth/2fa)
+app.use('/api/auth/2fa', twoFactorRoutes);
 
 // Rotas de categorias
 app.use('/api/categories', categoryRoutes);

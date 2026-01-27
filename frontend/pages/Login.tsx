@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Crown, User, Lock, Mail, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { TwoFactorModal } from '../components/TwoFactorModal';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, signup, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const { login, signup, isLoading, error, clearError, isAuthenticated, verifyLoginTwoFactor } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [twoFactorUserId, setTwoFactorUserId] = useState<string | null>(null);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -32,6 +36,7 @@ export const Login: React.FC = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTwoFactorError(null);
 
     let success = false;
 
@@ -42,16 +47,51 @@ export const Login: React.FC = () => {
         password: formData.password,
       });
     } else {
-      success = await login({
+      const result = await login({
         email: formData.email,
         password: formData.password,
       });
+
+      // Se o login retornar que 2FA é necessário
+      if (result && 'requiresTwoFactor' in result && result.requiresTwoFactor) {
+        setRequiresTwoFactor(true);
+        setTwoFactorUserId(result.user?.id || null);
+        return;
+      }
+
+      success = result as boolean;
     }
 
     if (success) {
       const from = (location.state as any)?.from?.pathname || '/';
       navigate(from, { replace: true });
     }
+  };
+
+  const handleVerify2FA = async (code: string): Promise<boolean> => {
+    if (!twoFactorUserId) return false;
+    setTwoFactorError(null);
+
+    try {
+      const success = await verifyLoginTwoFactor(twoFactorUserId, code);
+      if (success) {
+        setRequiresTwoFactor(false);
+        setTwoFactorUserId(null);
+        const from = (location.state as any)?.from?.pathname || '/';
+        navigate(from, { replace: true });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Erro ao verificar código');
+      return false;
+    }
+  };
+
+  const handleClose2FAModal = () => {
+    setRequiresTwoFactor(false);
+    setTwoFactorUserId(null);
+    setTwoFactorError(null);
   };
 
   return (
@@ -183,6 +223,16 @@ export const Login: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal de 2FA */}
+      <TwoFactorModal
+        isOpen={requiresTwoFactor}
+        onClose={handleClose2FAModal}
+        onVerify={handleVerify2FA}
+        title="Autenticação de Dois Fatores"
+        description="Digite o código de 6 dígitos do seu aplicativo autenticador para completar o login"
+        error={twoFactorError}
+      />
     </div>
   );
 };

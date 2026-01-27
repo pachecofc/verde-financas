@@ -5,6 +5,7 @@ import { JWT_SECRET, JWT_EXPIRATION } from '../config/jwt';
 import { AuthRequest, AuthResponse } from '../types';
 import { sendEmail } from '../config/mailer';
 import crypto from 'crypto';
+import { TwoFactorService } from './twoFactorService';
 
 // Adicionar a URL do frontend para o link de reset
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -58,8 +59,8 @@ export class AuthService {
     };
   }
 
-  // Fazer login
-  static async login(data: AuthRequest): Promise<AuthResponse> {
+  // Fazer login (primeira etapa - valida email/senha)
+  static async login(data: AuthRequest): Promise<AuthResponse & { requiresTwoFactor?: boolean }> {
     const { email, password } = data;
 
     // Buscar usuário (sem select para incluir todos os campos incluindo deletedAt)
@@ -88,7 +89,61 @@ export class AuthService {
       throw new Error('Senha inválida');
     }
 
+    // Verificar se 2FA está habilitado
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
+    if (userWith2FA.twoFactorEnabled) {
+      // Retornar sem token, indicando que 2FA é necessário
+      return {
+        token: '', // Token vazio - será gerado após validação do 2FA
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatarUrl: user.avatarUrl || undefined,
+          plan: user.plan || undefined,
+        },
+        requiresTwoFactor: true,
+      };
+    }
+
     // Gerar token JWT de acesso (curta duração)
+    const token = this.generateAccessToken({ id: user.id, email: user.email });
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl || undefined,
+        plan: user.plan || undefined,
+      },
+    };
+  }
+
+  // Verificar código 2FA e completar login
+  static async verifyLoginTwoFactor(userId: string, twoFactorCode: string): Promise<AuthResponse> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
+    if (!userWith2FA.twoFactorEnabled) {
+      throw new Error('2FA não está habilitado para este usuário');
+    }
+
+    // Verificar código 2FA
+    const isValid = await TwoFactorService.verifyTwoFactorCode(userId, twoFactorCode);
+
+    if (!isValid) {
+      throw new Error('Código de autenticação de dois fatores inválido');
+    }
+
+    // Gerar token JWT de acesso
     const token = this.generateAccessToken({ id: user.id, email: user.email });
 
     return {

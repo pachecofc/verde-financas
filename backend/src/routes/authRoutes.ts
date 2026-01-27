@@ -4,6 +4,7 @@ import { AuthService } from '../services/authService';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/authMiddleware';
 import { RefreshTokenService } from '../services/refreshTokenService';
 import { REFRESH_TOKEN_EXPIRATION_DAYS } from '../config/jwt';
+import { requireTwoFactor } from '../middleware/twoFactorMiddleware';
 
 const router = Router();
 
@@ -65,6 +66,14 @@ router.post('/login', authSensitiveLimiter, async (req: AuthenticatedRequest, re
 
     const result = await AuthService.login({ email, password });
 
+    // Se 2FA for necessário, retornar sem token e sem refresh token
+    if (result.requiresTwoFactor) {
+      return res.status(200).json({
+        requiresTwoFactor: true,
+        user: result.user,
+      });
+    }
+
     // Criar refresh token e enviar em cookie HttpOnly
     const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
@@ -73,6 +82,29 @@ router.post('/login', authSensitiveLimiter, async (req: AuthenticatedRequest, re
   } catch (error) {
     res.status(401).json({
       error: error instanceof Error ? error.message : 'Login failed',
+    });
+  }
+});
+
+// POST /api/auth/login/verify-2fa - Verificar código 2FA após login
+router.post('/login/verify-2fa', authSensitiveLimiter, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { userId, twoFactorCode } = req.body;
+
+    if (!userId || !twoFactorCode) {
+      return res.status(400).json({ error: 'User ID and 2FA code are required' });
+    }
+
+    const result = await AuthService.verifyLoginTwoFactor(userId, twoFactorCode);
+
+    // Criar refresh token e enviar em cookie HttpOnly
+    const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(401).json({
+      error: error instanceof Error ? error.message : '2FA verification failed',
     });
   }
 });
@@ -119,8 +151,8 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// PUT /api/auth/change-password - Alterar senha do usuário logado
-router.put('/change-password', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// PUT /api/auth/change-password - Alterar senha do usuário logado (requer 2FA se habilitado)
+router.put('/change-password', authMiddleware, requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { currentPassword, newPassword, confirmPassword } = req.body;
     const userId = req.userId; // Obtido do authMiddleware
