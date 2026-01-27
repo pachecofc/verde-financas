@@ -93,6 +93,10 @@ export class UserController {
 
       const user = await UserService.reactivateUser(req.userId);
 
+      if (!user) {
+        return res.status(404).json({ error: 'Usuário não encontrado.' });
+      }
+
       res.status(200).json({
         message: 'Conta reativada com sucesso!',
         user: {
