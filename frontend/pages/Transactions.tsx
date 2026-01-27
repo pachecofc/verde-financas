@@ -49,7 +49,7 @@ export const Transactions: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [filters, setFilters] = useState({ startDate: '', endDate: '', categoryId: '', accountId: '' });
 
   const [formData, setFormData] = useState({
@@ -70,6 +70,18 @@ export const Transactions: React.FC = () => {
       }));
     }
   }, [showModal, editingId, accounts, categories]);
+
+  // Conecta o stream ao elemento de vídeo
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, [stream]);
 
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -332,6 +344,22 @@ export const Transactions: React.FC = () => {
     setImportStep('upload');
   };
 
+  // Detecta se é um dispositivo móvel/tablet
+  const isMobileDevice = (): boolean => {
+    // Verifica largura da tela (tablets geralmente têm até 1024px)
+    const isSmallScreen = window.innerWidth <= 1024;
+    
+    // Verifica se tem suporte a touch
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    // Verifica user agent para dispositivos móveis
+    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    
+    // Considera mobile se for tela pequena OU tiver touch OU user agent indicar mobile
+    return isSmallScreen || (hasTouch && isMobileUA);
+  };
+
   const handleScannerClick = () => {
     if (user?.plan === 'premium') startCamera();
     else setShowUpgradeModal(true);
@@ -339,13 +367,33 @@ export const Transactions: React.FC = () => {
 
   const startCamera = async (mode?: 'user' | 'environment') => {
     if (stream) stream.getTracks().forEach(track => track.stop());
-    const modeToUse = mode || 'environment';
+    
+    // Se não foi especificado um modo, detecta automaticamente o dispositivo
+    let modeToUse: 'user' | 'environment';
+    if (mode) {
+      modeToUse = mode;
+    } else {
+      // Mobile/tablet: usa câmera traseira, Desktop: usa câmera frontal
+      modeToUse = isMobileDevice() ? 'environment' : 'user';
+    }
+    
     setFacingMode(modeToUse);
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: modeToUse } });
       setStream(mediaStream);
       setShowScanner(true);
-    } catch (err) { alert("Câmera indisponível"); }
+    } catch (err) {
+      // Se falhar, tenta o modo alternativo como fallback
+      const fallbackMode = modeToUse === 'user' ? 'environment' : 'user';
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: fallbackMode } });
+        setFacingMode(fallbackMode);
+        setStream(fallbackStream);
+        setShowScanner(true);
+      } catch (fallbackErr) {
+        alert("Câmera indisponível");
+      }
+    }
   };
 
   const stopCamera = () => {
