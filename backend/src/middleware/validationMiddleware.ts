@@ -18,7 +18,7 @@ export function validateBody<T extends z.ZodTypeAny>(schema: T) {
     } catch (error) {
       if (error instanceof ZodError) {
         // Formata erros do Zod de forma amigável
-        const errors = error.errors.map((err) => ({
+        const errors = error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
         }));
@@ -29,8 +29,8 @@ export function validateBody<T extends z.ZodTypeAny>(schema: T) {
         });
       }
 
-      // Erro inesperado
-      console.error('Erro de validação:', error);
+      // Erro inesperado - logar apenas o tipo de erro, sem expor dados sensíveis
+      console.error('Erro de validação:', error instanceof Error ? error.message : 'Erro desconhecido');
       return res.status(500).json({
         error: 'Erro interno ao validar dados',
       });

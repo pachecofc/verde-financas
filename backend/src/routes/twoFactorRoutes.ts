@@ -29,14 +29,14 @@ router.post('/setup', authMiddleware, twoFactorLimiter, async (req: Authenticate
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { email: true, twoFactorEnabled: true },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    if (user.twoFactorEnabled) {
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
+    if (userWith2FA.twoFactorEnabled) {
       return res.status(400).json({ error: '2FA já está habilitado' });
     }
 
@@ -117,14 +117,14 @@ router.post('/disable', authMiddleware, twoFactorLimiter, async (req: Authentica
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { password: true, twoFactorEnabled: true },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    if (!user.twoFactorEnabled) {
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
+    if (!userWith2FA.twoFactorEnabled) {
       return res.status(400).json({ error: '2FA não está habilitado' });
     }
 
@@ -184,20 +184,20 @@ router.get('/backup-codes', authMiddleware, async (req: AuthenticatedRequest, re
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { twoFactorEnabled: true, twoFactorBackupCodes: true },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    if (!user.twoFactorEnabled) {
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean; twoFactorBackupCodes: string[] };
+    if (!userWith2FA.twoFactorEnabled) {
       return res.status(400).json({ error: '2FA não está habilitado' });
     }
 
     // Retornar apenas a quantidade de códigos restantes (não os códigos em si por segurança)
     res.status(200).json({
-      remainingCodes: user.twoFactorBackupCodes.length,
+      remainingCodes: userWith2FA.twoFactorBackupCodes.length,
     });
   } catch (error) {
     console.error('Erro na rota /2fa/backup-codes:', error);
@@ -216,16 +216,16 @@ router.get('/status', authMiddleware, async (req: AuthenticatedRequest, res: Res
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { twoFactorEnabled: true, twoFactorBackupCodes: true },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean; twoFactorBackupCodes: string[] };
     res.status(200).json({
-      enabled: user.twoFactorEnabled || false,
-      remainingBackupCodes: user.twoFactorBackupCodes?.length || 0,
+      enabled: userWith2FA.twoFactorEnabled || false,
+      remainingBackupCodes: userWith2FA.twoFactorBackupCodes?.length || 0,
     });
   } catch (error) {
     console.error('Erro na rota /2fa/status:', error);

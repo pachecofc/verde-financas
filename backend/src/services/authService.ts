@@ -173,7 +173,8 @@ export class AuthService {
 
     // Não informar se o usuário existe por segurança
     if (!user) {
-      console.log(`Attempted password reset for non-existent email: ${email}`);
+      // Log genérico sem expor o email para evitar vazamento de dados sensíveis
+      console.log('Attempted password reset for non-existent email');
       // Ainda assim, retornamos sucesso para evitar enumeração de usuários
       return;
     }

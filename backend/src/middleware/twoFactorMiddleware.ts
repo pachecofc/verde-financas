@@ -16,7 +16,6 @@ export const requireTwoFactor = async (
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { twoFactorEnabled: true },
     });
 
     if (!user) {
@@ -24,7 +23,8 @@ export const requireTwoFactor = async (
     }
 
     // Se 2FA não estiver habilitado, permitir acesso
-    if (!user.twoFactorEnabled) {
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
+    if (!userWith2FA.twoFactorEnabled) {
       return next();
     }
 
@@ -67,7 +67,6 @@ export const optionalTwoFactor = async (
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { twoFactorEnabled: true },
     });
 
     if (!user) {
@@ -75,7 +74,8 @@ export const optionalTwoFactor = async (
     }
 
     // Se 2FA não estiver habilitado, permitir acesso sem validação
-    if (!user.twoFactorEnabled) {
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
+    if (!userWith2FA.twoFactorEnabled) {
       return next();
     }
 

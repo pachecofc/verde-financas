@@ -32,20 +32,26 @@ export class UserService {
 
   // Soft delete: marca o usuário como deletado
   static async softDeleteUser(userId: string) {
-    const user = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date() },
-      select: { id: true, name: true, email: true, deletedAt: true },
+      data: { deletedAt: new Date() } as any,
+    });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
     });
     return user;
   }
 
   // Reativação: remove a marca de deletado
   static async reactivateUser(userId: string) {
-    const user = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: null },
-      select: { id: true, name: true, email: true, deletedAt: true },
+      data: { deletedAt: null } as any,
+    });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
     });
     return user;
   }
@@ -61,7 +67,7 @@ export class UserService {
           not: null,
           lte: thirtyDaysAgo, // deletedAt <= 30 dias atrás
         },
-      },
+      } as any,
     });
 
     return result.count;
@@ -71,8 +77,11 @@ export class UserService {
   static async isUserDeleted(userId: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { deletedAt: true },
     });
-    return user?.deletedAt !== null;
+    if (!user) {
+      return false;
+    }
+    const userWithDeletedAt = user as typeof user & { deletedAt: Date | null };
+    return userWithDeletedAt.deletedAt !== null;
   }
 }

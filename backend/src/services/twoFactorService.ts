@@ -71,26 +71,30 @@ export class TwoFactorService {
   static async verifyBackupCode(userId: string, code: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { twoFactorBackupCodes: true },
     });
 
-    if (!user || !user.twoFactorBackupCodes || user.twoFactorBackupCodes.length === 0) {
+    if (!user) {
+      return false;
+    }
+
+    const userWith2FA = user as typeof user & { twoFactorBackupCodes: string[] };
+    if (!userWith2FA.twoFactorBackupCodes || userWith2FA.twoFactorBackupCodes.length === 0) {
       return false;
     }
 
     // Verificar cada código de backup
-    for (let i = 0; i < user.twoFactorBackupCodes.length; i++) {
-      const encryptedCode = user.twoFactorBackupCodes[i];
+    for (let i = 0; i < userWith2FA.twoFactorBackupCodes.length; i++) {
+      const encryptedCode = userWith2FA.twoFactorBackupCodes[i];
       const isValid = await bcrypt.compare(code, encryptedCode);
 
       if (isValid) {
         // Remover código usado
-        const updatedCodes = [...user.twoFactorBackupCodes];
+        const updatedCodes = [...userWith2FA.twoFactorBackupCodes];
         updatedCodes.splice(i, 1);
 
         await prisma.user.update({
           where: { id: userId },
-          data: { twoFactorBackupCodes: updatedCodes },
+          data: { twoFactorBackupCodes: updatedCodes } as any,
         });
 
         return true;
@@ -119,7 +123,7 @@ export class TwoFactorService {
         twoFactorSecret: secret, // Armazenado em base32
         twoFactorEnabled: true,
         twoFactorBackupCodes: encryptedBackupCodes,
-      },
+      } as any,
     });
   }
 
@@ -131,7 +135,7 @@ export class TwoFactorService {
         twoFactorSecret: null,
         twoFactorEnabled: false,
         twoFactorBackupCodes: [],
-      },
+      } as any,
     });
   }
 
@@ -139,13 +143,14 @@ export class TwoFactorService {
   static async verifyTwoFactorCode(userId: string, code: string): Promise<boolean> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        twoFactorEnabled: true,
-        twoFactorSecret: true,
-      },
     });
 
-    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    if (!user) {
+      return false;
+    }
+
+    const userWith2FA = user as typeof user & { twoFactorEnabled: boolean; twoFactorSecret: string | null };
+    if (!userWith2FA.twoFactorEnabled || !userWith2FA.twoFactorSecret) {
       return false;
     }
 
@@ -157,6 +162,6 @@ export class TwoFactorService {
 
     // Se não for backup code, tentar como TOTP
     // O secret está armazenado em base32 (texto plano) para permitir validação
-    return this.verifyToken(user.twoFactorSecret, code);
+    return this.verifyToken(userWith2FA.twoFactorSecret, code);
   }
 }
