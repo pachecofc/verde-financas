@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Plus, Target, Trash2, Edit2, Sparkles, Crown, Loader2, 
   X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical, Star
@@ -11,6 +12,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 export const Budgets: React.FC = () => {
+  const { user: authUser } = useAuth();
   const { 
     budgets, categories, transactions, user, theme,
     addBudget, updateBudget, deleteBudget, refreshState, updateUserProfile 
@@ -65,7 +67,7 @@ export const Budgets: React.FC = () => {
     handleCloseModal();
   };
 
-  const isPremium = user?.plan?.toLowerCase() === 'premium';
+  const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
   const handleSmartBudgetClick = () => {
     if (isPremium) {

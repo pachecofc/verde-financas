@@ -5,6 +5,7 @@ import {
   TrendingUp, Wallet, Target, Calendar, MessageSquareText, Crown, Zap, ArrowRight
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
+import { useAuth } from '../contexts/AuthContext';
 import { GoogleGenAI } from "@google/genai";
 
 interface Message {
@@ -13,6 +14,7 @@ interface Message {
 }
 
 export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const { user: authUser } = useAuth();
   const { 
     user, transactions, accounts, budgets, schedules, goals, categories, updateUserProfile 
   } = useFinance();
@@ -64,7 +66,7 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
     `;
   };
 
-  const isPremium = user?.plan?.toLowerCase() === 'premium';
+  const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;

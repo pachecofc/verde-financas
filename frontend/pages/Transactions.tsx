@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useAccounts } from '../contexts/AccountContext';
 import { 
   Plus, Search, Trash2, Edit2, ArrowRightLeft, SlidersHorizontal, 
@@ -18,6 +19,7 @@ type ImportStep = 'upload' | 'mapping' | 'review';
 type TransactionRow = { transaction: Transaction; creditView: boolean };
 
 export const Transactions: React.FC = () => {
+  const { user: authUser } = useAuth();
   const { 
     transactions, categories, assets, user, theme,
     addTransaction, updateTransaction, deleteTransaction, updateUserProfile 
@@ -58,7 +60,7 @@ export const Transactions: React.FC = () => {
     categoryId: '', accountId: '', toAccountId: '', assetId: '', type: 'expense' as TransactionType,
   });
 
-  const isPremium = user?.plan?.toLowerCase() === 'premium';
+  const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
   useEffect(() => {
     if (showModal && !editingId) {

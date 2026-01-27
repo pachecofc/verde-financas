@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, ShieldCheck, HeartPulse, BrainCircuit, Sparkles, 
@@ -10,6 +11,7 @@ import {
 import { GoogleGenAI } from "@google/genai";
 
 export const Gamification: React.FC = () => {
+  const { user: authUser } = useAuth();
   const { user, transactions, budgets, goals, accounts, updateUserProfile } = useFinance();
   const navigate = useNavigate();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -17,7 +19,7 @@ export const Gamification: React.FC = () => {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  const isPremium = user?.plan?.toLowerCase() === 'premium';
+  const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
   const getScoreStatus = (score: number) => {
     if (score >= 0 && score <= 199) {
