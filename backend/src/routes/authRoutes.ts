@@ -5,6 +5,15 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/authMiddlewa
 import { RefreshTokenService } from '../services/refreshTokenService';
 import { REFRESH_TOKEN_EXPIRATION_DAYS } from '../config/jwt';
 import { requireTwoFactor } from '../middleware/twoFactorMiddleware';
+import { validateBody } from '../middleware/validationMiddleware';
+import {
+  signupSchema,
+  loginSchema,
+  verifyLoginTwoFactorSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
+} from '../validations/authSchemas';
 
 const router = Router();
 
@@ -33,13 +42,9 @@ const authSensitiveLimiter = rateLimit({
 });
 
 // POST /api/auth/signup
-router.post('/signup', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/signup', validateBody(signupSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, password, name } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
 
     const result = await AuthService.signup({ email, password, name });
 
@@ -56,13 +61,9 @@ router.post('/signup', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/auth/login
-router.post('/login', authSensitiveLimiter, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/login', authSensitiveLimiter, validateBody(loginSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
 
     const result = await AuthService.login({ email, password });
 
@@ -87,13 +88,9 @@ router.post('/login', authSensitiveLimiter, async (req: AuthenticatedRequest, re
 });
 
 // POST /api/auth/login/verify-2fa - Verificar código 2FA após login
-router.post('/login/verify-2fa', authSensitiveLimiter, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/login/verify-2fa', authSensitiveLimiter, validateBody(verifyLoginTwoFactorSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, twoFactorCode } = req.body;
-
-    if (!userId || !twoFactorCode) {
-      return res.status(400).json({ error: 'User ID and 2FA code are required' });
-    }
 
     const result = await AuthService.verifyLoginTwoFactor(userId, twoFactorCode);
 
@@ -110,13 +107,9 @@ router.post('/login/verify-2fa', authSensitiveLimiter, async (req: Authenticated
 });
 
 // POST /api/auth/forgot-password - Solicitar redefinição de senha
-router.post('/forgot-password', authSensitiveLimiter, async (req, res) => {
+router.post('/forgot-password', authSensitiveLimiter, validateBody(forgotPasswordSchema), async (req, res) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
 
     // Chama o serviço, mas não espera o retorno para evitar vazamento de informação
     await AuthService.requestPasswordReset(email);
@@ -132,13 +125,9 @@ router.post('/forgot-password', authSensitiveLimiter, async (req, res) => {
 });
 
 // POST /api/auth/reset-password - Redefinir senha
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', validateBody(resetPasswordSchema), async (req, res) => {
   try {
     const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({ error: 'Token and new password are required' });
-    }
 
     await AuthService.resetPassword(token, newPassword);
 
@@ -152,25 +141,13 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // PUT /api/auth/change-password - Alterar senha do usuário logado (requer 2FA se habilitado)
-router.put('/change-password', authMiddleware, requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/change-password', authMiddleware, requireTwoFactor, validateBody(changePasswordSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
     const userId = req.userId; // Obtido do authMiddleware
 
     if (!userId) {
       return res.status(401).json({ error: 'Usuário não autenticado.' });
-    }
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ error: 'Todos os campos de senha são obrigatórios.' });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ error: 'A nova senha e a confirmação não coincidem.' });
-    }
-
-    if (newPassword.length < 6) { // Exemplo de validação de senha
-      return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres.' });
     }
 
     await AuthService.changePassword(userId, currentPassword, newPassword);

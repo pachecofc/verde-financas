@@ -29,7 +29,8 @@
     "nodemailer": "^7.0.12",
     "prisma": "^5.22.0",
     "qrcode": "^1.5.3",
-    "speakeasy": "^2.0.0"
+    "speakeasy": "^2.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
