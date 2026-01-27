@@ -205,7 +205,7 @@ export const AccountSettings: React.FC = () => {
     try {
       await authApi.deleteAccount();
       // Logout e redirecionar para login
-      logout();
+      await logout();
       navigate('/login');
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir conta.');

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, CalendarDays, CreditCard, LogOut,
   Menu, X, Tags, User as UserIcon, TrendingUp,
-  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, Coins, FileText
+  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, Coins, FileText, Loader2
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,7 +21,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, logout, isLoggingOut } = useAuth();
   const { theme, toggleTheme, user: financeUser } = useFinance();
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,8 +45,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -82,8 +82,20 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-400" />}
               {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
             </button>
-            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all">
-              <LogOut className="w-5 h-5" /> Sair
+            <button 
+              onClick={handleLogout} 
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" /> Saindo...
+                </>
+              ) : (
+                <>
+                  <LogOut className="w-5 h-5" /> Sair
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -130,6 +142,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
         <AiAssistant isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
       </main>
+
+      {/* Overlay de logout */}
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 min-w-[280px] animate-in zoom-in duration-300">
+            <Loader2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 animate-spin" />
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Desconectando...
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Aguarde enquanto finalizamos sua sessão
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isProfileModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

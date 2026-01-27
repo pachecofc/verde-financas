@@ -11,10 +11,11 @@ interface AuthContextType {
   user: ExtendedAuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLoggingOut: boolean;
   error: string | null;
   login: (data: LoginPayload) => Promise<boolean>;
   signup: (data: SignupPayload) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
   requestPasswordReset: (data: ForgotPasswordPayload) => Promise<boolean>;
   resetPassword: (data: ResetPasswordPayload) => Promise<boolean>;
@@ -31,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authApi.getStoredUser() as ExtendedAuthUser | null; // Cast para ExtendedAuthUser
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Verifica se está autenticado
@@ -79,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout
   const logout = useCallback(async () => {
+    setIsLoggingOut(true);
     try {
       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/logout`, {
         method: 'POST',
@@ -87,9 +90,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Mesmo em caso de erro no backend, limpar estado local
     } finally {
+      // Pequeno delay para melhorar UX visual
+      await new Promise(resolve => setTimeout(resolve, 500));
       authApi.clearAuth();
       setUser(null);
       setError(null);
+      setIsLoggingOut(false);
     }
   }, []);
 
@@ -220,6 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       isAuthenticated,
       isLoading,
+      isLoggingOut,
       error,
       login,
       signup,
