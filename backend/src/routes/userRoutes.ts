@@ -28,4 +28,10 @@ router.put('/profile/avatar', authMiddleware, handleAvatarUpload, UserController
 // Rota para atualizar outras informações do perfil (nome, email, etc.)
 router.put('/profile', authMiddleware, UserController.updateProfile);
 
+// Rota para excluir conta (soft delete)
+router.delete('/delete-account', authMiddleware, UserController.deleteAccount);
+
+// Rota para reativar conta
+router.post('/reactivate-account', authMiddleware, UserController.reactivateAccount);
+
 export default router;

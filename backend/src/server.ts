@@ -107,6 +107,10 @@ app.use('/api/scores', scoreRoutes);
 // Rotas de relatórios
 app.use('/api/reports', reportRoutes);
 
+// Iniciar cron job para hard delete
+import { CronService } from './services/cronService';
+CronService.start();
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

@@ -11,6 +11,7 @@ import { Investments } from './pages/Investments';
 import { Assets } from './pages/Assets';
 import { Gamification } from './pages/Gamification';
 import { Reports } from './pages/Reports';
+import { AccountSettings } from './pages/AccountSettings';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
@@ -139,6 +140,16 @@ export const App: React.FC = () => {
                   <PrivateRoute>
                     <Layout>
                       <Reports />
+                    </Layout>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <AccountSettings />
                     </Layout>
                   </PrivateRoute>
                 }

@@ -65,4 +65,47 @@ export class UserController {
       });
     }
   }
+
+  static async deleteAccount(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Usuário não autenticado.' });
+      }
+
+      await UserService.softDeleteUser(req.userId);
+
+      res.status(200).json({
+        message: 'Conta marcada para exclusão. Você perderá o acesso imediatamente. Seus dados serão mantidos por 30 dias. Se mudar de ideia, faça login para reativar.',
+      });
+    } catch (error) {
+      console.error('Erro ao excluir conta:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Erro interno do servidor ao excluir conta.',
+      });
+    }
+  }
+
+  static async reactivateAccount(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Usuário não autenticado.' });
+      }
+
+      const user = await UserService.reactivateUser(req.userId);
+
+      res.status(200).json({
+        message: 'Conta reativada com sucesso!',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao reativar conta:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Erro interno do servidor ao reativar conta.',
+      });
+    }
+  }
 }

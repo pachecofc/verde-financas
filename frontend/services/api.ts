@@ -545,6 +545,56 @@ export const authApi = {
   getToken: (): string | null => {
     return getAuthToken();
   },
+
+  // Excluir conta do usuário (soft delete)
+  deleteAccount: async (): Promise<{ message: string }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/users/delete-account`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return handleResponse<{ message: string }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // Reativar conta do usuário
+  reactivateAccount: async (): Promise<{ message: string; user: UpdatedUserResponse }> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/users/reactivate-account`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      return handleResponse<{ message: string; user: UpdatedUserResponse }>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
 };
 
 // ============ TRANSACTION API ============

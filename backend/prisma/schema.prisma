@@ -23,121 +23,123 @@ enum AccountType {
 }
 
 model User {
-  id                    String    @id @default(uuid())
-  email                 String    @unique
-  name                  String
-  password              String
-  passwordResetToken    String?   @unique
-  passwordResetExpires  DateTime?
-  avatarUrl             String?
-  plan                  UserPlan  @default(BASIC)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  name                 String
+  password             String
+  passwordResetToken   String?   @unique
+  passwordResetExpires DateTime?
+  avatarUrl            String?
+  plan                 UserPlan  @default(BASIC)
+  deletedAt            DateTime? // Soft delete: marca quando a conta foi solicitada para exclusão
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  categories            Category[]
-  transactions          Transaction[]
-  accounts              Account[]
-  budgets               Budget[]
-  schedules             Schedule[]
-  assets                Asset[]
-  assetHoldings         AssetHolding[]
-  goals                 Goal[]
-  userScore             UserScore?
-  userAchievements      UserAchievement[]
-  refreshTokens         RefreshToken[]
+  categories       Category[]
+  transactions     Transaction[]
+  accounts         Account[]
+  budgets          Budget[]
+  schedules        Schedule[]
+  assets           Asset[]
+  assetHoldings    AssetHolding[]
+  goals            Goal[]
+  userScore        UserScore?
+  userAchievements UserAchievement[]
+  refreshTokens    RefreshToken[]
+
   @@map("users")
 }
 
 model Category {
-  id          String    @id @default(uuid())
-  name        String
-  type        String // 'income' or 'expense'
-  icon        String?
-  color       String?
-  parentId    String?
-  isDefault   Boolean   @default(false)
-  userId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  type      String // 'income' or 'expense'
+  icon      String?
+  color     String?
+  parentId  String?
+  isDefault Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent      Category? @relation("CategoryChildren", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryChildren")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category?     @relation("CategoryChildren", fields: [parentId], references: [id])
+  children     Category[]    @relation("CategoryChildren")
   transactions Transaction[]
-  budgets     Budget[]
-  schedules   Schedule[]
+  budgets      Budget[]
+  schedules    Schedule[]
 
   @@map("categories")
 }
 
 model Transaction {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   description String
   amount      Decimal
   type        String // 'income', 'expense', 'transfer', or 'adjustment'
   date        DateTime
   userId      String
-  categoryId  String?   // Opcional para transferências e ajustes
+  categoryId  String? // Opcional para transferências e ajustes
   accountId   String
-  toAccountId String?   // Para transferências: conta destino
-  assetId     String?   // Para transferências para contas de investimento: ativo relacionado
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  toAccountId String? // Para transferências: conta destino
+  assetId     String? // Para transferências para contas de investimento: ativo relacionado
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  account     Account   @relation("FromAccount", fields: [accountId], references: [id])
-  toAccount   Account?  @relation("ToAccount", fields: [toAccountId], references: [id])
-  asset       Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  account   Account   @relation("FromAccount", fields: [accountId], references: [id])
+  toAccount Account?  @relation("ToAccount", fields: [toAccountId], references: [id])
+  asset     Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
 
   @@map("transactions")
 }
 
 // Account
 model Account {
-  id          String      @id @default(uuid())
-  name        String
-  balance     Decimal     @default(0) // Saldo inicial da conta
-  currency    String      @default("BRL") // Moeda padrão
-  type        AccountType // Usando o enum AccountType
-  bankName    String?     // Opcional
-  color       String?     // Opcional, para identificação visual
-  userId      String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String      @id @default(uuid())
+  name      String
+  balance   Decimal     @default(0) // Saldo inicial da conta
+  currency  String      @default("BRL") // Moeda padrão
+  type      AccountType // Usando o enum AccountType
+  bankName  String? // Opcional
+  color     String? // Opcional, para identificação visual
+  userId    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[] @relation("FromAccount") // Transações desta conta
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions   Transaction[] @relation("FromAccount") // Transações desta conta
   toTransactions Transaction[] @relation("ToAccount") // Transações para esta conta (transferências)
-  scheduleFrom Schedule[] @relation("ScheduleFromAccount") // Agendamentos desta conta
-  scheduleTo   Schedule[] @relation("ScheduleToAccount") // Agendamentos para esta conta (transferências)
+  scheduleFrom   Schedule[]    @relation("ScheduleFromAccount") // Agendamentos desta conta
+  scheduleTo     Schedule[]    @relation("ScheduleToAccount") // Agendamentos para esta conta (transferências)
 
   @@map("accounts")
 }
 
 model RefreshToken {
-  id         String   @id @default(uuid())
-  token      String   @unique
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  revokedAt  DateTime?
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
 
   @@map("refresh_tokens")
 }
 
 // Budget
 model Budget {
-  id          String    @id @default(uuid())
-  userId      String
-  categoryId  String
-  limit       Decimal
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  userId     String
+  categoryId String
+  limit      Decimal
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, categoryId])
   @@map("budgets")
@@ -145,55 +147,55 @@ model Budget {
 
 // Schedule
 model Schedule {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   description String
   amount      Decimal
   date        DateTime
-  frequency   String    // 'once', 'monthly', or 'weekly'
-  type        String    // 'income', 'expense', 'transfer', or 'adjustment'
+  frequency   String // 'once', 'monthly', or 'weekly'
+  type        String // 'income', 'expense', 'transfer', or 'adjustment'
   userId      String
-  categoryId  String?   // Opcional para transferências e ajustes
+  categoryId  String? // Opcional para transferências e ajustes
   accountId   String
-  toAccountId String?   // Para transferências: conta destino
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  toAccountId String? // Para transferências: conta destino
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  account     Account   @relation("ScheduleFromAccount", fields: [accountId], references: [id])
-  toAccount   Account?  @relation("ScheduleToAccount", fields: [toAccountId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  account   Account   @relation("ScheduleFromAccount", fields: [accountId], references: [id])
+  toAccount Account?  @relation("ScheduleToAccount", fields: [toAccountId], references: [id])
 
   @@map("schedules")
 }
 
 // Asset
 model Asset {
-  id          String    @id @default(uuid())
-  name        String
-  incomeType  String    // 'fixed' or 'variable'
-  color       String?   // Opcional
-  userId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  name       String
+  incomeType String // 'fixed' or 'variable'
+  color      String? // Opcional
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
-  holdings    AssetHolding[]
+  holdings     AssetHolding[]
 
   @@map("assets")
 }
 
 // AssetHolding - Armazena o valor atual de cada ativo por usuário
 model AssetHolding {
-  id          String    @id @default(uuid())
-  assetId     String
-  userId      String
-  currentValue Decimal   // Valor atual do ativo (pode ser diferente da soma das transações devido a valorização/desvalorização)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String   @id @default(uuid())
+  assetId      String
+  userId       String
+  currentValue Decimal // Valor atual do ativo (pode ser diferente da soma das transações devido a valorização/desvalorização)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
   @@unique([assetId, userId]) // Um usuário só pode ter um holding por ativo
   @@map("asset_holdings")
@@ -206,43 +208,43 @@ model Goal {
   targetAmount  Decimal
   currentAmount Decimal   @default(0)
   deadline      DateTime? // Opcional
-  icon          String?   // Opcional (emoji)
-  color         String?   // Opcional
+  icon          String? // Opcional (emoji)
+  color         String? // Opcional
   userId        String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("goals")
 }
 
 // UserScore - Pontuação do usuário no sistema de gamificação
 model UserScore {
-  id          String    @id @default(uuid())
-  userId      String    @unique
-  score       Int       @default(500) // Score base de 500, pode variar de 0 a 1000
-  lastCalculatedAt DateTime  @default(now())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  score            Int      @default(500) // Score base de 500, pode variar de 0 a 1000
+  lastCalculatedAt DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_scores")
 }
 
 // UserAchievement - Conquistas desbloqueadas pelo usuário
 model UserAchievement {
-  id          String    @id @default(uuid())
-  userId      String
-  achievementId String  // ID da conquista (ex: 'ach-1', 'ach-2')
-  name        String    // Nome da conquista
-  description String    // Descrição da conquista
-  icon        String    // Emoji ou ícone
-  unlockedAt  DateTime  @default(now())
-  createdAt   DateTime  @default(now())
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String // ID da conquista (ex: 'ach-1', 'ach-2')
+  name          String // Nome da conquista
+  description   String // Descrição da conquista
+  icon          String // Emoji ou ícone
+  unlockedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId]) // Um usuário só pode ter uma conquista uma vez
   @@map("user_achievements")

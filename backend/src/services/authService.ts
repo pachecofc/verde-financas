@@ -62,13 +62,23 @@ export class AuthService {
   static async login(data: AuthRequest): Promise<AuthResponse> {
     const { email, password } = data;
 
-    // Buscar usuário
+    // Buscar usuário (sem select para incluir todos os campos incluindo deletedAt)
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
       throw new Error('Usuário não encontrado');
+    }
+
+    // Se o usuário está deletado, reativar automaticamente ao fazer login
+    // Usar type assertion para acessar deletedAt até que o Prisma Client seja atualizado após migration
+    const userWithDeletedAt = user as typeof user & { deletedAt: Date | null };
+    if (userWithDeletedAt.deletedAt) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { deletedAt: null } as any,
+      });
     }
 
     // Verificar senha
