@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { AuthService } from '../services/authService';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/authMiddleware';
 import { RefreshTokenService } from '../services/refreshTokenService';
@@ -18,6 +19,17 @@ function getRefreshCookieOptions() {
     maxAge,
   };
 }
+
+// Limite estrito para rotas sensíveis de autenticação
+const authSensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo de 5 tentativas por IP nesse período
+  message: {
+    error: 'Muitas tentativas. Tente novamente em alguns minutos.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // POST /api/auth/signup
 router.post('/signup', async (req: AuthenticatedRequest, res: Response) => {
@@ -43,7 +55,7 @@ router.post('/signup', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/login', authSensitiveLimiter, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -66,7 +78,7 @@ router.post('/login', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // POST /api/auth/forgot-password - Solicitar redefinição de senha
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', authSensitiveLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 

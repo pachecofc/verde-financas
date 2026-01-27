@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import { prisma } from './prisma';
 import authRoutes from './routes/authRoutes';
 import categoryRoutes from './routes/categoryRoutes';
@@ -19,6 +20,14 @@ import path from 'path';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Rate limiting geral para a API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo de 100 requisições por IP nesse período
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middlewares
 app.use(cors({
   origin: process.env.FRONTEND_URL,
@@ -32,6 +41,9 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json());
+
+// Aplica rate limiting geral em todas as rotas da API
+app.use('/api', apiLimiter);
 
 // Rota de teste do backend
 app.get('/api/health', (req, res) => {
