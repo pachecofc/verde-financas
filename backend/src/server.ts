@@ -21,12 +21,16 @@ import path from 'path';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting geral para a API
-const apiLimiter = rateLimit({
+// Rate limiting para rotas públicas não autenticadas
+// Aplicado apenas em rotas específicas que precisam de proteção
+const publicApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo de 100 requisições por IP nesse período
+  max: 300, // máximo de 300 requisições por IP nesse período
   standardHeaders: true,
   legacyHeaders: false,
+  message: {
+    error: 'Muitas requisições. Tente novamente em alguns minutos.',
+  },
 });
 
 // Middlewares
@@ -43,8 +47,9 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
-// Aplica rate limiting geral em todas as rotas da API
-app.use('/api', apiLimiter);
+// Rate limiting aplicado apenas em rotas específicas que precisam de proteção
+// Rotas de autenticação já têm seus próprios limiters mais restritivos
+// Rotas autenticadas não têm rate limiting geral para permitir carregamento normal após login
 
 // Rota de teste do backend
 app.get('/api/health', (req, res) => {
