@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 import { prisma } from './prisma';
 import authRoutes from './routes/authRoutes';
 import twoFactorRoutes from './routes/twoFactorRoutes';
@@ -34,6 +35,8 @@ const publicApiLimiter = rateLimit({
 });
 
 // Middlewares
+// Helmet.js configura automaticamente cabeçalhos HTTP de segurança
+app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL,
   credentials: true,
