@@ -23,9 +23,15 @@ export function validateBody<T extends z.ZodTypeAny>(schema: T) {
           message: err.message,
         }));
 
+        // Se houver apenas um erro, usar a mensagem específica como erro principal
+        // Se houver múltiplos erros, usar mensagem genérica e incluir detalhes
+        const errorMessage = errors.length === 1 
+          ? errors[0].message 
+          : 'Dados de entrada inválidos';
+
         return res.status(400).json({
-          error: 'Dados de entrada inválidos',
-          details: errors,
+          error: errorMessage,
+          details: errors.length > 1 ? errors : undefined,
         });
       }
 

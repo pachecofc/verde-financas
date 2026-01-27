@@ -22,6 +22,19 @@ const getAuthHeaders = (): HeadersInit => {
 const handleResponse = async <T>(response: Response): Promise<T> => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    
+    // Se houver detalhes de validação, construir mensagem mais específica
+    if (errorData.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
+      // Se houver múltiplos erros, combinar as mensagens
+      if (errorData.details.length > 1) {
+        const messages = errorData.details.map((d: any) => d.message).join('; ');
+        throw new Error(messages);
+      } else {
+        // Se houver apenas um erro, usar a mensagem específica
+        throw new Error(errorData.details[0].message || errorData.error);
+      }
+    }
+    
     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
   }
   return response.json();
