@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
 import { 
   Plus, Target, Trash2, Edit2, Sparkles, Crown, Loader2, 
-  X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical
+  X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical, Star
 } from 'lucide-react';
 import { Budget, Category } from '../types';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -65,8 +65,10 @@ export const Budgets: React.FC = () => {
     handleCloseModal();
   };
 
+  const isPremium = user?.plan?.toLowerCase() === 'premium';
+
   const handleSmartBudgetClick = () => {
-    if (user?.plan === 'premium') {
+    if (isPremium) {
       setShowSmartModal(true);
     } else {
       setShowUpgradeModal(true);
@@ -190,7 +192,7 @@ export const Budgets: React.FC = () => {
           >
             <Sparkles className="w-5 h-5 group-hover:animate-pulse" />
             Orçamento Inteligente
-            {user?.plan === 'basic' && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Crown className="w-3.5 h-3.5" /></div>}
+            {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}
           </button>
           <button 
             onClick={() => { setEditingId(null); setShowModal(true); }}

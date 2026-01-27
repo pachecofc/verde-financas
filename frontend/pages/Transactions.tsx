@@ -7,7 +7,7 @@ import {
   ChevronRight, Filter, X, Calendar, Upload, FileText, Check, AlertCircle, 
   ChevronLeft, Camera, RefreshCw, Sparkles, Loader2, Crown, Zap, ShieldCheck,
   BrainCircuit, Wand2, FileSpreadsheet, ArrowRight, Settings2, CreditCard, ChevronDown,
-  Table as TableIcon, Lock, MoreVertical
+  Table as TableIcon, Lock, MoreVertical, Star
 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { TransactionType, Transaction, Category } from '../types';
@@ -57,6 +57,8 @@ export const Transactions: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     categoryId: '', accountId: '', toAccountId: '', assetId: '', type: 'expense' as TransactionType,
   });
+
+  const isPremium = user?.plan?.toLowerCase() === 'premium';
 
   useEffect(() => {
     if (showModal && !editingId) {
@@ -196,7 +198,7 @@ export const Transactions: React.FC = () => {
   };
 
   const handleAutoMapping = async () => {
-    if (user?.plan !== 'premium') { setShowUpgradeModal(true); return; }
+    if (!isPremium) { setShowUpgradeModal(true); return; }
     setIsDetectingColumns(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -299,7 +301,7 @@ export const Transactions: React.FC = () => {
   };
 
   const handleAiCategorize = async () => {
-    if (user?.plan !== 'premium') { setShowUpgradeModal(true); return; }
+    if (!isPremium) { setShowUpgradeModal(true); return; }
     setIsAiCategorizing(true);
     try {
       const descriptions = Array.from(new Set(importedRows.map(r => r.description)));
@@ -361,7 +363,7 @@ export const Transactions: React.FC = () => {
   };
 
   const handleScannerClick = () => {
-    if (user?.plan === 'premium') startCamera();
+    if (isPremium) startCamera();
     else setShowUpgradeModal(true);
   };
 
@@ -502,9 +504,9 @@ export const Transactions: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">Gerencie seus lançamentos e automatize com IA.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative">
-            <Camera className="w-5 h-5" /> Scanner PRO
-            {user?.plan === 'basic' && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1"><Crown className="w-3 h-3" /></div>}
+          <button onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative group">
+            <Camera className="w-5 h-5 group-hover:animate-pulse" /> Scanner
+            {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}
           </button>
           <button onClick={() => { setImportStep('upload'); setShowImportModal(true); }} className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all">
             <FileSpreadsheet className="w-5 h-5" /> Importar CSV
@@ -708,17 +710,15 @@ export const Transactions: React.FC = () => {
 
                     <div className="flex flex-col md:flex-row gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                        <button onClick={() => setImportStep('upload')} className="px-6 py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors">Voltar</button>
-                       {user?.plan === 'premium' ? (
-                          <button onClick={handleAutoMapping} disabled={isDetectingColumns} className="flex-1 py-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-black rounded-2xl border border-emerald-100 dark:border-emerald-800/50 flex items-center justify-center gap-2 hover:bg-emerald-100 transition-all">
-                             {isDetectingColumns ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                             Mapeamento Automático (IA)
-                          </button>
-                       ) : (
-                          <div className="flex-1 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800/50 flex items-center gap-3">
-                             <Crown className="w-5 h-5 text-amber-500 shrink-0" />
-                             <p className="text-[10px] text-amber-800 dark:text-amber-400 font-bold leading-relaxed uppercase">Assine o Plano PRO para habilitar o Mapeamento via IA e economizar tempo.</p>
-                          </div>
-                       )}
+                       <button
+                         onClick={() => isPremium ? handleAutoMapping() : setShowUpgradeModal(true)}
+                         disabled={isPremium && isDetectingColumns}
+                         className="flex-1 py-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-black rounded-2xl border border-emerald-100 dark:border-emerald-800/50 flex items-center justify-center gap-2 hover:bg-emerald-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed relative group"
+                       >
+                         {isDetectingColumns ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5 group-hover:animate-pulse" />}
+                         Mapeamento Automático (IA)
+                         {!isPremium && <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-amber-900 rounded-full p-0.5 shadow-sm"><Star className="w-3 h-3" /></div>}
+                       </button>
                        <button onClick={processMapping} className="flex-1 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 dark:shadow-none hover:bg-emerald-700 transition-all">Próximo: Categorizar</button>
                     </div>
                  </div>
@@ -733,17 +733,15 @@ export const Transactions: React.FC = () => {
                              {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                           </select>
                        </div>
-                       {user?.plan === 'premium' ? (
-                          <button onClick={handleAiCategorize} disabled={isAiCategorizing} className="px-6 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-lg flex items-center gap-2 group transition-all">
-                             {isAiCategorizing ? <Loader2 className="w-5 h-5 animate-spin" /> : <BrainCircuit className="w-5 h-5 group-hover:scale-110" />}
-                             Categorização Automática (IA)
-                          </button>
-                       ) : (
-                          <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-700">
-                             <Lock className="w-4 h-4 text-slate-300" />
-                             <span className="text-[10px] font-black text-slate-400 uppercase">Auto-Categorização (PRO)</span>
-                          </div>
-                       )}
+                       <button
+                         onClick={() => isPremium ? handleAiCategorize() : setShowUpgradeModal(true)}
+                         disabled={isPremium && isAiCategorizing}
+                         className="px-6 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-lg flex items-center gap-2 group transition-all disabled:opacity-50 disabled:cursor-not-allowed relative shrink-0"
+                       >
+                         {isAiCategorizing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Star className="w-5 h-5 group-hover:scale-110" />}
+                         Categorização Automática (IA)
+                         {!isPremium && <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-amber-900 rounded-full p-0.5 shadow-sm"><Star className="w-3 h-3" /></div>}
+                       </button>
                     </div>
 
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -780,7 +778,7 @@ export const Transactions: React.FC = () => {
         </div>
       )}
 
-      {showScanner && <div className="fixed inset-0 z-[100] flex flex-col bg-black"><div className="p-6 flex justify-between text-white"><h3 className="font-black">Scanner PRO</h3><button onClick={stopCamera}><X /></button></div><div className="flex-1 relative flex items-center justify-center"><video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" /><div className="absolute inset-0 flex items-center justify-center"><div className="w-[80%] aspect-[3/4] border-2 border-emerald-500 rounded-3xl" /></div></div><div className="p-10 flex justify-center"><button onClick={captureAndScan} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center"><div className="w-16 h-16 rounded-full bg-white" /></button><canvas ref={canvasRef} className="hidden" /></div></div>}
+      {showScanner && <div className="fixed inset-0 z-[100] flex flex-col bg-black"><div className="p-6 flex justify-between text-white"><h3 className="font-black">Scanner</h3><button onClick={stopCamera}><X /></button></div><div className="flex-1 relative flex items-center justify-center"><video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" /><div className="absolute inset-0 flex items-center justify-center"><div className="w-[80%] aspect-[3/4] border-2 border-emerald-500 rounded-3xl" /></div></div><div className="p-10 flex justify-center"><button onClick={captureAndScan} className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center"><div className="w-16 h-16 rounded-full bg-white" /></button><canvas ref={canvasRef} className="hidden" /></div></div>}
 
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

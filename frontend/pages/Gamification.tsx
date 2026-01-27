@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, ShieldCheck, HeartPulse, BrainCircuit, Sparkles, 
   Crown, Info, ChevronRight, Zap, Target, TrendingUp, Wallet,
-  CheckCircle2, Lock, Loader2, ArrowRight, BookOpen, ChevronDown, ChevronUp
+  CheckCircle2, Lock, Loader2, ArrowRight, BookOpen, ChevronDown, ChevronUp, X
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
@@ -15,6 +15,9 @@ export const Gamification: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const isPremium = user?.plan?.toLowerCase() === 'premium';
 
   const getScoreStatus = (score: number) => {
     if (score >= 0 && score <= 199) {
@@ -84,7 +87,7 @@ export const Gamification: React.FC = () => {
   const status = getScoreStatus(user?.score || 0);
 
   const handleAiHealthCheck = async () => {
-    if (user?.plan !== 'premium') return;
+    if (!isPremium) return;
     setIsAnalyzing(true);
     
     try {
@@ -159,29 +162,59 @@ export const Gamification: React.FC = () => {
                 <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white"><BrainCircuit className="w-5 h-5" /></div>
                 <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 tracking-tight">Análise IA Verde</h3>
              </div>
-             {user?.plan === 'premium' ? (
-                <div className="space-y-6">
-                   {!aiAnalysis && !isAnalyzing && (
-                      <button onClick={handleAiHealthCheck} className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl transition-all flex items-center justify-center gap-2 group">
-                         Gerar Diagnóstico <Sparkles className="w-5 h-5 group-hover:scale-110" />
-                      </button>
-                   )}
-                   {isAnalyzing && <div className="py-8 text-center animate-pulse"><Loader2 className="w-10 h-10 mx-auto animate-spin text-emerald-500 mb-2" /><p className="text-xs font-black text-slate-400 uppercase">Avaliando...</p></div>}
-                   {aiAnalysis && (
-                      <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-800/50 space-y-4 animate-in fade-in">
-                         <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{aiAnalysis}</p>
-                         <button onClick={() => setAiAnalysis(null)} className="text-[10px] font-black text-emerald-600 uppercase hover:underline">Recalcular Análise</button>
-                      </div>
-                   )}
-                </div>
-             ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
-                   <Lock className="w-8 h-8 text-slate-300" />
-                   <p className="text-xs text-slate-500 max-w-xs">Upgrade para Premium para receber conselhos personalizados do Gemini sobre seu patrimônio.</p>
-                   <button onClick={() => { updateUserProfile({...user!, plan: 'premium'}); alert("Plano PRO Ativo!"); }} className="px-6 py-3 bg-emerald-600 text-white font-black rounded-xl text-xs uppercase">Seja PRO Agora</button>
-                </div>
-             )}
+             <div className="space-y-6">
+                {!aiAnalysis && !isAnalyzing && (
+                   <button
+                     onClick={() => isPremium ? handleAiHealthCheck() : setShowUpgradeModal(true)}
+                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl transition-all flex items-center justify-center gap-2 group"
+                   >
+                     Gerar Diagnóstico <Sparkles className="w-5 h-5 group-hover:scale-110" />
+                   </button>
+                )}
+                {isAnalyzing && <div className="py-8 text-center animate-pulse"><Loader2 className="w-10 h-10 mx-auto animate-spin text-emerald-500 mb-2" /><p className="text-xs font-black text-slate-400 uppercase">Avaliando...</p></div>}
+                {aiAnalysis && (
+                   <div className="p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-800/50 space-y-4 animate-in fade-in">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{aiAnalysis}</p>
+                      <button onClick={() => setAiAnalysis(null)} className="text-[10px] font-black text-emerald-600 uppercase hover:underline">Recalcular Análise</button>
+                   </div>
+                )}
+             </div>
           </div>
+
+          {/* Modal de upgrade (Basic clica em Gerar Diagnóstico) */}
+          {showUpgradeModal && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setShowUpgradeModal(false)} />
+              <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                <div className="h-48 bg-gradient-to-br from-emerald-600 to-emerald-400 flex flex-col items-center justify-center text-white relative">
+                  <button onClick={() => setShowUpgradeModal(false)} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"><X className="w-5 h-5" /></button>
+                  <div className="w-20 h-20 bg-white/20 rounded-3xl flex items-center justify-center mb-4 backdrop-blur-sm"><Crown className="w-10 h-10 text-white" /></div>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter">Verde PRO</h2>
+                </div>
+                <div className="p-8 space-y-6">
+                  <p className="text-center text-slate-600 dark:text-slate-400 font-medium">Libere o Diagnóstico com IA e conselhos personalizados do Gemini sobre seu patrimônio.</p>
+                  <div className="flex items-center gap-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/50">
+                    <BrainCircuit className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">Gerar Diagnóstico</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Análise personalizada da sua saúde financeira via IA.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      updateUserProfile({ ...user!, plan: 'premium' as any });
+                      setShowUpgradeModal(false);
+                      alert("Parabéns! Você agora é um usuário PREMIUM.");
+                    }}
+                    className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 dark:shadow-none transition-all active:scale-[0.98]"
+                  >
+                    QUERO SER PRO
+                  </button>
+                  <p className="text-center text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest">Apenas R$ 19,90 / mês</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Badge Gallery & Challenge */}

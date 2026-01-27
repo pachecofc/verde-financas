@@ -64,9 +64,11 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
     `;
   };
 
+  const isPremium = user?.plan?.toLowerCase() === 'premium';
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    if (user?.plan !== 'premium') return;
+    if (!isPremium) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -165,7 +167,7 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
 
         {/* Input / Paywall */}
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0">
-           {user?.plan === 'premium' ? (
+           {isPremium ? (
              <div className="relative">
                 <input 
                   type="text" 
@@ -194,7 +196,7 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
                 </div>
                 <button 
                   onClick={() => {
-                    updateUserProfile({...user!, plan: 'premium'});
+                    updateUserProfile({ ...user!, plan: 'premium' as any });
                     alert("Bem-vindo ao PRO!");
                   }}
                   className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
