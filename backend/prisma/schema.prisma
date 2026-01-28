@@ -86,6 +86,7 @@ model Transaction {
   accountId   String
   toAccountId String? // Para transferências: conta destino
   assetId     String? // Para transferências para contas de investimento: ativo relacionado
+  externalId  String? // Identificador externo (ex.: CSV) para evitar duplicatas
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -95,6 +96,7 @@ model Transaction {
   toAccount Account?  @relation("ToAccount", fields: [toAccountId], references: [id])
   asset     Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, externalId])
   @@map("transactions")
 }
 

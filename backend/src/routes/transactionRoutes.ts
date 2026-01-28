@@ -10,6 +10,7 @@ router.use(authMiddleware);
 // Rotas para operações CRUD de transações
 router.get('/', TransactionController.getTransactions);
 router.get('/summary/all', TransactionController.getSummary);
+router.get('/external-ids', TransactionController.getExternalIds);
 router.get('/:id', TransactionController.getTransactionById);
 router.post('/', TransactionController.createTransaction);
 router.put('/:id', TransactionController.updateTransaction);

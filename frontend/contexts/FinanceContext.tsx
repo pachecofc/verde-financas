@@ -229,6 +229,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           accountId: tr.accountId,
           toAccountId: tr.toAccountId || undefined,
           assetId: tr.assetId || undefined,
+          externalId: tr.externalId ?? undefined,
         };
       });
       setState(prev => ({ ...prev, transactions: mappedTransactions }));
@@ -633,6 +634,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           payload.assetId = t.assetId;
         }
 
+        if (t.externalId != null && String(t.externalId).trim()) {
+          payload.externalId = String(t.externalId).trim();
+        }
+
         const apiTransaction = await api.transaction.create(payload);
         
         // Normalizar a data para formato YYYY-MM-DD
@@ -658,6 +663,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           accountId: apiTransaction.accountId,
           toAccountId: apiTransaction.toAccountId || undefined,
           assetId: apiTransaction.assetId || undefined,
+          externalId: apiTransaction.externalId ?? undefined,
         };
 
         setState(prev => {

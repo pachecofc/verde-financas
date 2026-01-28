@@ -31,6 +31,7 @@ export interface Transaction {
   accountId: string;
   toAccountId?: string;
   assetId?: string; // Para transferências para contas de investimento
+  externalId?: string | null; // Identificador externo (ex.: CSV) para evitar duplicatas
   type: TransactionType;
 }
 

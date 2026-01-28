@@ -4,6 +4,8 @@ import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccounts } from '../contexts/AccountContext';
 import { useImportProgress } from '../contexts/ImportProgressContext';
+import api from '../services/api';
+import { toast } from 'sonner';
 import { 
   Plus, Search, Trash2, Edit2, ArrowRightLeft, SlidersHorizontal, 
   ChevronRight, Filter, X, Calendar, Upload, FileText, Check, AlertCircle, 
@@ -44,7 +46,7 @@ export const Transactions: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvRawRows, setCsvRawRows] = useState<string[][]>([]);
-  const [columnMapping, setColumnMapping] = useState({ date: '', description: '', amount: '' });
+  const [columnMapping, setColumnMapping] = useState({ date: '', description: '', amount: '', identifier: '' as string });
   const [importedRows, setImportedRows] = useState<any[]>([]);
   const [importAccountId, setImportAccountId] = useState('');
 
@@ -207,7 +209,7 @@ export const Transactions: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const samples = csvRawRows.slice(0, 3);
-      const prompt = `Analise os cabeçalhos ${JSON.stringify(csvHeaders)} e amostras ${JSON.stringify(samples)}. Identifique quais colunas representam: data, descrição e valor (amount). Retorne JSON com as chaves: date, description, amount.`;
+      const prompt = `Analise os cabeçalhos ${JSON.stringify(csvHeaders)} e amostras ${JSON.stringify(samples)}. Identifique quais colunas representam: data, descrição e valor (amount). Se existir coluna de identificador único (ex.: Identificador, ID, Código), inclua em "identifier". Retorne JSON com as chaves: date, description, amount e opcionalmente identifier.`;
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -218,7 +220,8 @@ export const Transactions: React.FC = () => {
             properties: {
               date: { type: Type.STRING },
               description: { type: Type.STRING },
-              amount: { type: Type.STRING }
+              amount: { type: Type.STRING },
+              identifier: { type: Type.STRING }
             }
           }
         }
@@ -227,7 +230,8 @@ export const Transactions: React.FC = () => {
       setColumnMapping({ 
         date: mapping.date || '', 
         description: mapping.description || '', 
-        amount: mapping.amount || '' 
+        amount: mapping.amount || '',
+        identifier: mapping.identifier || ''
       });
     } catch (err) { console.error(err); }
     finally { setIsDetectingColumns(false); }
@@ -271,6 +275,7 @@ export const Transactions: React.FC = () => {
     const dateIdx = csvHeaders.indexOf(columnMapping.date);
     const descIdx = csvHeaders.indexOf(columnMapping.description);
     const valIdx = csvHeaders.indexOf(columnMapping.amount);
+    const idIdx = columnMapping.identifier ? csvHeaders.indexOf(columnMapping.identifier) : -1;
 
     const parsed = csvRawRows.map(row => {
       // Clean amount string (handles dots for thousands and commas for decimals common in BR)
@@ -289,7 +294,7 @@ export const Transactions: React.FC = () => {
       }
 
       const isoDate = parseBrazilianDate(row[dateIdx]);
-
+      const idVal = idIdx >= 0 ? (row[idIdx] ?? '').trim() : '';
       return {
         id: `import-${Math.random().toString(36).substr(2, 9)}`,
         date: isoDate,
@@ -297,6 +302,7 @@ export const Transactions: React.FC = () => {
         amount: Math.abs(amountValue),
         type: amountValue < 0 ? 'expense' : 'income',
         categoryId: '',
+        identifier: idVal || undefined,
       };
     });
     setImportedRows(parsed);
@@ -340,24 +346,67 @@ export const Transactions: React.FC = () => {
       return;
     }
 
-    const rowsToImport = [...importedRows];
-    const total = rowsToImport.length;
     const accountId = importAccountId;
+    const allRows = [...importedRows];
 
     setShowImportModal(false);
     setImportStep('upload');
     setImportedRows([]);
     setCsvHeaders([]);
     setCsvRawRows([]);
-    setColumnMapping({ date: '', description: '', amount: '' });
+    setColumnMapping({ date: '', description: '', amount: '', identifier: '' });
     setImportAccountId('');
+
+    let duplicatesInCsv = 0;
+    let duplicatesInDb = 0;
+
+    const seenInCsv = new Set<string>();
+    const afterCsv: typeof allRows = [];
+    for (const row of allRows) {
+      const id = row.identifier?.trim();
+      if (id) {
+        if (seenInCsv.has(id)) {
+          duplicatesInCsv++;
+          continue;
+        }
+        seenInCsv.add(id);
+      }
+      afterCsv.push(row);
+    }
+
+    let externalIds: string[] = [];
+    const hasAnyIdentifier = afterCsv.some((r) => (r.identifier ?? '').trim());
+    if (hasAnyIdentifier) {
+      try {
+        externalIds = await api.transaction.getExternalIds();
+      } catch (e) {
+        console.warn('Erro ao buscar externalIds, ignorando dedup por banco:', e);
+      }
+    }
+
+    const toImport = hasAnyIdentifier
+      ? afterCsv.filter((row) => {
+          const id = (row.identifier ?? '').trim();
+          if (!id) return true;
+          if (externalIds.includes(id)) {
+            duplicatesInDb++;
+            return false;
+          }
+          return true;
+        })
+      : afterCsv;
+
+    const total = toImport.length;
+    const duplicatesCount = duplicatesInCsv + duplicatesInDb;
+
     setIsImporting(true);
     setImportProgress({ current: 0, total });
 
     try {
-      for (let i = 0; i < rowsToImport.length; i++) {
-        const row = rowsToImport[i];
+      for (let i = 0; i < toImport.length; i++) {
+        const row = toImport[i];
         const categoryId = row.categoryId || getFallbackCategoryId(row.type as 'income' | 'expense');
+        const extId = (row.identifier ?? '').trim() || undefined;
 
         await addTransaction({
           description: row.description,
@@ -365,13 +414,17 @@ export const Transactions: React.FC = () => {
           date: row.date,
           categoryId,
           accountId,
-          type: row.type as TransactionType
+          type: row.type as TransactionType,
+          ...(extId != null && { externalId: extId }),
         }, true);
 
         setImportProgress({ current: i + 1, total });
       }
       setImportProgress(prev => prev ? { ...prev, completed: true } : null);
       setTimeout(() => setImportProgress(null), 1800);
+      if (duplicatesCount > 0) {
+        toast.warning('Algumas importações não foram realizadas devido à duplicação de transações.');
+      }
     } catch (error) {
       console.error('Erro ao importar transações:', error);
       alert('Ocorreu um erro durante a importação. Algumas transações podem não ter sido salvas.');
@@ -735,16 +788,23 @@ export const Transactions: React.FC = () => {
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                       {['date', 'description', 'amount'].map(field => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                       {(['date', 'description', 'amount'] as const).map(field => (
                          <div key={field} className="space-y-1">
                             <label className="text-[10px] font-black uppercase text-slate-400 ml-1">{field === 'date' ? 'Data' : field === 'description' ? 'Descrição' : 'Valor'}</label>
-                            <select className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping[field as keyof typeof columnMapping]} onChange={e => setColumnMapping({...columnMapping, [field]: e.target.value})}>
+                            <select className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping[field]} onChange={e => setColumnMapping({...columnMapping, [field]: e.target.value})}>
                                <option value="">Selecione a coluna...</option>
                                {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                          </div>
                        ))}
+                       <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Identificador (opcional)</label>
+                          <select className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping.identifier} onChange={e => setColumnMapping({...columnMapping, identifier: e.target.value})}>
+                             <option value="">Não mapear</option>
+                             {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+                          </select>
+                       </div>
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">

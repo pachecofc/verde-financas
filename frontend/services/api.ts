@@ -764,6 +764,7 @@ export interface TransactionApiData {
   accountId: string;
   toAccountId?: string | null; // Para transferências
   assetId?: string | null; // Para transferências para contas de investimento
+  externalId?: string | null;
   createdAt: string;
   updatedAt: string;
   category?: {
@@ -797,6 +798,7 @@ export interface CreateTransactionPayload {
   accountId: string;
   toAccountId?: string; // Obrigatório para transferências
   assetId?: string | null; // Para transferências para contas de investimento
+  externalId?: string | null; // Identificador externo (ex.: CSV) para evitar duplicatas
 }
 
 export interface UpdateTransactionPayload {
@@ -864,6 +866,31 @@ const transactionApi = {
         headers: getAuthHeaders(),
       });
       return handleResponse<TransactionApiData>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  // Obter externalIds do usuário (para dedup em importação CSV)
+  getExternalIds: async (): Promise<string[]> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/transactions/external-ids`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      const data = await handleResponse<{ externalIds: string[] }>(response);
+      return data.externalIds;
     };
     try {
       return await doRequest();

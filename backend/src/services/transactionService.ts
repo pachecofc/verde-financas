@@ -85,6 +85,15 @@ export class TransactionService {
     return transaction;
   }
 
+  // Listar externalIds do usuário (para dedup em importação CSV)
+  static async getExternalIds(userId: string): Promise<string[]> {
+    const rows = await prisma.transaction.findMany({
+      where: { userId, externalId: { not: null } },
+      select: { externalId: true },
+    });
+    return rows.map((r) => r.externalId as string);
+  }
+
   // Criar nova transação
   static async createTransaction(
     userId: string,
@@ -97,9 +106,10 @@ export class TransactionService {
       accountId: string;
       toAccountId?: string; // Para transferências
       assetId?: string | null; // Para transferências para contas de investimento
+      externalId?: string | null; // Identificador externo (ex.: CSV) para evitar duplicatas
     }
   ) {
-    const { categoryId, description, amount, type, date, accountId, toAccountId, assetId } = data;
+    const { categoryId, description, amount, type, date, accountId, toAccountId, assetId, externalId } = data;
 
     // Validações básicas
     if (!description || !amount || !type || !date || !accountId) {
@@ -189,6 +199,7 @@ export class TransactionService {
         accountId,
         toAccountId: type === 'transfer' ? toAccountId : null,
         assetId: (type === 'transfer' && assetId) ? assetId : null,
+        externalId: externalId && String(externalId).trim() ? String(externalId).trim() : null,
       },
       include: {
         category: true,

@@ -44,6 +44,19 @@ export class TransactionController {
     }
   }
 
+  // GET /api/transactions/external-ids - Listar externalIds do usuário (para dedup em importação)
+  static async getExternalIds(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+      const externalIds = await TransactionService.getExternalIds(userId);
+      res.json({ externalIds });
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to fetch external IDs',
+      });
+    }
+  }
+
   // GET /api/transactions/:id - Obter transação específica
   static async getTransactionById(req: AuthenticatedRequest, res: Response) {
     try {
@@ -93,7 +106,7 @@ export class TransactionController {
   static async createTransaction(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.userId!;
-      const { categoryId, description, amount, type, date, accountId, toAccountId, assetId } = req.body;
+      const { categoryId, description, amount, type, date, accountId, toAccountId, assetId, externalId } = req.body;
 
       if (!description || !amount || !type || !date || !accountId) {
         return res.status(400).json({
@@ -124,6 +137,7 @@ export class TransactionController {
         accountId,
         toAccountId,
         assetId: assetId || null,
+        externalId: externalId || null,
       });
 
       res.status(201).json(transaction);
