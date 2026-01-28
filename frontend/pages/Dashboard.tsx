@@ -155,7 +155,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Link to="/health" className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-md transition-all group overflow-hidden relative">
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
              <ShieldCheck className="w-24 h-24 text-emerald-600" />
@@ -173,19 +173,26 @@ export const Dashboard: React.FC = () => {
         </Link>
 
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Saldo Líquido</p>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Saldo Total</p>
+          <h3 className={`text-2xl font-black ${totalBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+            {formatCurrency(totalBalance)}
+          </h3>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Saldo Líquido do Mês</p>
+          <h3 className={`text-2xl font-black ${(totalIncome - totalExpense) >= 0 ? 'text-slate-900 dark:text-slate-100' : 'text-rose-500 dark:text-rose-400'}`}>
             {formatCurrency(totalIncome - totalExpense)}
           </h3>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Entradas</p>
+          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Receitas do Mês</p>
           <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(totalIncome)}</h3>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800">
-          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Saídas</p>
+          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Despesas do Mês</p>
           <h3 className="text-2xl font-black text-rose-500 dark:text-rose-400">{formatCurrency(totalExpense)}</h3>
         </div>
       </div>
