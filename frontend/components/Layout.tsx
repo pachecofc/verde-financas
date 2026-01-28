@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, CalendarDays, CreditCard, LogOut,
   Menu, X, Tags, User as UserIcon, TrendingUp,
-  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, Coins, FileText, Loader2
+  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, Coins, FileText, Loader2, CheckCircle2
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useImportProgress } from '../contexts/ImportProgressContext';
 import { AiAssistant } from './AiAssistant';
 
 /** URL para exibir avatar: absoluta (Supabase) ou relativa (legado /uploads/...). */
@@ -23,6 +24,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const { user: authUser, logout, isLoggingOut } = useAuth();
   const { theme, toggleTheme, user: financeUser } = useFinance();
+  const { importProgress } = useImportProgress();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -125,7 +127,37 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">{children}</div>
+          {importProgress !== null && (
+            <div className="sticky top-0 z-30 -mx-4 md:-mx-8 px-4 md:px-8 pt-4 md:pt-8 -mt-4 md:-mt-8 mb-4 bg-slate-50 dark:bg-slate-950 pb-2 animate-in slide-in-from-top-2 duration-300">
+              <div className="max-w-4xl mx-auto px-4 py-3 bg-emerald-600 dark:bg-emerald-700 text-white rounded-2xl shadow-lg">
+                <div className="flex items-center justify-between gap-4 mb-2">
+                  {importProgress.completed ? (
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 shrink-0" />
+                      Concluído! {importProgress.total} transações importadas.
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-sm font-bold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                        Importando transações...
+                      </span>
+                      <span className="text-sm font-black tabular-nums">
+                        {importProgress.current} de {importProgress.total} transações
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="h-2.5 bg-emerald-500/50 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <div className={`max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ${importProgress !== null ? 'pt-2' : ''}`}>{children}</div>
         </div>
 
         {/* Floating AI Button */}

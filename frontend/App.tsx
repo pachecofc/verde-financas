@@ -18,6 +18,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AccountProvider } from './contexts/AccountContext';
 import { FinanceProvider } from './contexts/FinanceContext';
+import { ImportProgressProvider } from './contexts/ImportProgressContext';
 import { Toaster } from 'sonner'; // Para notificações
 
 // Componente de rota privada
@@ -36,7 +37,8 @@ export const App: React.FC = () => {
     <Router>
       <AuthProvider>
         <FinanceProvider>
-          <AccountProvider> {/* <--- NOVO: Envolver as rotas com AccountProvider */}
+          <AccountProvider>
+            <ImportProgressProvider>
             <Routes>
               {/* Rotas de Autenticação */}
               <Route path="/login" element={<Login />} />
@@ -156,6 +158,7 @@ export const App: React.FC = () => {
               />
               {/* Adicione outras rotas protegidas aqui */}
             </Routes>
+            </ImportProgressProvider>
           </AccountProvider>
         </FinanceProvider>
       </AuthProvider>

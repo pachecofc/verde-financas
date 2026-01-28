@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccounts } from '../contexts/AccountContext';
+import { useImportProgress } from '../contexts/ImportProgressContext';
 import { 
   Plus, Search, Trash2, Edit2, ArrowRightLeft, SlidersHorizontal, 
   ChevronRight, Filter, X, Calendar, Upload, FileText, Check, AlertCircle, 
@@ -35,6 +36,7 @@ export const Transactions: React.FC = () => {
   const [isDetectingColumns, setIsDetectingColumns] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const { isImporting, setIsImporting, setImportProgress } = useImportProgress();
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Importação CSV States
@@ -325,27 +327,58 @@ export const Transactions: React.FC = () => {
     finally { setIsAiCategorizing(false); }
   };
 
-  const finalizeImport = () => {
+  // Função helper para obter uma categoria fallback válida
+  const getFallbackCategoryId = (type: 'income' | 'expense'): string => {
+    // Tenta encontrar a primeira categoria do tipo correspondente
+    const fallbackCategory = categories.find(c => c.type === type);
+    return fallbackCategory?.id || '';
+  };
+
+  const finalizeImport = async () => {
     if (!importAccountId) {
       alert("Selecione a conta para importação.");
       return;
     }
-    
-    // Add transactions one by one
-    // Note: addTransaction in FinanceContext already handles ID collision using Random + Date
-    importedRows.forEach(row => {
-      addTransaction({
-        description: row.description,
-        amount: row.amount,
-        date: row.date,
-        categoryId: row.categoryId || (row.type === 'income' ? 'cat-sal' : 'cat-div'),
-        accountId: importAccountId,
-        type: row.type as TransactionType
-      });
-    });
-    
+
+    const rowsToImport = [...importedRows];
+    const total = rowsToImport.length;
+    const accountId = importAccountId;
+
     setShowImportModal(false);
     setImportStep('upload');
+    setImportedRows([]);
+    setCsvHeaders([]);
+    setCsvRawRows([]);
+    setColumnMapping({ date: '', description: '', amount: '' });
+    setImportAccountId('');
+    setIsImporting(true);
+    setImportProgress({ current: 0, total });
+
+    try {
+      for (let i = 0; i < rowsToImport.length; i++) {
+        const row = rowsToImport[i];
+        const categoryId = row.categoryId || getFallbackCategoryId(row.type as 'income' | 'expense');
+
+        await addTransaction({
+          description: row.description,
+          amount: row.amount,
+          date: row.date,
+          categoryId,
+          accountId,
+          type: row.type as TransactionType
+        }, true);
+
+        setImportProgress({ current: i + 1, total });
+      }
+      setImportProgress(prev => prev ? { ...prev, completed: true } : null);
+      setTimeout(() => setImportProgress(null), 1800);
+    } catch (error) {
+      console.error('Erro ao importar transações:', error);
+      alert('Ocorreu um erro durante a importação. Algumas transações podem não ter sido salvas.');
+      setImportProgress(null);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   // Detecta se é um dispositivo móvel/tablet
@@ -510,7 +543,11 @@ export const Transactions: React.FC = () => {
             <Camera className="w-5 h-5 group-hover:animate-pulse" /> Scanner
             {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}
           </button>
-          <button onClick={() => { setImportStep('upload'); setShowImportModal(true); }} className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all">
+          <button
+            onClick={() => { setImportStep('upload'); setShowImportModal(true); }}
+            disabled={isImporting}
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <FileSpreadsheet className="w-5 h-5" /> Importar CSV
           </button>
           <button onClick={() => { setEditingId(null); setShowModal(true); }} className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98]">
@@ -762,7 +799,7 @@ export const Transactions: React.FC = () => {
                                newRows[idx].categoryId = e.target.value;
                                setImportedRows(newRows);
                             }}>
-                               <option value="">Selecione Categoria...</option>
+                               <option value="">📦 Sem categoria (definir depois)</option>
                                {categories.filter(c => c.type === row.type).map(c => <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>)}
                             </select>
                          </div>
@@ -770,8 +807,18 @@ export const Transactions: React.FC = () => {
                     </div>
 
                     <div className="flex gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                       <button onClick={() => setImportStep('mapping')} className="px-6 py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors">Voltar</button>
-                       <button onClick={finalizeImport} className="flex-1 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 dark:shadow-none hover:bg-emerald-700 transition-all">Finalizar Importação de {importedRows.length} Itens</button>
+                       <button
+                         onClick={() => setImportStep('mapping')}
+                         className="px-6 py-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors"
+                       >
+                         Voltar
+                       </button>
+                       <button
+                         onClick={finalizeImport}
+                         className="flex-1 py-5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 dark:shadow-none hover:bg-emerald-700 transition-all active:scale-[0.98]"
+                       >
+                         Finalizar Importação de {importedRows.length} Itens
+                       </button>
                     </div>
                  </div>
                )}
