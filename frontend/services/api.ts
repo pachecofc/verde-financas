@@ -268,6 +268,12 @@ export interface UpdateAccountPayload {
   color?: string;
 }
 
+function normalizeAccountBalance<T extends { balance?: unknown }>(a: T): T {
+  const b = a.balance;
+  const n = typeof b === 'number' && !isNaN(b) ? b : (parseFloat(String(b ?? 0)) || 0);
+  return { ...a, balance: n } as T;
+}
+
 const accountApi = {
   // Obter todas as contas do usuário
   getAccounts: async (): Promise<Account[]> => {
@@ -275,7 +281,8 @@ const accountApi = {
       method: 'GET',
       headers: getAuthHeaders(),
     });
-    return handleResponse<Account[]>(response);
+    const data = await handleResponse<Account[]>(response);
+    return data.map(normalizeAccountBalance);
   },
 
   // Obter uma única conta por ID
@@ -285,7 +292,8 @@ const accountApi = {
         method: 'GET',
         headers: getAuthHeaders(),
       });
-      return handleResponse<Account>(response);
+      const data = await handleResponse<Account>(response);
+      return normalizeAccountBalance(data);
     };
     try {
       return await doRequest();
@@ -310,7 +318,8 @@ const accountApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-      return handleResponse<Account>(response);
+      const dataRes = await handleResponse<Account>(response);
+      return normalizeAccountBalance(dataRes);
     };
     try {
       return await doRequest();
@@ -334,8 +343,9 @@ const accountApi = {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
-      });
-      return handleResponse<Account>(response);
+    });
+      const dataRes = await handleResponse<Account>(response);
+      return normalizeAccountBalance(dataRes);
     };
     try {
       return await doRequest();

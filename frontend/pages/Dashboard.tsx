@@ -30,7 +30,8 @@ export const Dashboard: React.FC = () => {
   });
 
   const totalBalance = accounts.reduce((acc, curr) => {
-    const value = typeof curr.balance === 'number' && !isNaN(curr.balance) ? curr.balance : 0;
+    const b = curr.balance;
+    const value = typeof b === 'number' && !isNaN(b) ? b : (parseFloat(String(b ?? 0)) || 0);
     return acc + value;
   }, 0);
   
