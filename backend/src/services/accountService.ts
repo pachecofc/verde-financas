@@ -33,7 +33,7 @@ export class AccountService {
       },
     });
     if (accountCount === 0) {
-      GamificationService.registerEvent(userId, 'FIRST_ACCOUNT').catch(() => {});
+      await GamificationService.registerEvent(userId, 'FIRST_ACCOUNT').catch(() => {});
     }
     return account;
   }

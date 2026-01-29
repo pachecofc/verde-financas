@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   BrainCircuit,
   Crown,
   Loader2,
-  ArrowRight,
   BookOpen,
   Sparkles,
   X,
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import api from '../services/api';
-import type { ScoreLevel } from '../services/api';
+import type { ScoreLevel, ScoreEventItem } from '../services/api';
 
 export const Gamification: React.FC = () => {
   const { user: authUser } = useAuth();
   const { user, budgets, goals, accounts } = useFinance();
-  const navigate = useNavigate();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
   const [rulesLoading, setRulesLoading] = useState(true);
+  const [scoreEvents, setScoreEvents] = useState<ScoreEventItem[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
   const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
@@ -39,6 +39,26 @@ export const Gamification: React.FC = () => {
       .catch(() => {})
       .finally(() => {
         if (!cancelled) setRulesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.gamification
+      .getEvents()
+      .then((byDay) => {
+        if (cancelled) return;
+        const flat: ScoreEventItem[] = [];
+        byDay.forEach((day) => day.events.forEach((e) => flat.push(e)));
+        flat.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setScoreEvents(flat);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -205,39 +225,26 @@ export const Gamification: React.FC = () => {
           <h3 className="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2">
             Suas Conquistas
           </h3>
-          <div className="grid grid-cols-1 gap-4">
-            {user?.achievements.map((ach) => (
-              <div
-                key={ach.id}
-                className="p-5 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4"
-              >
-                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-2xl">
-                  {ach.icon}
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">{ach.name}</h4>
-                  <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{ach.description}</p>
-                </div>
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+            {eventsLoading ? (
+              <div className="py-8 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
               </div>
-            ))}
-            {user?.achievements.length === 0 && (
-              <p className="text-center text-slate-400 text-xs py-4">Nenhuma conquista ainda.</p>
+            ) : scoreEvents.length === 0 ? (
+              <p className="text-center text-slate-500 dark:text-slate-400 text-sm py-6">Nenhuma conquista registrada ainda.</p>
+            ) : (
+              <ul className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                {scoreEvents.map((evt, idx) => (
+                  <li
+                    key={`${evt.ruleCode}-${evt.createdAt}-${idx}`}
+                    className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                  >
+                    <span className="font-medium text-slate-800 dark:text-slate-200 text-sm">{evt.name}</span>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0">+{evt.points}</span>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-
-          <div className="p-6 bg-slate-900 text-white rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-            <div className="absolute right-0 top-0 p-6 opacity-10">
-              <Sparkles className="w-20 h-20" />
-            </div>
-            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Próximo Desafio</p>
-            <h4 className="text-lg font-black tracking-tight mb-4">Investidor Consistente</h4>
-            <p className="text-xs text-slate-400 mb-6">Cadastre ativos diferentes e veja sua evolução real.</p>
-            <button
-              onClick={() => navigate('/investments')}
-              className="w-full py-3 bg-white text-slate-900 font-black rounded-xl text-xs flex items-center justify-center gap-2 active:scale-95 transition-all"
-            >
-              Ir para Investimentos <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>

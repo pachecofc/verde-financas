@@ -1832,6 +1832,19 @@ export interface GamificationRulesResponse {
   scoreLevels: ScoreLevel[];
 }
 
+export interface ScoreEventItem {
+  ruleCode: string;
+  name: string;
+  points: number;
+  createdAt: string;
+}
+
+export interface ScoreEventsByDay {
+  date: string;
+  events: ScoreEventItem[];
+  dayTotal: number;
+}
+
 const gamificationApi = {
   getRules: async (): Promise<GamificationRulesResponse> => {
     const doRequest = async () => {
@@ -1840,6 +1853,29 @@ const gamificationApi = {
         headers: getAuthHeaders(),
       });
       return handleResponse<GamificationRulesResponse>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+
+  getEvents: async (): Promise<ScoreEventsByDay[]> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/gamification/events`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<ScoreEventsByDay[]>(response);
     };
     try {
       return await doRequest();

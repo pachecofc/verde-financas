@@ -149,10 +149,10 @@ export const Dashboard: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Painel de Controle</h1>
           <p className="text-slate-500 dark:text-slate-400">Acompanhe seu desempenho passado e previsões futuras.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+        {/* <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
            <Trophy className="w-5 h-5 text-amber-500" />
            <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">{user?.achievements.length} Conquistas</span>
-        </div>
+        </div> */}
       </div>
 
       {/* Summary Cards */}
@@ -261,7 +261,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Alertas de Orçamento */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
@@ -324,7 +324,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Conquistas (Resumo) */}
-        <div className="bg-emerald-600 dark:bg-emerald-500 p-8 rounded-[2.5rem] shadow-xl text-white flex flex-col justify-between overflow-hidden relative group">
+        {/* <div className="bg-emerald-600 dark:bg-emerald-500 p-8 rounded-[2.5rem] shadow-xl text-white flex flex-col justify-between overflow-hidden relative group">
            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
               <Trophy className="w-40 h-40" />
            </div>
@@ -333,7 +333,7 @@ export const Dashboard: React.FC = () => {
               <h3 className="text-2xl font-black leading-tight">Você desbloqueou {user?.achievements.length} selos!</h3>
            </div>
            <Link to="/health" className="mt-6 w-full py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-center text-xs font-black uppercase transition-all">Ver Minha Saúde</Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );

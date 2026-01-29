@@ -346,15 +346,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Buscar score e conquistas do backend
   const refreshUserScore = useCallback(async () => {
-    if (!isBackendAuthenticated()) {
-      console.log('refreshUserScore: Usuário não autenticado, saindo.');
-      return;
-    }
+    if (!isBackendAuthenticated()) return;
 
     try {
-      console.log('refreshUserScore: Buscando score do backend...');
       const scoreData = await api.score.getUserScore();
-      console.log('refreshUserScore: Score recebido do backend:', scoreData.score);
       setState(prev => ({
         ...prev,
         user: prev.user ? {
@@ -370,7 +365,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           })),
         } : null,
       }));
-      console.log('refreshUserScore: Score atualizado no estado.');
     } catch (error) {
       console.error('Erro ao buscar score do backend:', error);
     }
@@ -451,38 +445,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return unlocked;
   }, [state.transactions, state.investments, state.user, calculateGreenScore]);
 
-  // Recalcular score no backend quando dados mudarem (substitui o cálculo local)
+  // Atualizar exibição do score quando transações, orçamentos, metas ou holdings mudarem.
+  // Usamos GET /scores (refreshUserScore) para buscar o score atual do backend, que já foi
+  // atualizado pelos eventos de gamificação (FIRST_BUDGET, PROFILE_COMPLETE, etc.). Não usar
+  // POST /scores/recalculate aqui, pois ele sobrescreve o score com a fórmula e desfaz os pontos dos eventos.
+  // Não incluir state.user nas deps para evitar loop: refreshUserScore atualiza state.user e re-dispararia o efeito.
   useEffect(() => {
-    if (!isBackendAuthenticated() || !state.user) return;
+    if (!isBackendAuthenticated()) return;
 
-    // Recalcular score no backend quando transações, orçamentos, metas ou holdings mudarem
-    const recalculateScore = async () => {
-      try {
-        const scoreData = await api.score.recalculateScore();
-      setState(prev => ({
-        ...prev,
-          user: prev.user ? {
-            ...prev.user,
-            score: scoreData.score,
-            achievements: scoreData.achievements.map(a => ({
-              id: a.id,
-              name: a.name,
-              description: a.description,
-              icon: a.icon,
-              requirement: '',
-              unlockedAt: a.unlockedAt,
-            })),
-          } : null,
-        }));
-      } catch (error) {
-        console.error('Erro ao recalcular score:', error);
-      }
-    };
-
-    // Debounce para evitar muitas chamadas
-    const timeoutId = setTimeout(recalculateScore, 1000);
+    const timeoutId = setTimeout(() => {
+      refreshUserScore().catch(err => console.error('Erro ao atualizar score:', err));
+    }, 1000);
     return () => clearTimeout(timeoutId);
-  }, [state.transactions.length, state.budgets.length, state.goals.length, state.assetHoldings.length, isBackendAuthenticated, state.user]);
+  }, [state.transactions.length, state.budgets.length, state.goals.length, state.assetHoldings.length, isBackendAuthenticated, refreshUserScore]);
 
   const toggleTheme = useCallback(() => setState(prev => ({ ...prev, theme: prev.theme === 'light' ? 'dark' : 'light' })), []);
   const updateUserProfile = useCallback((u: UserProfile) => setState(prev => ({ ...prev, user: u })), []);

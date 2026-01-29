@@ -84,7 +84,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <div className="flex flex-col h-full">
           <div className="p-6 flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">V</div>
-            <span className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Verde<span className="text-emerald-600 dark:text-emerald-400">Finanças</span></span>
+            <span className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Verde<span className="text-emerald-600 dark:text-emerald-400"> Finanças</span></span>
           </div>
           <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
             {menuItems.map((item) => (

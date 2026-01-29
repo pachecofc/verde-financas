@@ -54,7 +54,7 @@ export class AssetService {
     });
 
     if (assetCount === 0) {
-      GamificationService.registerEvent(userId, 'FIRST_ASSET').catch(() => {});
+      await GamificationService.registerEvent(userId, 'FIRST_ASSET').catch(() => {});
     }
     return newAsset;
   }

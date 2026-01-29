@@ -260,16 +260,15 @@ export class TransactionService {
     }
 
     if (type === 'income' || type === 'expense') {
-      GamificationService.hasDailyLogForDate(userId, date).then((has) => {
-        if (!has) GamificationService.registerEvent(userId, 'DAILY_LOG').catch(() => {});
-      });
+      const hadDailyLog = await GamificationService.hasDailyLogForDate(userId, date);
+      if (!hadDailyLog) await GamificationService.registerEvent(userId, 'DAILY_LOG').catch(() => {});
     }
     if (type === 'transfer' && toAccountId && assetId) {
       const toAccount = await prisma.account.findFirst({
         where: { id: toAccountId, userId },
       });
       if (toAccount?.type === 'INVESTMENT') {
-        GamificationService.registerEvent(userId, 'INVESTMENT_DEPOSIT').catch(() => {});
+        await GamificationService.registerEvent(userId, 'INVESTMENT_DEPOSIT').catch(() => {});
       }
     }
 
@@ -485,7 +484,7 @@ export class TransactionService {
       !transaction.categoryId &&
       categoryId
     ) {
-      GamificationService.registerEvent(userId, 'CATEGORIZATION').catch(() => {});
+      await GamificationService.registerEvent(userId, 'CATEGORIZATION').catch(() => {});
     }
     return updated;
   }

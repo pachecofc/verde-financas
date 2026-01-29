@@ -78,7 +78,7 @@ export class BudgetService {
     });
 
     if (budgetCount === 0) {
-      GamificationService.registerEvent(userId, 'FIRST_BUDGET').catch(() => {});
+      await GamificationService.registerEvent(userId, 'FIRST_BUDGET').catch(() => {});
     }
     return newBudget;
   }

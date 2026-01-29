@@ -67,7 +67,7 @@ export class GoalService {
     });
 
     if (goalCount === 0) {
-      GamificationService.registerEvent(userId, 'FIRST_GOAL').catch(() => {});
+      await GamificationService.registerEvent(userId, 'FIRST_GOAL').catch(() => {});
     }
     return newGoal;
   }
@@ -125,7 +125,7 @@ export class GoalService {
     const newCurrent = Number(updated.currentAmount);
     const newTarget = Number(updated.targetAmount);
     if (!wasReached && newCurrent >= newTarget) {
-      GamificationService.registerEvent(userId, 'GOAL_REACHED', { goalId }).catch(() => {});
+      await GamificationService.registerEvent(userId, 'GOAL_REACHED', { goalId }).catch(() => {});
     }
     if (
       (nameLower.includes('reserva') || nameLower.includes('emergência')) &&
@@ -133,7 +133,7 @@ export class GoalService {
       newCurrent >= newTarget * 0.1 &&
       prevCurrent < prevTarget * 0.1
     ) {
-      GamificationService.registerEvent(userId, 'EMERGENCY_FUND', { goalId }).catch(() => {});
+      await GamificationService.registerEvent(userId, 'EMERGENCY_FUND', { goalId }).catch(() => {});
     }
     return updated;
   }
@@ -152,7 +152,7 @@ export class GoalService {
     const currentAmount = Number(goal.currentAmount);
     const targetAmount = Number(goal.targetAmount);
     if (currentAmount < targetAmount) {
-      GamificationService.registerEvent(userId, 'GOAL_DELETED', { goalId }).catch(() => {});
+      await GamificationService.registerEvent(userId, 'GOAL_DELETED', { goalId }).catch(() => {});
     }
 
     await prisma.goal.delete({

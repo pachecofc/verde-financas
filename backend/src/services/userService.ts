@@ -16,7 +16,7 @@ export class UserService {
       data: { avatarUrl },
       select: { id: true, name: true, email: true, avatarUrl: true }, // Retorna apenas os campos necessários
     });
-    GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
+    await GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
     return user;
   }
 
