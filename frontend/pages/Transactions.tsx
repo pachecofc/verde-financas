@@ -66,6 +66,9 @@ export const Transactions: React.FC = () => {
 
   const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
+  // Estados da aba assinatura (apenas exibição; plano vem do Auth/Stripe)
+  const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://buy.stripe.com/test_dRm5kD4KJ1ex1Mm8XxefC00';
+
   useEffect(() => {
     if (showModal && !editingId) {
       const defaultAccount = accounts[0]?.id || '';
@@ -1009,11 +1012,7 @@ export const Transactions: React.FC = () => {
                     </div>
                  </div>
                  <button 
-                  onClick={() => {
-                    updateUserProfile({ ...user!, plan: 'premium' });
-                    setShowUpgradeModal(false);
-                    alert("Parabéns! Você agora é PRO.");
-                  }}
+                  onClick={() => window.open(stripeCheckoutUrl, '_blank')}
                   className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl transition-all active:scale-[0.98]"
                  >
                     QUERO SER PRO - R$ 19,90

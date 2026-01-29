@@ -68,6 +68,9 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
 
   const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
+  // Estados da aba assinatura (apenas exibição; plano vem do Auth/Stripe)
+  const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://buy.stripe.com/test_dRm5kD4KJ1ex1Mm8XxefC00';
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     if (!isPremium) return;
@@ -197,10 +200,7 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
                    </div>
                 </div>
                 <button 
-                  onClick={() => {
-                    updateUserProfile({ ...user!, plan: 'premium' as any });
-                    alert("Bem-vindo ao PRO!");
-                  }}
+                  onClick={() => window.open(stripeCheckoutUrl, '_blank')}
                   className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
                 >
                   UPGRADE PARA PRO <ArrowRight className="w-5 h-5" />
