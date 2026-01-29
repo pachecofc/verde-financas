@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { AuthService } from '../services/authService';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/authMiddleware';
 import { RefreshTokenService } from '../services/refreshTokenService';
+import { UserService } from '../services/userService';
 import { REFRESH_TOKEN_EXPIRATION_DAYS } from '../config/jwt';
 import { requireTwoFactor } from '../middleware/twoFactorMiddleware';
 import { validateBody } from '../middleware/validationMiddleware';
@@ -48,9 +49,9 @@ router.post('/signup', validateBody(signupSchema), async (req: AuthenticatedRequ
 
     const result = await AuthService.signup({ email, password, name });
 
-    // Criar refresh token e enviar em cookie HttpOnly
     const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+    UserService.updateLastLogin(result.user.id).catch(() => {});
 
     res.status(201).json(result);
   } catch (error) {
@@ -75,9 +76,9 @@ router.post('/login', authSensitiveLimiter, validateBody(loginSchema), async (re
       });
     }
 
-    // Criar refresh token e enviar em cookie HttpOnly
     const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+    UserService.updateLastLogin(result.user.id).catch(() => {});
 
     res.status(200).json(result);
   } catch (error) {
@@ -94,9 +95,9 @@ router.post('/login/verify-2fa', authSensitiveLimiter, validateBody(verifyLoginT
 
     const result = await AuthService.verifyLoginTwoFactor(userId, twoFactorCode);
 
-    // Criar refresh token e enviar em cookie HttpOnly
     const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+    UserService.updateLastLogin(result.user.id).catch(() => {});
 
     res.status(200).json(result);
   } catch (error) {
@@ -171,8 +172,8 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
 
     const { newToken, user } = await RefreshTokenService.rotateRefreshToken(refreshToken);
 
-    // Atualiza cookie com novo refresh token
     res.cookie(REFRESH_COOKIE_NAME, newToken, getRefreshCookieOptions());
+    UserService.updateLastLogin(user.id).catch(() => {});
 
     // Gera novo access token curto para o usuário
     const accessToken = AuthService['generateAccessToken']({ id: user.id, email: user.email });

@@ -10,6 +10,7 @@ import { Schedule } from './pages/Schedule';
 import { Investments } from './pages/Investments';
 import { Assets } from './pages/Assets';
 import { Gamification } from './pages/Gamification';
+import { ScoreRules } from './pages/ScoreRules';
 import { Reports } from './pages/Reports';
 import { AccountSettings } from './pages/AccountSettings';
 import { Login } from './pages/Login';
@@ -132,6 +133,16 @@ export const App: React.FC = () => {
                   <PrivateRoute>
                     <Layout>
                       <Gamification />
+                    </Layout>
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/score-rules"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <ScoreRules />
                     </Layout>
                   </PrivateRoute>
                 }

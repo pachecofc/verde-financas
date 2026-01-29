@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { UserPlan } from '@prisma/client';
+import { GamificationService } from './gamificationService';
 
 interface UpdateProfileData {
   name?: string;
@@ -15,6 +16,7 @@ export class UserService {
       data: { avatarUrl },
       select: { id: true, name: true, email: true, avatarUrl: true }, // Retorna apenas os campos necessários
     });
+    GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
     return user;
   }
 
@@ -73,6 +75,14 @@ export class UserService {
     });
 
     return result.count;
+  }
+
+  // Atualizar último login (para regra INACTIVITY)
+  static async updateLastLogin(userId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() } as { lastLoginAt: Date },
+    });
   }
 
   // Verifica se o usuário está deletado

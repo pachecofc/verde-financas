@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { AssetHoldingService } from './assetHoldingService';
+import { GamificationService } from './gamificationService';
 
 export class TransactionService {
   // Listar todas as transações do usuário
@@ -258,6 +259,20 @@ export class TransactionService {
       });
     }
 
+    if (type === 'income' || type === 'expense') {
+      GamificationService.hasDailyLogForDate(userId, date).then((has) => {
+        if (!has) GamificationService.registerEvent(userId, 'DAILY_LOG').catch(() => {});
+      });
+    }
+    if (type === 'transfer' && toAccountId && assetId) {
+      const toAccount = await prisma.account.findFirst({
+        where: { id: toAccountId, userId },
+      });
+      if (toAccount?.type === 'INVESTMENT') {
+        GamificationService.registerEvent(userId, 'INVESTMENT_DEPOSIT').catch(() => {});
+      }
+    }
+
     return newTransaction;
   }
 
@@ -452,7 +467,7 @@ export class TransactionService {
       updateData.assetId = null;
     }
 
-    return await prisma.transaction.update({
+    const updated = await prisma.transaction.update({
       where: { id: transactionId },
       data: updateData,
       include: {
@@ -462,6 +477,17 @@ export class TransactionService {
         asset: true,
       },
     });
+
+    if (
+      categoryId !== undefined &&
+      finalType !== 'transfer' &&
+      finalType !== 'adjustment' &&
+      !transaction.categoryId &&
+      categoryId
+    ) {
+      GamificationService.registerEvent(userId, 'CATEGORIZATION').catch(() => {});
+    }
+    return updated;
   }
 
   // Deletar transação

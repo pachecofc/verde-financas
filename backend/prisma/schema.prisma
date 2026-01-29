@@ -36,6 +36,7 @@ model User {
   twoFactorSecret      String?   // Secret TOTP criptografado
   twoFactorEnabled     Boolean   @default(false) // Status do 2FA
   twoFactorBackupCodes String[]  // Códigos de backup (criptografados)
+  lastLoginAt         DateTime? // Último login (para regra INACTIVITY)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -49,6 +50,7 @@ model User {
   goals            Goal[]
   userScore        UserScore?
   userAchievements UserAchievement[]
+  userScoreEvents  UserScoreEvent[]
   refreshTokens    RefreshToken[]
 
   @@map("users")
@@ -262,4 +264,18 @@ model UserAchievement {
 
   @@unique([userId, achievementId]) // Um usuário só pode ter uma conquista uma vez
   @@map("user_achievements")
+}
+
+// UserScoreEvent - Histórico de eventos de pontuação (gamificação)
+model UserScoreEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  ruleCode  String
+  points    Int      // Delta aplicado (pode ser negativo)
+  metadata  Json?    // Contexto opcional (goalId, etc.)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_score_events")
 }

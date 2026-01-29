@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { GamificationService } from './gamificationService';
 
 export class BudgetService {
   // Listar todos os orçamentos do usuário
@@ -62,6 +63,8 @@ export class BudgetService {
       throw new Error('Já existe um orçamento para esta categoria. Use a atualização para modificar.');
     }
 
+    const budgetCount = await prisma.budget.count({ where: { userId } });
+
     // Criar orçamento
     const newBudget = await prisma.budget.create({
       data: {
@@ -74,6 +77,9 @@ export class BudgetService {
       },
     });
 
+    if (budgetCount === 0) {
+      GamificationService.registerEvent(userId, 'FIRST_BUDGET').catch(() => {});
+    }
     return newBudget;
   }
 
@@ -160,25 +166,26 @@ export class BudgetService {
   // Esta função calcula o total gasto na categoria do orçamento no mês atual
   static async calculateSpent(userId: string, categoryId: string): Promise<number> {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return this.calculateSpentForMonth(userId, categoryId, now.getFullYear(), now.getMonth());
+  }
 
+  // Calcular o valor gasto na categoria em um mês específico (year: ano, monthIndex: 0-11)
+  static async calculateSpentForMonth(
+    userId: string,
+    categoryId: string,
+    year: number,
+    monthIndex: number
+  ): Promise<number> {
+    const startOfMonth = new Date(year, monthIndex, 1);
+    const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
     const transactions = await prisma.transaction.findMany({
       where: {
         userId,
         categoryId,
         type: 'expense',
-        date: {
-          gte: startOfMonth,
-          lte: endOfMonth,
-        },
+        date: { gte: startOfMonth, lte: endOfMonth },
       },
     });
-
-    const total = transactions.reduce((sum, t) => {
-      return sum + Number(t.amount);
-    }, 0);
-
-    return total;
+    return transactions.reduce((sum, t) => sum + Number(t.amount), 0);
   }
 }

@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { GamificationService } from './gamificationService';
 
 export class GoalService {
   // Listar todas as metas do usuário
@@ -50,6 +51,8 @@ export class GoalService {
       throw new Error('currentAmount não pode ser negativo.');
     }
 
+    const goalCount = await prisma.goal.count({ where: { userId } });
+
     // Criar meta
     const newGoal = await prisma.goal.create({
       data: {
@@ -63,6 +66,9 @@ export class GoalService {
       },
     });
 
+    if (goalCount === 0) {
+      GamificationService.registerEvent(userId, 'FIRST_GOAL').catch(() => {});
+    }
     return newGoal;
   }
 
@@ -97,6 +103,11 @@ export class GoalService {
       throw new Error('currentAmount não pode ser negativo.');
     }
 
+    const prevCurrent = Number(goal.currentAmount);
+    const prevTarget = Number(goal.targetAmount);
+    const wasReached = prevCurrent >= prevTarget;
+    const nameLower = (goal.name || '').toLowerCase();
+
     // Atualizar meta
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -106,10 +117,25 @@ export class GoalService {
     if (data.icon !== undefined) updateData.icon = data.icon;
     if (data.color !== undefined) updateData.color = data.color;
 
-    return await prisma.goal.update({
+    const updated = await prisma.goal.update({
       where: { id: goalId },
       data: updateData,
     });
+
+    const newCurrent = Number(updated.currentAmount);
+    const newTarget = Number(updated.targetAmount);
+    if (!wasReached && newCurrent >= newTarget) {
+      GamificationService.registerEvent(userId, 'GOAL_REACHED', { goalId }).catch(() => {});
+    }
+    if (
+      (nameLower.includes('reserva') || nameLower.includes('emergência')) &&
+      newTarget > 0 &&
+      newCurrent >= newTarget * 0.1 &&
+      prevCurrent < prevTarget * 0.1
+    ) {
+      GamificationService.registerEvent(userId, 'EMERGENCY_FUND', { goalId }).catch(() => {});
+    }
+    return updated;
   }
 
   // Deletar meta
@@ -121,6 +147,12 @@ export class GoalService {
 
     if (!goal) {
       throw new Error('Meta não encontrada ou não pertence ao usuário.');
+    }
+
+    const currentAmount = Number(goal.currentAmount);
+    const targetAmount = Number(goal.targetAmount);
+    if (currentAmount < targetAmount) {
+      GamificationService.registerEvent(userId, 'GOAL_DELETED', { goalId }).catch(() => {});
     }
 
     await prisma.goal.delete({

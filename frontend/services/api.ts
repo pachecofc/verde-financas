@@ -1797,6 +1797,66 @@ const scoreApi = {
   },
 };
 
+// ============ GAMIFICATION API ============
+export interface AchievementRule {
+  code: string;
+  name: string;
+  points: number;
+  trigger: string;
+}
+
+export interface AchievementRuleCategory {
+  category: string;
+  description: string;
+  rules: AchievementRule[];
+}
+
+export interface ScoreLevelStyle {
+  color: string;
+  bg: string;
+  border: string;
+}
+
+export interface ScoreLevel {
+  min: number;
+  max: number;
+  label: string;
+  badge: string;
+  icon: string;
+  style: ScoreLevelStyle;
+  message: string;
+}
+
+export interface GamificationRulesResponse {
+  achievementRules: AchievementRuleCategory[];
+  scoreLevels: ScoreLevel[];
+}
+
+const gamificationApi = {
+  getRules: async (): Promise<GamificationRulesResponse> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/gamification/rules`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<GamificationRulesResponse>(response);
+    };
+    try {
+      return await doRequest();
+    } catch (error: any) {
+      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
+        try {
+          await refreshAccessToken();
+          return await doRequest();
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
+  },
+};
+
 // ============ REPORT API ============
 export interface ExpenseByCategory {
   categoryId: string;
@@ -2457,5 +2517,6 @@ export default {
   assetHolding: assetHoldingApi,
   goal: goalApi,
   score: scoreApi,
+  gamification: gamificationApi,
   report: reportApi,
 };

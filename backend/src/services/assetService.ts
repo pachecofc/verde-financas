@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { GamificationService } from './gamificationService';
 
 export class AssetService {
   // Listar todos os ativos do usuário
@@ -42,7 +43,7 @@ export class AssetService {
       throw new Error('incomeType deve ser "fixed" ou "variable".');
     }
 
-    // Criar ativo
+    const assetCount = await prisma.asset.count({ where: { userId } });
     const newAsset = await prisma.asset.create({
       data: {
         name,
@@ -52,6 +53,9 @@ export class AssetService {
       },
     });
 
+    if (assetCount === 0) {
+      GamificationService.registerEvent(userId, 'FIRST_ASSET').catch(() => {});
+    }
     return newAsset;
   }
 

@@ -16,6 +16,7 @@ import assetRoutes from './routes/assetRoutes';
 import assetHoldingRoutes from './routes/assetHoldingRoutes';
 import goalRoutes from './routes/goalRoutes';
 import scoreRoutes from './routes/scoreRoutes';
+import gamificationRoutes from './routes/gamificationRoutes';
 import reportRoutes from './routes/reportRoutes';
 import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
 import path from 'path';
@@ -119,6 +120,7 @@ app.use('/api/goals', goalRoutes);
 
 // Rotas de score e gamificação
 app.use('/api/scores', scoreRoutes);
+app.use('/api/gamification', gamificationRoutes);
 
 // Rotas de relatórios
 app.use('/api/reports', reportRoutes);

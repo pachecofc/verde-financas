@@ -1,6 +1,7 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../prisma';
 import { AccountType } from '@prisma/client'; // Importar o enum AccountType do Prisma Client
+import { GamificationService } from './gamificationService';
 
 interface CreateAccountData {
   name: string;
@@ -23,6 +24,7 @@ interface UpdateAccountData {
 export class AccountService {
   // Criar uma nova conta
   static async createAccount(userId: string, data: CreateAccountData) {
+    const accountCount = await prisma.account.count({ where: { userId } });
     const account = await prisma.account.create({
       data: {
         ...data,
@@ -30,6 +32,9 @@ export class AccountService {
         balance: parseFloat(data.balance.toFixed(2)), // Garantir 2 casas decimais
       },
     });
+    if (accountCount === 0) {
+      GamificationService.registerEvent(userId, 'FIRST_ACCOUNT').catch(() => {});
+    }
     return account;
   }
 

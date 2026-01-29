@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, CalendarDays, CreditCard, LogOut,
@@ -9,6 +9,9 @@ import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useImportProgress } from '../contexts/ImportProgressContext';
 import { AiAssistant } from './AiAssistant';
+import api from '../services/api';
+import type { ScoreLevel } from '../services/api';
+import { LucideIconByName } from '../utils/lucideIcons';
 
 /** URL para exibir avatar: absoluta (Supabase) ou relativa (legado /uploads/...). */
 function getAvatarSrc(url: string): string {
@@ -21,6 +24,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isOpen, setIsOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
 
   const { user: authUser, logout, isLoggingOut } = useAuth();
   const { theme, toggleTheme, user: financeUser } = useFinance();
@@ -28,7 +32,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Usar dados do authUser para o perfil
+  useEffect(() => {
+    let cancelled = false;
+    api.gamification.getRules().then((data) => { if (!cancelled) setScoreLevels(data.scoreLevels); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const scoreLevel = useMemo(() => {
+    const score = financeUser?.score ?? 0;
+    const clamped = Math.max(0, Math.min(1000, Math.round(score)));
+    return scoreLevels.find((l) => clamped >= l.min && clamped <= l.max) ?? null;
+  }, [financeUser?.score, scoreLevels]);
+
   const displayName = authUser?.name || '';
   const displayAvatar = authUser?.avatarUrl || '';
 
@@ -110,14 +125,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <div className="text-right hidden sm:block">
               <div className="flex items-center justify-end gap-1.5">
                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">{displayName}</p>
+                 {scoreLevel && (
+                   <span title={scoreLevel.badge} className="flex items-center justify-center">
+                     <LucideIconByName name={scoreLevel.icon} size={16} className="text-emerald-600 dark:text-emerald-400" />
+                   </span>
+                 )}
               </div>
               <div className="flex items-center justify-end gap-1 mt-0.5">
                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                 {/* Se você tiver score no modelo User, pode usar aqui */}
-                 <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{financeUser?.score || authUser?.score || 0} Score</p>
+                 <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{financeUser?.score ?? 0} Score</p>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative flex items-center gap-1.5">
+               {scoreLevel && (
+                 <span title={scoreLevel.badge} className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
+                   <LucideIconByName name={scoreLevel.icon} size={18} />
+                 </span>
+               )}
                {displayAvatar ? (
                  <img src={getAvatarSrc(displayAvatar)} className="w-10 h-10 rounded-full border-2 border-emerald-100 dark:border-emerald-900/30 object-cover shadow-sm group-hover:border-emerald-500 transition-all" alt="Avatar" />
                ) : (
