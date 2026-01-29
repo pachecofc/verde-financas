@@ -1,0 +1,235 @@
+{
+    "achievementRules": [
+      {
+        "category": "Onboarding",
+        "description": "Configuração inicial e descoberta de recursos",
+        "rules": [
+          {
+            "code": "PROFILE_COMPLETE",
+            "name": "Completar Perfil",
+            "points": 30,
+            "trigger": "Ao fazer upload de avatar (UserController.updateAvatar)."
+          },
+          {
+            "code": "FIRST_BUDGET",
+            "name": "Criar o primeiro Orçamento",
+            "points": 50,
+            "trigger": "Ao criar o primeiro registro em Budget."
+          },
+          {
+            "code": "FIRST_GOAL",
+            "name": "Cadastrar uma Meta",
+            "points": 40,
+            "trigger": "Ao criar o primeiro registro em Goal."
+          },
+          {
+            "code": "FIRST_ACCOUNT",
+            "name": "Conectar primeira Conta",
+            "points": 20,
+            "trigger": "Ao criar a primeira Account (além da padrão, se houver)."
+          },
+          {
+            "code": "FIRST_ASSET",
+            "name": "Cadastrar Ativo de Investimento",
+            "points": 30,
+            "trigger": "Ao registrar o primeiro Asset."
+          }
+        ]
+      },
+      {
+        "category": "Engajamento",
+        "description": "Hábitos diários e consistência de uso",
+        "rules": [
+          {
+            "code": "DAILY_LOG",
+            "name": "Registro Diário",
+            "points": 5,
+            "trigger": "Adicionar uma transação no dia (limitado a 1x/dia)."
+          },
+          {
+            "code": "CATEGORIZATION",
+            "name": "Categorização Correta",
+            "points": 2,
+            "trigger": "Editar uma transação 'Sem Categoria' para uma específica."
+          },
+          {
+            "code": "WEEKLY_STREAK",
+            "name": "Streak de 7 Dias",
+            "points": 50,
+            "trigger": "Registrar transações por 7 dias seguidos."
+          },
+          {
+            "code": "MONTHLY_RECONCILIATION",
+            "name": "Conciliação Mensal",
+            "points": 20,
+            "trigger": "Realizar ajuste de saldo para bater com o valor real."
+          }
+        ]
+      },
+      {
+        "category": "Saúde Financeira",
+        "description": "Boas práticas e conquistas financeiras",
+        "rules": [
+          {
+            "code": "MONTH_BLUE",
+            "name": "Fechar o Mês no Azul",
+            "points": 100,
+            "trigger": "Receitas > Despesas no fechamento do mês."
+          },
+          {
+            "code": "BUDGET_RESPECTED",
+            "name": "Orçamento Respeitado",
+            "points": 20,
+            "trigger": "Para cada categoria que não estourou o limite no mês."
+          },
+          {
+            "code": "GOAL_REACHED",
+            "name": "Meta Atingida",
+            "points": 80,
+            "trigger": "Atingir 100% do valor alvo de uma Meta."
+          },
+          {
+            "code": "INVESTMENT_DEPOSIT",
+            "name": "Aporte em Investimento",
+            "points": 10,
+            "trigger": "Registrar transação de investimento ou aumentar holding."
+          },
+          {
+            "code": "EMERGENCY_FUND",
+            "name": "Fundo de Emergência",
+            "points": 50,
+            "trigger": "Atingir 10% de uma meta nomeada 'Reserva' ou 'Emergência'."
+          }
+        ]
+      },
+      {
+        "category": "Penalidades",
+        "description": "Ações que reduzem a pontuação",
+        "rules": [
+          {
+            "code": "BUDGET_OVERFLOW",
+            "name": "Estourar Orçamento",
+            "points": -50,
+            "trigger": "Ultrapassar o limite definido para uma categoria."
+          },
+          {
+            "code": "OVERDUE_DEBT",
+            "name": "Dívida Atrasada",
+            "points": -30,
+            "trigger": "Passar da data de vencimento de uma conta a pagar."
+          },
+          {
+            "code": "INVESTMENT_WITHDRAWAL",
+            "name": "Saque de Investimento",
+            "points": -10,
+            "trigger": "Retirar dinheiro de investimento (exceto para meta concluída)."
+          },
+          {
+            "code": "INACTIVITY",
+            "name": "Inatividade (7 dias)",
+            "points": -20,
+            "trigger": "Não realizar login ou registros por 7 dias."
+          },
+          {
+            "code": "GOAL_DELETED",
+            "name": "Excluir uma Meta",
+            "points": -15,
+            "trigger": "Deletar uma meta antes de atingi-la."
+          }
+        ]
+      }
+    ],
+    "scoreLevels": [
+        {
+          "min": 0,
+          "max": 199,
+          "label": "Crítico",
+          "badge": "Iniciante Consciente",
+          "icon": "Wallet",
+          "style": {
+            "color": "text-rose-600",
+            "bg": "bg-rose-50",
+            "border": "border-rose-100"
+          },
+          "message": "Toda jornada começa no zero. O importante é ter dado o primeiro passo."
+        },
+        {
+          "min": 200,
+          "max": 349,
+          "label": "Regular",
+          "badge": "Sentinela da Poupança",
+          "icon": "ShieldCheck",
+          "style": {
+            "color": "text-amber-600",
+            "bg": "bg-amber-50",
+            "border": "border-amber-100"
+          },
+          "message": "Você está construindo suas defesas. A constância é sua melhor amiga."
+        },
+        {
+          "min": 350,
+          "max": 499,
+          "label": "Em Evolução",
+          "badge": "Caçador de Metas",
+          "icon": "Target",
+          "style": {
+            "color": "text-blue-600",
+            "bg": "bg-blue-50",
+            "border": "border-blue-100"
+          },
+          "message": "Sua mira está melhorando. A disciplina começa a dar frutos visíveis."
+        },
+        {
+          "min": 500,
+          "max": 699,
+          "label": "Bom",
+          "badge": "Investidor em Ascensão",
+          "icon": "TrendingUp",
+          "style": {
+            "color": "text-emerald-600",
+            "bg": "bg-emerald-50",
+            "border": "border-emerald-100"
+          },
+          "message": "Você saiu da corrida dos ratos. Sua liberdade financeira é uma questão de tempo."
+        },
+        {
+          "min": 700,
+          "max": 849,
+          "label": "Muito Bom",
+          "badge": "Mestre da Estratégia",
+          "icon": "BrainCircuit",
+          "style": {
+            "color": "text-emerald-600",
+            "bg": "bg-emerald-50",
+            "border": "border-emerald-100"
+          },
+          "message": "Suas decisões são lógicas e precisas. Você domina o dinheiro, e não o contrário."
+        },
+        {
+          "min": 850,
+          "max": 949,
+          "label": "Excelente",
+          "badge": "Visionário da Riqueza",
+          "icon": "Sparkles",
+          "style": {
+            "color": "text-emerald-600",
+            "bg": "bg-emerald-50",
+            "border": "border-emerald-100"
+          },
+          "message": "Você enxerga oportunidades onde outros veem riscos. Um desempenho de elite."
+        },
+        {
+          "min": 950,
+          "max": 1000,
+          "label": "Lendário",
+          "badge": "Soberano da Prosperidade",
+          "icon": "Crown",
+          "style": {
+            "color": "text-purple-600",
+            "bg": "bg-purple-50",
+            "border": "border-purple-100"
+          },
+          "message": "O nível máximo. Você zerou o jogo financeiro e agora ensina aos outros."
+        }
+      ]
+  }
