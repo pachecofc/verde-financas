@@ -171,30 +171,6 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
-          {isRegistering && (
-            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Escolha seu Plano</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, plan: 'basic'})}
-                  className={`flex items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${formData.plan === 'basic' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-600'}`}
-                >
-                  <User className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase">BASIC</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, plan: 'premium'})}
-                  className={`flex items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${formData.plan === 'premium' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm' : 'border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-600'}`}
-                >
-                  <Crown className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase">PRO</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={isLoading}

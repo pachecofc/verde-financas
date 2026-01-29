@@ -22,6 +22,7 @@ export const Budgets: React.FC = () => {
   const [showSmartModal, setShowSmartModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
   const [smartAmount, setSmartAmount] = useState('');
   const [smartPreview, setSmartPreview] = useState<any[] | null>(null);
   
@@ -50,21 +51,26 @@ export const Budgets: React.FC = () => {
     setFormData({ categoryId: categories.find(c => c.type === 'expense')?.id || '', limit: '' });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.categoryId || !formData.limit) return;
+    if (!formData.categoryId || !formData.limit || isSavingBudget) return;
     
     const data = {
       categoryId: formData.categoryId,
       limit: parseFloat(formData.limit)
     };
 
-    if (editingId) {
-      updateBudget(editingId, data);
-    } else {
-      addBudget(data);
+    setIsSavingBudget(true);
+    try {
+      if (editingId) {
+        await updateBudget(editingId, data);
+      } else {
+        await addBudget(data);
+      }
+      handleCloseModal();
+    } finally {
+      setIsSavingBudget(false);
     }
-    handleCloseModal();
   };
 
   const isPremium = authUser?.plan?.toLowerCase() === 'premium';
@@ -415,16 +421,17 @@ export const Budgets: React.FC = () => {
       {/* Modal Cadastro/Edição Normal */}
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={handleCloseModal} />
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={isSavingBudget ? undefined : handleCloseModal} />
           <div className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-6 animate-in zoom-in">
             <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">{editingId ? 'Editar Orçamento' : 'Novo Orçamento'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categoria</label>
                 <select 
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500"
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  disabled={isSavingBudget}
                 >
                   <option value="">Selecione...</option>
                   {categories
@@ -437,9 +444,30 @@ export const Budgets: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limite Mensal (R$)</label>
-                <input type="number" step="0.01" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.limit} onChange={(e) => setFormData({ ...formData, limit: e.target.value })} />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  required 
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" 
+                  value={formData.limit} 
+                  onChange={(e) => setFormData({ ...formData, limit: e.target.value })} 
+                  disabled={isSavingBudget}
+                />
               </div>
-              <button type="submit" className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg dark:shadow-none transition-all mt-4 active:scale-[0.98]">Confirmar</button>
+              <button 
+                type="submit" 
+                disabled={isSavingBudget}
+                className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg dark:shadow-none transition-all mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                {isSavingBudget ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  'Confirmar'
+                )}
+              </button>
             </form>
           </div>
         </div>
