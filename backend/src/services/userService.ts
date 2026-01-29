@@ -5,6 +5,7 @@ interface UpdateProfileData {
   name?: string;
   email?: string;
   plan?: UserPlan;
+  stripeCustomerId?: string | null;
 }
 
 export class UserService {
@@ -18,14 +19,15 @@ export class UserService {
   }
 
   static async updateUserProfile(userId: string, data: UpdateProfileData) {
+    const payload: Record<string, unknown> = {};
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.email !== undefined) payload.email = data.email;
+    if (data.plan !== undefined) payload.plan = data.plan;
+    if (data.stripeCustomerId !== undefined) payload.stripeCustomerId = data.stripeCustomerId;
     const user = await prisma.user.update({
       where: { id: userId },
-      data: {
-        name: data.name,
-        email: data.email,
-        plan: data.plan,
-      },
-      select: { id: true, name: true, email: true, avatarUrl: true, plan: true }, // Retorna apenas os campos necessários
+      data: payload as { name?: string; email?: string; plan?: UserPlan; stripeCustomerId?: string | null },
+      select: { id: true, name: true, email: true, avatarUrl: true, plan: true, stripeCustomerId: true },
     });
     return user;
   }

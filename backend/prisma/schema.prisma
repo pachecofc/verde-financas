@@ -31,6 +31,7 @@ model User {
   passwordResetExpires DateTime?
   avatarUrl            String?
   plan                 UserPlan  @default(BASIC)
+  stripeCustomerId     String?   @unique // Stripe customer ID para webhooks de assinatura
   deletedAt            DateTime? // Soft delete: marca quando a conta foi solicitada para exclusão
   twoFactorSecret      String?   // Secret TOTP criptografado
   twoFactorEnabled     Boolean   @default(false) // Status do 2FA
@@ -51,6 +52,14 @@ model User {
   refreshTokens    RefreshToken[]
 
   @@map("users")
+}
+
+model ProcessedStripeEvent {
+  id        String   @id @default(uuid())
+  eventId   String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("processed_stripe_events")
 }
 
 model Category {

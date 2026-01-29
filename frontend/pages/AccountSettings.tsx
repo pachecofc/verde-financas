@@ -17,8 +17,6 @@ function getAvatarSrc(url: string): string {
   return `${import.meta.env.VITE_API_URL}${url}`;
 }
 
-type UserPlan = 'BASIC' | 'PREMIUM';
-
 type TabType = 'account' | 'subscription' | 'security';
 
 export const AccountSettings: React.FC = () => {
@@ -40,13 +38,8 @@ export const AccountSettings: React.FC = () => {
   const [accountSuccess, setAccountSuccess] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Estados do formulário de assinatura
-  const [subscriptionForm, setSubscriptionForm] = useState({
-    plan: (authUser?.plan || 'BASIC') as UserPlan,
-  });
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
-  const [subscriptionSuccess, setSubscriptionSuccess] = useState<string | null>(null);
+  // Estados da aba assinatura (apenas exibição; plano vem do Auth/Stripe)
+  const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://buy.stripe.com/test_dRm5kD4KJ1ex1Mm8XxefC00';
 
   // Estado para exclusão de conta
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -74,9 +67,6 @@ export const AccountSettings: React.FC = () => {
         name: authUser.name,
         email: authUser.email,
       }));
-      setSubscriptionForm({
-        plan: (authUser.plan || 'BASIC') as UserPlan,
-      });
     }
   }, [authUser]);
 
@@ -90,16 +80,6 @@ export const AccountSettings: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [accountSuccess, accountError]);
-
-  useEffect(() => {
-    if (subscriptionSuccess || subscriptionError) {
-      const timer = setTimeout(() => {
-        setSubscriptionSuccess(null);
-        setSubscriptionError(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [subscriptionSuccess, subscriptionError]);
 
   const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,30 +167,6 @@ export const AccountSettings: React.FC = () => {
       setAccountLoading(false);
     }
     e.target.value = '';
-  };
-
-  const handleSaveSubscription = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubscriptionLoading(true);
-    setSubscriptionError(null);
-    setSubscriptionSuccess(null);
-
-    try {
-      const profileDataToUpdate: Partial<UpdatedUserResponse> = {
-        plan: subscriptionForm.plan,
-      };
-
-      const success = await updateUserProfile(profileDataToUpdate);
-      if (!success) {
-        throw new Error('Falha ao atualizar assinatura.');
-      }
-
-      setSubscriptionSuccess('Assinatura atualizada com sucesso!');
-    } catch (err) {
-      setSubscriptionError(err instanceof Error ? err.message : 'Erro ao atualizar assinatura.');
-    } finally {
-      setSubscriptionLoading(false);
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -573,69 +529,35 @@ export const AccountSettings: React.FC = () => {
         )}
 
         {activeTab === 'subscription' && (
-          <form onSubmit={handleSaveSubscription} className="space-y-6">
-            {/* Mensagens de feedback */}
-            {subscriptionError && (
-              <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-2xl p-4 flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
-                <p className="text-rose-700 dark:text-rose-300 text-sm font-medium">{subscriptionError}</p>
-              </div>
-            )}
-            {subscriptionSuccess && (
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                <p className="text-emerald-700 dark:text-emerald-300 text-sm font-medium">{subscriptionSuccess}</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 mb-2">Plano Atual</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Escolha o plano que melhor se adequa às suas necessidades.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <Crown className="w-4 h-4" />
-                  Plano
-                </label>
-                <select
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
-                  value={subscriptionForm.plan}
-                  onChange={e => setSubscriptionForm({ plan: e.target.value as UserPlan })}
-                >
-                  <option value="BASIC">Plano Básico (Gratuito)</option>
-                  <option value="PREMIUM">Plano PRO (Premium)</option>
-                </select>
-              </div>
-
-              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  <strong>Nota:</strong> Para cancelar sua assinatura, altere para o Plano Básico (Gratuito).
-                </p>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 mb-2">Plano Atual</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Seu plano atual é exibido abaixo. Para fazer upgrade ou gerenciar pagamento e assinatura, use o botão abaixo.
+              </p>
+              <div className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-amber-500" />
+                <span className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                  {authUser?.plan === 'PREMIUM' ? 'Plano PRO (Premium)' : 'Plano Básico (Gratuito)'}
+                </span>
               </div>
             </div>
 
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Se você alterou sua assinatura no Stripe, atualize a página para ver o plano atual.
+              </p>
+            </div>
+
             <button
-              type="submit"
-              disabled={subscriptionLoading}
-              className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-black rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              onClick={() => window.open(stripeCheckoutUrl, '_blank')}
+              className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-black rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              {subscriptionLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Atualizando...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Salvar Alterações
-                </>
-              )}
+              <Crown className="w-5 h-5" />
+              Gerenciar assinatura
             </button>
-          </form>
+          </div>
         )}
 
         {activeTab === 'security' && (

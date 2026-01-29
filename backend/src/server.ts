@@ -17,10 +17,15 @@ import assetHoldingRoutes from './routes/assetHoldingRoutes';
 import goalRoutes from './routes/goalRoutes';
 import scoreRoutes from './routes/scoreRoutes';
 import reportRoutes from './routes/reportRoutes';
+import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
 import path from 'path';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Stripe webhook precisa do body bruto para verificar assinatura (antes de express.json)
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
+app.use('/api/webhooks/stripe', stripeWebhookRoutes);
 
 // Rate limiting para rotas públicas não autenticadas
 // Aplicado apenas em rotas específicas que precisam de proteção
@@ -48,7 +53,7 @@ app.use(cors({
   maxAge: 86400,
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json()); // demais rotas usam JSON
 
 // Rate limiting aplicado apenas em rotas específicas que precisam de proteção
 // Rotas de autenticação já têm seus próprios limiters mais restritivos
