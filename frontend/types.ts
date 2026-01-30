@@ -47,7 +47,7 @@ export interface Schedule {
   description: string;
   amount: number;
   date: string;
-  frequency: 'once' | 'monthly' | 'weekly';
+  frequency: 'once' | 'monthly' | 'weekly' | 'yearly';
   categoryId: string;
   accountId: string;
   toAccountId?: string;

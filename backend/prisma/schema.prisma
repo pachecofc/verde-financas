@@ -167,7 +167,7 @@ model Schedule {
   description String
   amount      Decimal
   date        DateTime
-  frequency   String // 'once', 'monthly', or 'weekly'
+  frequency   String // 'once', 'monthly', 'weekly', or 'yearly'
   type        String // 'income', 'expense', 'transfer', or 'adjustment'
   userId      String
   categoryId  String? // Opcional para transferências e ajustes

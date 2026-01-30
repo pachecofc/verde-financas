@@ -47,7 +47,7 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 const ACHIEVEMENTS: Achievement[] = [
   { id: 'ach-1', name: 'Primeiro Passo', description: 'Realizou seu primeiro lançamento.', icon: '🌱', requirement: '1_transaction' },
-  { id: 'ach-2', name: 'Mestre do Orçamento', description: 'Manteve orçamentos no azul por 3 meses.', icon: '🛡️', requirement: '3_months_blue' },
+  { id: 'ach-2', name: 'Mestre do Orçamento', description: 'Manteve orçamentos no verde por 3 meses.', icon: '🛡️', requirement: '3_months_blue' },
   { id: 'ach-3', name: 'Investidor Verde', description: 'Possui mais de 5 ativos cadastrados.', icon: '💎', requirement: '5_investments' },
   { id: 'ach-4', name: 'Poupador Fiel', description: 'Economizou mais de 30% da renda no mês.', icon: '🏦', requirement: '30_percent_saving' },
 ];

@@ -1022,7 +1022,7 @@ export interface ScheduleApiData {
   description: string;
   amount: number;
   date: string; // YYYY-MM-DD
-  frequency: 'once' | 'monthly' | 'weekly';
+  frequency: 'once' | 'monthly' | 'weekly' | 'yearly';
   type: 'income' | 'expense' | 'transfer' | 'adjustment';
   categoryId: string | null;
   accountId: string;
@@ -1035,7 +1035,7 @@ export interface CreateSchedulePayload {
   description: string;
   amount: number;
   date: string; // YYYY-MM-DD
-  frequency: 'once' | 'monthly' | 'weekly';
+  frequency: 'once' | 'monthly' | 'weekly' | 'yearly';
   type: 'income' | 'expense' | 'transfer' | 'adjustment';
   categoryId?: string | null;
   accountId: string;
@@ -1046,7 +1046,7 @@ export interface UpdateSchedulePayload {
   description?: string;
   amount?: number;
   date?: string; // YYYY-MM-DD
-  frequency?: 'once' | 'monthly' | 'weekly';
+  frequency?: 'once' | 'monthly' | 'weekly' | 'yearly';
   type?: 'income' | 'expense' | 'transfer' | 'adjustment';
   categoryId?: string | null;
   accountId?: string;

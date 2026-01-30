@@ -102,6 +102,10 @@ export const Dashboard: React.FC = () => {
               occurrences = 1;
             } else if (s.frequency === 'weekly') {
               occurrences = 4;
+            } else if (s.frequency === 'yearly') {
+              // Anual: 1 ocorrência no mês em que cai o dia/mês do agendamento
+              const [sY, sM] = s.date.split('-').map(Number);
+              if (sM - 1 === m && sY <= y) occurrences = 1;
             }
 
             if (s.type === 'income') predictedIncome += s.amount * occurrences;

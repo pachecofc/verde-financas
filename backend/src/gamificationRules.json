@@ -8,7 +8,7 @@
             "code": "PROFILE_COMPLETE",
             "name": "Completar Perfil",
             "points": 30,
-            "trigger": "Ao fazer upload de avatar (UserController.updateAvatar)."
+            "trigger": "Ao fazer upload de avatar."
           },
           {
             "code": "FIRST_BUDGET",
@@ -72,7 +72,7 @@
         "rules": [
           {
             "code": "MONTH_BLUE",
-            "name": "Fechar o Mês no Azul",
+            "name": "Fechar o Mês no Verde",
             "points": 100,
             "trigger": "Receitas > Despesas no fechamento do mês."
           },

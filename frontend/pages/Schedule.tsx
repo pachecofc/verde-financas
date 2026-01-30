@@ -27,7 +27,7 @@ export const Schedule: React.FC = () => {
     description: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
-    frequency: 'monthly' as 'monthly' | 'weekly' | 'once',
+    frequency: 'monthly' as 'monthly' | 'weekly' | 'yearly' | 'once',
     categoryId: '',
     accountId: '',
     toAccountId: '',
@@ -133,7 +133,9 @@ export const Schedule: React.FC = () => {
         ? 'removido' 
         : s.frequency === 'monthly' 
           ? 'atualizado para o próximo mês' 
-          : 'atualizado para a próxima semana';
+          : s.frequency === 'yearly'
+            ? 'atualizado para o próximo ano'
+            : 'atualizado para a próxima semana';
       toast.success(`Pagamento realizado! Agendamento ${nextAction}.`, {
         duration: 3000,
       });
@@ -149,6 +151,8 @@ export const Schedule: React.FC = () => {
               nextDate.setMonth(nextDate.getMonth() + 1);
             } else if (s.frequency === 'weekly') {
               nextDate.setDate(nextDate.getDate() + 7);
+            } else if (s.frequency === 'yearly') {
+              nextDate.setFullYear(nextDate.getFullYear() + 1);
             }
             await updateSchedule(s.id, { date: nextDate.toISOString().split('T')[0] }, true); // silent = true
           }
@@ -232,9 +236,15 @@ export const Schedule: React.FC = () => {
     }
   };
 
-  const isScheduledOnDay = (day: number, sDate: string) => {
-    const [y, m, d] = sDate.split('-').map(Number);
-    return d === day && (m - 1) === currentDate.getMonth() && y === currentDate.getFullYear();
+  const isScheduledOnDay = (day: number, s: ScheduleType) => {
+    const [y, m, d] = s.date.split('-').map(Number);
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    // Anual: mesmo dia e mês, qualquer ano (mostra no calendário do mês)
+    if (s.frequency === 'yearly') {
+      return d === day && (m - 1) === currentMonth;
+    }
+    return d === day && (m - 1) === currentMonth && y === currentYear;
   };
 
   const getCategoryFullName = (catId: string) => {
@@ -308,7 +318,7 @@ export const Schedule: React.FC = () => {
                           <div className="flex flex-wrap items-center gap-y-0.5 gap-x-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
                             <span>{new Date(s.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                             <span>•</span>
-                            <span className="capitalize">{s.frequency === 'monthly' ? 'Mensal' : s.frequency === 'weekly' ? 'Semanal' : 'Único'}</span>
+                            <span className="capitalize">{s.frequency === 'monthly' ? 'Mensal' : s.frequency === 'weekly' ? 'Semanal' : s.frequency === 'yearly' ? 'Anual' : 'Único'}</span>
                             {s.type === 'transfer' ? (
                               <span className="text-blue-500 dark:text-blue-400 font-bold text-[10px] uppercase tracking-wider">Transferência</span>
                             ) : parent && (
@@ -403,7 +413,7 @@ export const Schedule: React.FC = () => {
                   if (!day) return <div key={idx} className="aspect-square" />;
 
                   // Lógica de destaque por tipo de lançamento
-                  const daySchedules = schedules.filter(s => isScheduledOnDay(day, s.date));
+                  const daySchedules = schedules.filter(s => isScheduledOnDay(day, s));
                   const hasExpense = daySchedules.some(s => s.type === 'expense' || s.type === 'transfer');
                   const hasIncome = daySchedules.some(s => s.type === 'income');
                   const isToday = day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
@@ -502,6 +512,7 @@ export const Schedule: React.FC = () => {
                 <select className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all" value={formData.frequency} onChange={e => setFormData({...formData, frequency: e.target.value as any})}>
                   <option value="monthly">Mensal</option>
                   <option value="weekly">Semanal</option>
+                  <option value="yearly">Anual</option>
                   <option value="once">Único</option>
                 </select>
               </div>

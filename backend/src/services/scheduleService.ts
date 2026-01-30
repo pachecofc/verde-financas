@@ -39,7 +39,7 @@ export class ScheduleService {
       description: string;
       amount: number;
       date: Date;
-      frequency: 'once' | 'monthly' | 'weekly';
+      frequency: 'once' | 'monthly' | 'weekly' | 'yearly';
       type: 'income' | 'expense' | 'transfer' | 'adjustment';
       categoryId?: string | null;
       accountId: string;
@@ -123,7 +123,7 @@ export class ScheduleService {
       description?: string;
       amount?: number;
       date?: Date;
-      frequency?: 'once' | 'monthly' | 'weekly';
+      frequency?: 'once' | 'monthly' | 'weekly' | 'yearly';
       type?: 'income' | 'expense' | 'transfer' | 'adjustment';
       categoryId?: string | null;
       accountId?: string;

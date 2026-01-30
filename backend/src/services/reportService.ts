@@ -954,7 +954,7 @@ export class ReportService {
         userId,
         type: 'expense',
         frequency: {
-          in: ['monthly', 'weekly'],
+          in: ['monthly', 'weekly', 'yearly'],
         },
       },
       include: {
@@ -977,6 +977,8 @@ export class ReportService {
         monthlyImpact = amount;
       } else if (schedule.frequency === 'weekly') {
         monthlyImpact = amount * 4.33; // Média de semanas por mês
+      } else if (schedule.frequency === 'yearly') {
+        monthlyImpact = amount / 12; // Impacto mensal proporcional
       }
 
       // Estimar juros (taxa padrão de 2% ao mês para dívidas)
@@ -1011,6 +1013,12 @@ export class ReportService {
         
         // Estimar total de parcelas (assumindo 52 semanas ou 1 ano)
         totalInstallments = 52;
+      } else if (schedule.frequency === 'yearly') {
+        // Calcular anos desde a data inicial
+        const startDate = new Date(schedule.date);
+        const yearsDiff = now.getFullYear() - startDate.getFullYear();
+        paidInstallments = Math.max(0, yearsDiff);
+        totalInstallments = 20; // Estimativa de 20 anos para dívidas anuais
       }
 
       const remainingInstallments = Math.max(0, totalInstallments - paidInstallments);
@@ -1021,6 +1029,8 @@ export class ReportService {
         lastPaymentDate.setMonth(lastPaymentDate.getMonth() + (totalInstallments - 1));
       } else if (schedule.frequency === 'weekly') {
         lastPaymentDate.setDate(lastPaymentDate.getDate() + ((totalInstallments - 1) * 7));
+      } else if (schedule.frequency === 'yearly') {
+        lastPaymentDate.setFullYear(lastPaymentDate.getFullYear() + (totalInstallments - 1));
       }
 
       // Calcular valor total (valor das parcelas + juros estimados)
