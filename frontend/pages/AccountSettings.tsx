@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useFinance } from '../contexts/FinanceContext';
 import { authApi, UpdatedUserResponse, ChangePasswordPayload } from '../services/api';
 import {
   User, Mail, Lock, Trash2, Crown, X, Eye, EyeOff, Camera, Save, AlertCircle, CheckCircle, Loader2, ArrowLeft, Shield
@@ -22,6 +23,7 @@ type TabType = 'account' | 'subscription' | 'security';
 export const AccountSettings: React.FC = () => {
   const navigate = useNavigate();
   const { user: authUser, updateUserProfile, changePassword, uploadAvatar, logout } = useAuth();
+  const { refreshUserScore } = useFinance();
   const [activeTab, setActiveTab] = useState<TabType>('account');
   
   // Estados do formulário de conta
@@ -158,6 +160,7 @@ export const AccountSettings: React.FC = () => {
       const success = await uploadAvatar(file);
       if (success) {
         setAccountSuccess('Avatar atualizado com sucesso!');
+        await refreshUserScore();
       } else {
         setAccountError('Falha ao fazer upload do avatar.');
       }

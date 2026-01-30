@@ -171,8 +171,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await authApi.uploadAvatar(file);
       if (user) {
         const updatedUser = { ...user, avatarUrl: response.avatarUrl };
-        authApi.setAuth(authApi.getToken()!, updatedUser); // Atualiza localStorage
-        setUser(updatedUser); // Atualiza estado local
+        authApi.setAuth(authApi.getToken()!, updatedUser);
+        setUser({ ...updatedUser, avatarUrl: `${response.avatarUrl}?t=${Date.now()}` });
       }
       return true;
     } catch (err) {

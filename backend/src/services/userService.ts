@@ -11,12 +11,21 @@ interface UpdateProfileData {
 
 export class UserService {
   static async updateUserAvatar(userId: string, avatarUrl: string) {
+    const previous = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+    const hadNoAvatar = !previous?.avatarUrl || previous.avatarUrl.trim() === '';
+
     const user = await prisma.user.update({
       where: { id: userId },
       data: { avatarUrl },
-      select: { id: true, name: true, email: true, avatarUrl: true }, // Retorna apenas os campos necessários
+      select: { id: true, name: true, email: true, avatarUrl: true },
     });
-    await GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
+
+    if (hadNoAvatar) {
+      await GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
+    }
     return user;
   }
 
