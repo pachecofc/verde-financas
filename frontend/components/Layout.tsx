@@ -12,6 +12,7 @@ import { AiAssistant } from './AiAssistant';
 import api from '../services/api';
 import type { ScoreLevel } from '../services/api';
 import { LucideIconByName } from '../utils/lucideIcons';
+import { useAutoLogout } from '../hooks/useAutoLogout';
 
 /** URL para exibir avatar: absoluta (Supabase) ou relativa (legado /uploads/...). */
 function getAvatarSrc(url: string): string {
@@ -31,6 +32,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { importProgress } = useImportProgress();
   const location = useLocation();
   const navigate = useNavigate();
+  // Auto logout
+  useAutoLogout();
 
   useEffect(() => {
     let cancelled = false;
