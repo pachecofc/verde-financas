@@ -16,7 +16,7 @@ enum UserPlan {
 // Definir um enum para os tipos de conta
 enum AccountType {
   CHECKING
-  SAVINGS
+  CREDIT_CARD
   INVESTMENT
   CASH
   OTHER
