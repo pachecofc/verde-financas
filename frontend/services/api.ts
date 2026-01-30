@@ -235,7 +235,7 @@ export const categoryApi = {
 };
 
 // ============ ACCOUNT API ============
-export type AccountType = 'CHECKING' | 'SAVINGS' | 'INVESTMENT' | 'CASH' | 'OTHER';
+export type AccountType = 'CHECKING' | 'CREDIT_CARD' | 'INVESTMENT' | 'CASH' | 'OTHER';
 
 export interface Account {
   id: string;

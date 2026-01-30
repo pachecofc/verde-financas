@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAccounts } from '../contexts/AccountContext'; // <--- NOVO: Importar useAccounts
-import { Plus, Building2, Trash2, Edit2, Wallet, PiggyBank, TrendingUp, DollarSign, X, MoreVertical } from 'lucide-react'; // <--- NOVO: Mais ícones
-import { Account, AccountType } from '../services/api'; // <--- NOVO: Importar Account e AccountType do api.ts
+import { useAccounts } from '../contexts/AccountContext';
+import { Plus, Building2, Trash2, Edit2, Wallet, TrendingUp, DollarSign, X, MoreVertical, CreditCard } from 'lucide-react';
+import { Account, AccountType } from '../services/api';
 import { Loader2 } from 'lucide-react'; // Para loading states
 import { toast } from 'sonner'; // Para notificações
 // Importa os componentes do Radix UI Dropdown Menu
@@ -10,23 +10,23 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 // Definir os tipos de conta para o formulário
 const accountTypes: { value: AccountType; label: string; icon: React.ElementType }[] = [
   { value: 'CHECKING', label: 'Conta Corrente', icon: Building2 },
-  { value: 'SAVINGS', label: 'Poupança', icon: PiggyBank },
+  { value: 'CREDIT_CARD', label: 'Cartão de Crédito', icon: CreditCard },
   { value: 'INVESTMENT', label: 'Investimento', icon: TrendingUp },
   { value: 'CASH', label: 'Dinheiro Físico', icon: Wallet },
   { value: 'OTHER', label: 'Outro', icon: DollarSign },
 ];
 
 export const Accounts: React.FC = () => {
-  const { accounts, loading, error, createAccount, updateAccount, deleteAccount, fetchAccounts } = useAccounts(); // <--- NOVO: Usar useAccounts
+  const { accounts, loading, error, createAccount, updateAccount, deleteAccount, fetchAccounts } = useAccounts();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     balance: '',
-    currency: 'BRL', // <--- NOVO: Adicionar currency
-    type: 'CHECKING' as AccountType, // <--- NOVO: Usar AccountType do backend
-    bankName: '', // <--- NOVO: Adicionar bankName
-    color: '#60A5FA', // <--- NOVO: Adicionar color (azul padrão)
+    currency: 'BRL',
+    type: 'CHECKING' as AccountType,
+    bankName: '',
+    color: '#60A5FA',
   });
   const [isSubmitting, setIsSubmitting] = useState(false); // Estado para controlar o envio do formulário
 
