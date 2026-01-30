@@ -20,7 +20,7 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
   } = useFinance();
   
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: `Olá ${user?.name || 'investidor'}! Sou seu assistente financeiro Verde. Posso analisar seus gastos, orçamentos e metas para te ajudar com decisões de compra. Como posso ajudar hoje?` }
+    { role: 'model', text: `Olá, ${user?.name || 'investidor'}! Sou seu assistente financeiro Verde. Posso analisar seus gastos, orçamentos e metas para te ajudar com decisões de compra. Como posso ajudar hoje?` }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

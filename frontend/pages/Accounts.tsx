@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAccounts } from '../contexts/AccountContext';
+import { useFinance } from '../contexts/FinanceContext';
 import { Plus, Building2, Trash2, Edit2, Wallet, TrendingUp, DollarSign, X, MoreVertical, CreditCard } from 'lucide-react';
 import { Account, AccountType } from '../services/api';
 import { Loader2 } from 'lucide-react'; // Para loading states
@@ -18,6 +19,7 @@ const accountTypes: { value: AccountType; label: string; icon: React.ElementType
 
 export const Accounts: React.FC = () => {
   const { accounts, loading, error, createAccount, updateAccount, deleteAccount, fetchAccounts } = useAccounts();
+  const { refreshUserScore } = useFinance();
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -90,6 +92,7 @@ export const Accounts: React.FC = () => {
       } else {
         await createAccount(dataToSubmit);
         toast.success('Conta criada com sucesso!');
+        await refreshUserScore();
       }
       handleCloseModal();
     } catch (err) {
