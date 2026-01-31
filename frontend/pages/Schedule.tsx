@@ -4,11 +4,14 @@ import { useFinance } from '../contexts/FinanceContext';
 import { useAccounts } from '../contexts/AccountContext';
 import { 
   Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-  Trash2, Edit2, CheckCircle2, AlertCircle, Clock, ArrowRightLeft, ChevronRight as ChevronRightSmall, MoreVertical, Loader2
+  Trash2, Edit2, CheckCircle2, AlertCircle, Clock, ArrowRightLeft, ChevronRight as ChevronRightSmall, MoreVertical, Loader2,
+  Search, ArrowUpDown, ArrowUp, ArrowDown, X
 } from 'lucide-react';
 import { Schedule as ScheduleType, TransactionType } from '../types';
 import { toast } from 'sonner';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+
+const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 export const Schedule: React.FC = () => {
   const { 
@@ -23,6 +26,14 @@ export const Schedule: React.FC = () => {
   const [payingScheduleId, setPayingScheduleId] = useState<string | null>(null);
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedMonthForTotal, setSelectedMonthForTotal] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
+  const [selectedDateFilter, setSelectedDateFilter] = useState<{ year: number; month: number; day: number } | null>(null);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -51,6 +62,108 @@ export const Schedule: React.FC = () => {
   const overdueCount = useMemo(() => 
     schedules.filter(s => getStatus(s.date) === 'overdue').length, 
   [schedules]);
+
+  const totalCommitments = useMemo(() => 
+    schedules.filter(s => s.type === 'expense').reduce((sum, s) => sum + s.amount, 0), 
+  [schedules]);
+
+  const totalScheduledIncome = useMemo(() => 
+    schedules.filter(s => s.type === 'income').reduce((sum, s) => sum + s.amount, 0), 
+  [schedules]);
+
+  const occurrencesInMonth = (s: ScheduleType, year: number, month: number): number => {
+    const [sY, sM, sD] = s.date.split('-').map(Number);
+    const sMonth = sM - 1;
+    if (s.frequency === 'once') {
+      return sY === year && sMonth === month ? 1 : 0;
+    }
+    if (s.frequency === 'monthly') {
+      // Só conta se o mês selecionado for igual ou posterior à data inicial do agendamento
+      if (year < sY) return 0;
+      if (year === sY && month < sMonth) return 0;
+      return 1;
+    }
+    if (s.frequency === 'yearly') {
+      // Só conta se o ano selecionado for igual ou posterior e o mês bater
+      if (year < sY) return 0;
+      return sMonth === month ? 1 : 0;
+    }
+    if (s.frequency === 'weekly') {
+      const start = new Date(sY, sMonth, sD);
+      const lastDay = new Date(year, month + 1, 0);
+      if (start > lastDay) return 0;
+      let count = 0;
+      const dayOfWeek = start.getDay();
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dDate = new Date(year, month, d);
+        if (dDate.getDay() === dayOfWeek && dDate >= start) count++;
+      }
+      return count;
+    }
+    return 0;
+  };
+
+  // Soma dos valores de despesas cuja data (campo date) cai no mês/ano selecionado — equivalente à consulta SQL no backend
+  const monthCommitments = useMemo(() => {
+    const { year, month } = selectedMonthForTotal;
+    const month1Based = month + 1; // no frontend month é 0-11; na data YYYY-MM-DD o mês é 1-12
+    return schedules
+      .filter(s => s.type === 'expense')
+      .filter(s => {
+        const [sY, sM] = s.date.split('-').map(Number);
+        return sY === year && sM === month1Based;
+      })
+      .reduce((sum, s) => sum + s.amount, 0);
+  }, [schedules, selectedMonthForTotal]);
+
+  // Soma dos valores de receitas cuja data (campo date) cai no mês/ano selecionado — mesma lógica de monthCommitments para type === 'income'
+  const monthIncome = useMemo(() => {
+    const { year, month } = selectedMonthForTotal;
+    const month1Based = month + 1;
+    return schedules
+      .filter(s => s.type === 'income')
+      .filter(s => {
+        const [sY, sM] = s.date.split('-').map(Number);
+        return sY === year && sM === month1Based;
+      })
+      .reduce((sum, s) => sum + s.amount, 0);
+  }, [schedules, selectedMonthForTotal]);
+
+  // Filtro por data literal: mostra apenas agendamentos cujo campo date é exatamente a data selecionada (sem recorrência)
+  const isScheduleOnDate = (s: ScheduleType, year: number, month: number, day: number): boolean => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return s.date === dateStr;
+  };
+
+  const getCategoryName = (catId: string) => {
+    const cat = categories.find(c => c.id === catId);
+    return (cat?.name ?? '').trim();
+  };
+
+  const filteredAndSortedSchedules = useMemo(() => {
+    let list = schedules;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) list = list.filter(s => s.description.toLowerCase().includes(q));
+    if (selectedDateFilter) {
+      const { year, month, day } = selectedDateFilter;
+      list = list.filter(s => isScheduleOnDate(s, year, month, day));
+    }
+    const sorted = [...list].sort((a, b) => {
+      if (sortBy === 'amount') {
+        const diff = a.amount - b.amount;
+        return sortOrder === 'asc' ? diff : -diff;
+      }
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      const cmp = timeA - timeB;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }, [schedules, searchQuery, sortBy, sortOrder, selectedDateFilter]);
+
+  const sortLabel = sortBy === 'amount'
+    ? (sortOrder === 'asc' ? 'Valor (menor primeiro)' : 'Valor (maior primeiro)')
+    : (sortOrder === 'asc' ? 'Data (mais antiga primeiro)' : 'Data (mais recente primeiro)');
 
   useEffect(() => {
     if (showModal && !editingId) {
@@ -271,8 +384,134 @@ export const Schedule: React.FC = () => {
         </button>
       </div>
 
+      {/* Totais, busca e ordenação */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valor total de Compromissos</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{formatCurrency(totalCommitments)}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Compromissos do mês</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <select
+                value={`${selectedMonthForTotal.year}-${selectedMonthForTotal.month}`}
+                onChange={e => {
+                  const [y, m] = e.target.value.split('-').map(Number);
+                  setSelectedMonthForTotal({ year: y, month: m });
+                }}
+                className="text-sm font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-900 dark:text-slate-100 outline-none focus:border-emerald-500"
+              >
+                {(() => {
+                  const now = new Date();
+                  const options: { year: number; month: number }[] = [];
+                  for (let i = -24; i <= 24; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                    options.push({ year: d.getFullYear(), month: d.getMonth() });
+                  }
+                  return options.map(({ year: y, month: m }) => (
+                    <option key={`${y}-${m}`} value={`${y}-${m}`}>{MONTHS[m]} / {y}</option>
+                  ));
+                })()}
+              </select>
+              <span className="text-xl font-bold text-slate-900 dark:text-slate-100">{formatCurrency(monthCommitments)}</span>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valor Total de Receitas Agendadas</p>
+            <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatCurrency(totalScheduledIncome)}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Receitas do mês</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <select
+                value={`${selectedMonthForTotal.year}-${selectedMonthForTotal.month}`}
+                onChange={e => {
+                  const [y, m] = e.target.value.split('-').map(Number);
+                  setSelectedMonthForTotal({ year: y, month: m });
+                }}
+                className="text-sm font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-900 dark:text-slate-100 outline-none focus:border-emerald-500"
+              >
+                {(() => {
+                  const now = new Date();
+                  const options: { year: number; month: number }[] = [];
+                  for (let i = -24; i <= 24; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                    options.push({ year: d.getFullYear(), month: d.getMonth() });
+                  }
+                  return options.map(({ year: y, month: m }) => (
+                    <option key={`${y}-${m}`} value={`${y}-${m}`}>{MONTHS[m]} / {y}</option>
+                  ));
+                })()}
+              </select>
+              <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(monthIncome)}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar por descrição..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            />
+          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shrink-0"
+                aria-label="Ordenar agendamentos"
+              >
+                <ArrowUpDown className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                <span className="hidden sm:inline">{sortLabel}</span>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50 min-w-[200px]"
+                sideOffset={6}
+                align="end"
+              >
+                <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none" onSelect={() => { setSortBy('date'); setSortOrder('asc'); }}>
+                  <ArrowUp className="w-4 h-4" /> Data (mais antiga primeiro)
+                </DropdownMenu.Item>
+                <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none" onSelect={() => { setSortBy('date'); setSortOrder('desc'); }}>
+                  <ArrowDown className="w-4 h-4" /> Data (mais recente primeiro)
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none" onSelect={() => { setSortBy('amount'); setSortOrder('asc'); }}>
+                  <ArrowUp className="w-4 h-4" /> Valor (menor primeiro)
+                </DropdownMenu.Item>
+                <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none" onSelect={() => { setSortBy('amount'); setSortOrder('desc'); }}>
+                  <ArrowDown className="w-4 h-4" /> Valor (maior primeiro)
+                </DropdownMenu.Item>
+                <DropdownMenu.Arrow className="fill-white dark:fill-slate-800" />
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {selectedDateFilter && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                Exibindo apenas agendamentos da data {String(selectedDateFilter.day).padStart(2, '0')}/{String(selectedDateFilter.month + 1).padStart(2, '0')}/{selectedDateFilter.year}.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedDateFilter(null)}
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-xl text-emerald-700 dark:text-emerald-300 font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all"
+              >
+                <X className="w-4 h-4" /> Limpar filtro
+              </button>
+            </div>
+          )}
           {overdueCount > 0 && (
             <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/50 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
               <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
@@ -289,9 +528,7 @@ export const Schedule: React.FC = () => {
             </div>
             
             <div className="divide-y divide-slate-50 dark:divide-slate-800">
-              {schedules
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                .map(s => {
+              {filteredAndSortedSchedules.map(s => {
                   const status = getStatus(s.date);
                   const cat = categories.find(c => c.id === s.categoryId);
                   const parent = cat?.parentId ? categories.find(c => c.id === cat.parentId) : null;
@@ -390,9 +627,13 @@ export const Schedule: React.FC = () => {
                     </div>
                   );
                 })}
-              {schedules.length === 0 && (
+              {filteredAndSortedSchedules.length === 0 && (
                 <div className="p-12 text-center text-slate-400 dark:text-slate-600 italic">
-                  Nenhum agendamento pendente.
+                  {schedules.length === 0
+                    ? 'Nenhum agendamento pendente.'
+                    : selectedDateFilter || searchQuery.trim()
+                      ? 'Nenhum agendamento encontrado para os filtros aplicados.'
+                      : 'Nenhum agendamento pendente.'}
                 </div>
               )}
             </div>
@@ -423,15 +664,24 @@ export const Schedule: React.FC = () => {
                   if (isToday) {
                     dayClasses = "bg-emerald-600 text-white font-bold shadow-md shadow-emerald-100 dark:shadow-none";
                   } else if (hasExpense) {
-                    dayClasses = "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 font-bold border border-rose-100/50 dark:border-rose-900/50";
+                    dayClasses = "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 font-bold border border-rose-100/50 dark:border-rose-900/50 cursor-pointer hover:ring-2 hover:ring-rose-300 dark:hover:ring-rose-700";
                   } else if (hasIncome) {
-                    dayClasses = "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100/50 dark:border-emerald-900/50";
+                    dayClasses = "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100/50 dark:border-emerald-900/50 cursor-pointer hover:ring-2 hover:ring-emerald-300 dark:hover:ring-emerald-700";
                   }
 
+                  const handleDayClick = (hasExpense || hasIncome)
+                    ? () => setSelectedDateFilter({ year: currentDate.getFullYear(), month: currentDate.getMonth(), day })
+                    : undefined;
+
                   return (
-                    <div key={idx} className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-all ${dayClasses}`}>
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={handleDayClick}
+                      className={`aspect-square flex items-center justify-center text-xs rounded-lg transition-all ${dayClasses} ${!handleDayClick ? 'cursor-default' : ''}`}
+                    >
                       {day}
-                    </div>
+                    </button>
                   );
                 })}
              </div>

@@ -4,7 +4,8 @@ import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Plus, Target, Trash2, Edit2, Sparkles, Crown, Loader2, 
-  X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical, Star
+  X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical, Star,
+  Search, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Budget, Category } from '../types';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -31,12 +32,21 @@ export const Budgets: React.FC = () => {
     categoryId: '',
     limit: '',
   });
+  const [budgetsLoading, setBudgetsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'limit' | 'category'>('category');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
-    refreshState().catch(err => console.error('Erro ao atualizar estado:', err));
-    if (categories.length > 0 && !formData.categoryId) {
-      setFormData(prev => ({ ...prev, categoryId: categories.find(c => c.type === 'expense')?.id || '' }));
-    }
+    setBudgetsLoading(true);
+    refreshState()
+      .then(() => {
+        if (categories.length > 0 && !formData.categoryId) {
+          setFormData(prev => ({ ...prev, categoryId: categories.find(c => c.type === 'expense')?.id || '' }));
+        }
+      })
+      .catch(err => console.error('Erro ao atualizar estado:', err))
+      .finally(() => setBudgetsLoading(false));
   }, [categories, refreshState]);
 
   const handleEdit = (b: Budget) => {
@@ -189,6 +199,32 @@ export const Budgets: React.FC = () => {
     return `${parent?.icon || ''} ${parent?.name || ''} > ${cat.icon} ${cat.name}`;
   };
 
+  const filteredAndSortedBudgets = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = budgets;
+    if (q) {
+      list = budgets.filter(b => getCategoryFullName(b.categoryId).toLowerCase().includes(q));
+    }
+    const sorted = [...list].sort((a, b) => {
+      if (sortBy === 'limit') {
+        const diff = a.limit - b.limit;
+        return sortOrder === 'asc' ? diff : -diff;
+      }
+      // Ordenar pelo campo name da categoria associada ao orçamento (categoryId)
+      const catA = categories.find(c => c.id === a.categoryId);
+      const catB = categories.find(c => c.id === b.categoryId);
+      const nameA = (catA?.name ?? '').trim();
+      const nameB = (catB?.name ?? '').trim();
+      const cmp = nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }, [budgets, searchQuery, sortBy, sortOrder, categories]);
+
+  const sortLabel = sortBy === 'limit'
+    ? (sortOrder === 'asc' ? 'Valor (menor primeiro)' : 'Valor (maior primeiro)')
+    : (sortOrder === 'asc' ? 'Categoria (A-Z)' : 'Categoria (Z-A)');
+
   return (
     <div className="space-y-6 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -215,8 +251,99 @@ export const Budgets: React.FC = () => {
         </div>
       </div>
 
+      {/* Busca e ordenação */}
+      {!budgetsLoading && budgets.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar por categoria ou subcategoria..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            />
+          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all shrink-0"
+                aria-label="Ordenar orçamentos"
+              >
+                <ArrowUpDown className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                <span className="hidden sm:inline">{sortLabel}</span>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50 min-w-[200px]"
+                sideOffset={6}
+                align="end"
+              >
+                <DropdownMenu.Item
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none"
+                  onSelect={() => { setSortBy('category'); setSortOrder('asc'); }}
+                >
+                  <ArrowUp className="w-4 h-4" /> Categoria (A-Z)
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none"
+                  onSelect={() => { setSortBy('category'); setSortOrder('desc'); }}
+                >
+                  <ArrowDown className="w-4 h-4" /> Categoria (Z-A)
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="h-px bg-slate-100 dark:bg-slate-700 my-1" />
+                <DropdownMenu.Item
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none"
+                  onSelect={() => { setSortBy('limit'); setSortOrder('asc'); }}
+                >
+                  <ArrowUp className="w-4 h-4" /> Valor (menor primeiro)
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none"
+                  onSelect={() => { setSortBy('limit'); setSortOrder('desc'); }}
+                >
+                  <ArrowDown className="w-4 h-4" /> Valor (maior primeiro)
+                </DropdownMenu.Item>
+                <DropdownMenu.Arrow className="fill-white dark:fill-slate-800" />
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {budgetsLoading && (
+        <div className="flex items-center justify-center py-10 text-slate-500 dark:text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin mr-2" /> Carregando orçamentos...
+        </div>
+      )}
+
+      {/* Lista vazia */}
+      {!budgetsLoading && budgets.length === 0 && (
+        <div className="text-center py-10 text-slate-500 dark:text-slate-400">
+          <p>Nenhum orçamento definido ainda. Clique em &quot;Definir Orçamento&quot; para começar!</p>
+        </div>
+      )}
+
+      {/* Nenhum resultado da busca */}
+      {!budgetsLoading && budgets.length > 0 && filteredAndSortedBudgets.length === 0 && (
+        <div className="text-center py-10 text-slate-500 dark:text-slate-400">
+          <p>Nenhum orçamento encontrado para a busca &quot;{searchQuery}&quot;.</p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="mt-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+          >
+            Limpar busca
+          </button>
+        </div>
+      )}
+
+      {!budgetsLoading && filteredAndSortedBudgets.length > 0 && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgets.map(b => {
+        {filteredAndSortedBudgets.map(b => {
           const cat = categories.find(c => c.id === b.categoryId);
           const parent = cat?.parentId ? categories.find(c => c.id === cat.parentId) : null;
           const percent = Math.min((b.spent / b.limit) * 100, 100);
@@ -293,6 +420,7 @@ export const Budgets: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Modal Orçamento Inteligente */}
       {showSmartModal && (
