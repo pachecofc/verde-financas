@@ -42,6 +42,8 @@ export const AccountSettings: React.FC = () => {
 
   // Estados da aba assinatura (apenas exibição; plano vem do Auth/Stripe)
   const stripeCheckoutUrl = import.meta.env.VITE_STRIPE_CHECKOUT_URL || 'https://buy.stripe.com/test_dRm5kD4KJ1ex1Mm8XxefC00';
+  const stripePortalUrl = import.meta.env.VITE_STRIPE_PORTAL_URL || 'https://billing.stripe.com/p/login/test_dRm5kD4KJ1ex1Mm8XxefC00';
+  const stripeManageUrl = authUser?.plan === 'PREMIUM' ? stripePortalUrl : stripeCheckoutUrl;
 
   // Estado para exclusão de conta
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -554,7 +556,7 @@ export const AccountSettings: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => window.open(stripeCheckoutUrl, '_blank')}
+              onClick={() => window.open(stripeManageUrl, '_blank')}
               className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-black rounded-2xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <Crown className="w-5 h-5" />
