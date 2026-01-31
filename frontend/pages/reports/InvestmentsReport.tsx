@@ -26,7 +26,7 @@ import {
   Coins,
   Filter,
 } from 'lucide-react';
-import api, { InvestmentsReport as InvestmentsReportType } from '../../services/api';
+import api, { InvestmentsReport as InvestmentsReportType, SessionLostError } from '../../services/api';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -65,6 +65,7 @@ export const InvestmentsReport: React.FC<InvestmentsReportProps> = ({ onBack }) 
       const data = await api.report.getInvestments(startDate, endDate, assetId);
       setReport(data);
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar relatório';
       toast.error(message);
       console.error('Erro ao carregar relatório:', error);

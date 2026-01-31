@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api, { Account, CreateAccountPayload, UpdateAccountPayload, AccountType } from '../services/api';
+import api, { Account, CreateAccountPayload, UpdateAccountPayload, AccountType, SessionLostError } from '../services/api';
 import { useAuth } from './AuthContext'; // Para obter o token de autenticação
 import { toast } from 'sonner';
 
@@ -32,6 +32,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const data = await api.account.getAccounts();
       setAccounts(data);
     } catch (err) {
+      if (err instanceof SessionLostError) {
+        throw err;
+      }
       console.error('Erro ao buscar contas:', err);
       setError(err instanceof Error ? err.message : 'Falha ao carregar contas.');
     } finally {
@@ -48,6 +51,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Opcional: Recarregar todas as contas para garantir consistência
       // await fetchAccounts();
     } catch (err) {
+      if (err instanceof SessionLostError) {
+        throw err;
+      }
       console.error('Erro ao criar conta:', err);
       setError(err instanceof Error ? err.message : 'Falha ao criar conta.');
       throw err; // Re-throw para que o componente possa lidar com o erro
@@ -64,6 +70,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setAccounts(prev => prev.map(acc => acc.id === id ? updatedAccount : acc)); // Atualiza o estado local
       toast.success('Conta atualizada com sucesso!');
     } catch (err) {
+      if (err instanceof SessionLostError) {
+        throw err;
+      }
       console.error('Erro ao atualizar conta:', err);
       setError(err instanceof Error ? err.message : 'Falha ao atualizar conta.');
       toast.error(err instanceof Error ? err.message : 'Falha ao atualizar conta.');
@@ -82,6 +91,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Opcional: Recarregar todas as contas para garantir consistência
       // await fetchAccounts();
     } catch (err) {
+      if (err instanceof SessionLostError) {
+        throw err;
+      }
       console.error('Erro ao deletar conta:', err);
       setError(err instanceof Error ? err.message : 'Falha ao deletar conta.');
       throw err;

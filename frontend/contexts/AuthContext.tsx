@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import { authApi, AuthUser, LoginPayload, SignupPayload, ForgotPasswordPayload, ResetPasswordPayload, UpdatedUserResponse, ChangePasswordPayload } from '../services/api';
 
 // Estender AuthUser para incluir avatarUrl e plan
@@ -219,6 +220,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // Quando o refresh falha (sessão perdida), limpar UI e mostrar um único toast amigável
+  useEffect(() => {
+    authApi.setOnSessionLost?.(() => {
+      authApi.clearAuth();
+      setUser(null);
+      toast.error('Sessão expirada. Por segurança, faça login novamente.');
+    });
+    return () => {
+      authApi.setOnSessionLost?.(() => {});
+    };
   }, []);
 
   // Verifica sessão ao carregar tentando renovar via refresh token (cookie HttpOnly)

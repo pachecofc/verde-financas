@@ -21,7 +21,7 @@ import {
   AlertCircle,
   ArrowLeft,
 } from 'lucide-react';
-import api, { ExpenseReport } from '../../services/api';
+import api, { ExpenseReport, SessionLostError } from '../../services/api';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -56,6 +56,7 @@ export const ExpensesByCategoryReport: React.FC<ExpensesByCategoryReportProps> =
       const data = await api.report.getExpensesByCategory(startDate, endDate, true);
       setReport(data);
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar relatório';
       toast.error(message);
       console.error('Erro ao carregar relatório:', error);

@@ -40,8 +40,55 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
   return response.json();
 };
 
-// Função para renovar o access token usando o refresh token (cookie HttpOnly)
-const refreshAccessToken = async (): Promise<void> => {
+// Erro lançado quando a sessão é perdida (refresh falhou); callers não devem exibir toast duplicado
+export class SessionLostError extends Error {
+  constructor() {
+    super('Sessão expirada.');
+    this.name = 'SessionLostError';
+  }
+}
+
+// Callback chamado quando o refresh falha (sessão perdida); AuthContext registra para limpar UI
+let onSessionLost: (() => void) | null = null;
+
+// Uma única Promise de refresh por "onda" de 401, evitando múltiplos refresh em paralelo (rotação de token)
+let refreshPromise: Promise<void> | null = null;
+
+// Timer para renovação proativa do token antes de expirar
+let proactiveRefreshTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function getJwtExpMs(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const json = atob(padded);
+    const data = JSON.parse(json);
+    return data.exp != null ? data.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function scheduleProactiveRefresh(token: string): void {
+  if (proactiveRefreshTimeoutId) {
+    clearTimeout(proactiveRefreshTimeoutId);
+    proactiveRefreshTimeoutId = null;
+  }
+  const expMs = getJwtExpMs(token);
+  if (expMs == null) return;
+  const now = Date.now();
+  const twoMinutesMs = 2 * 60 * 1000;
+  const delay = Math.max(0, expMs - now - twoMinutesMs);
+  proactiveRefreshTimeoutId = setTimeout(() => {
+    proactiveRefreshTimeoutId = null;
+    doRefresh().catch(() => {});
+  }, delay);
+}
+
+// Refresh real (uma única chamada ao backend); em falha, notifica sessão perdida
+async function doRefresh(): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
@@ -49,17 +96,52 @@ const refreshAccessToken = async (): Promise<void> => {
 
   if (!response.ok) {
     accessToken = null;
-    throw new Error('Falha ao renovar sessão');
+    onSessionLost?.();
+    throw new SessionLostError();
   }
 
   const data = await response.json();
   accessToken = data.token;
-
-  // Opcional: atualizar usuário armazenado no localStorage se vier no payload
   if (data.user) {
     localStorage.setItem('auth_user', JSON.stringify(data.user));
   }
-};
+  scheduleProactiveRefresh(data.token);
+}
+
+// Garante token válido: uma única refresh em flight; demais 401 aguardam e retry
+async function ensureValidToken(): Promise<void> {
+  if (refreshPromise) {
+    await refreshPromise;
+    return;
+  }
+  refreshPromise = (async () => {
+    try {
+      await doRefresh();
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  await refreshPromise;
+}
+
+function isRetryableAuthError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error ?? '');
+  return typeof msg === 'string' && (msg.includes('401') || msg.toLowerCase().includes('token'));
+}
+
+async function withRetryAuth<T>(doRequest: () => Promise<T>): Promise<T> {
+  try {
+    return await doRequest();
+  } catch (error) {
+    if (!isRetryableAuthError(error)) throw error;
+    try {
+      await ensureValidToken();
+      return await doRequest();
+    } catch (e) {
+      throw e;
+    }
+  }
+}
 
 // ============ CATEGORY API ============
 // --- Interfaces para Categorias ---
@@ -119,19 +201,7 @@ export const categoryApi = {
       return handleResponse<CategoryApiData[]>(response);
     };
 
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar nova categoria
@@ -144,19 +214,7 @@ export const categoryApi = {
       });
       return handleResponse<CategoryApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar múltiplas categorias
@@ -169,19 +227,7 @@ export const categoryApi = {
       });
       return handleResponse<CategoryApiData[]>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Atualizar categoria existente
@@ -194,19 +240,7 @@ export const categoryApi = {
       });
       return handleResponse<CategoryApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Deletar categoria
@@ -218,19 +252,7 @@ export const categoryApi = {
         });
         return handleResponse<{ message: string }>(response);
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   }
 };
 
@@ -295,19 +317,7 @@ const accountApi = {
       const data = await handleResponse<Account>(response);
       return normalizeAccountBalance(data);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar uma nova conta
@@ -321,19 +331,7 @@ const accountApi = {
       const dataRes = await handleResponse<Account>(response);
       return normalizeAccountBalance(dataRes);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Atualizar uma conta existente
@@ -347,19 +345,7 @@ const accountApi = {
       const dataRes = await handleResponse<Account>(response);
       return normalizeAccountBalance(dataRes);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Deletar uma conta
@@ -372,19 +358,7 @@ const accountApi = {
       });
       return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   }
 };
 
@@ -542,6 +516,12 @@ export const authApi = {
   setAuth: (token: string, user: AuthUser): void => {
     accessToken = token;
     localStorage.setItem('auth_user', JSON.stringify(user));
+    scheduleProactiveRefresh(token);
+  },
+
+  // Registrar callback chamado quando a sessão é perdida (refresh falhou); AuthContext usa para limpar UI
+  setOnSessionLost: (callback: () => void): void => {
+    onSessionLost = callback;
   },
 
   // Obter dados do usuário armazenado
@@ -591,19 +571,7 @@ export const authApi = {
       });
       return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // ============ 2FA METHODS ============
@@ -618,19 +586,7 @@ export const authApi = {
       });
       return handleResponse<{ enabled: boolean; remainingBackupCodes: number }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Configurar 2FA (gerar secret e QR code)
@@ -643,19 +599,7 @@ export const authApi = {
       });
       return handleResponse<{ secret: string; qrCodeUrl: string; otpauthUrl: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Habilitar 2FA
@@ -669,19 +613,7 @@ export const authApi = {
       });
       return handleResponse<{ message: string; backupCodes: string[] }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Desabilitar 2FA
@@ -695,19 +627,7 @@ export const authApi = {
       });
       return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Verificar código 2FA
@@ -721,19 +641,7 @@ export const authApi = {
       });
       return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Reativar conta do usuário
@@ -746,19 +654,7 @@ export const authApi = {
       });
       return handleResponse<{ message: string; user: UpdatedUserResponse }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -853,19 +749,7 @@ const transactionApi = {
       amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount,
     }));
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Obter uma transação por ID
@@ -877,19 +761,7 @@ const transactionApi = {
       });
       return handleResponse<TransactionApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Obter externalIds do usuário (para dedup em importação CSV)
@@ -902,19 +774,7 @@ const transactionApi = {
       const data = await handleResponse<{ externalIds: string[] }>(response);
       return data.externalIds;
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar nova transação
@@ -927,19 +787,7 @@ const transactionApi = {
       });
       return handleResponse<TransactionApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;  
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Atualizar transação existente
   update: async (id: string, data: UpdateTransactionPayload): Promise<TransactionApiData> => {
@@ -951,19 +799,7 @@ const transactionApi = {
       });
       return handleResponse<TransactionApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Deletar transação
   delete: async (id: string): Promise<{ message: string }> => {
@@ -974,19 +810,7 @@ const transactionApi = {
       });
       return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1063,19 +887,7 @@ const budgetApi = {
     });
     return handleResponse<BudgetApiData[]>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Obter um orçamento por ID
@@ -1087,19 +899,7 @@ const budgetApi = {
     });
     return handleResponse<BudgetApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar novo orçamento
@@ -1112,19 +912,7 @@ const budgetApi = {
     });
     return handleResponse<BudgetApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Atualizar orçamento existente
@@ -1137,19 +925,7 @@ const budgetApi = {
     });
       return handleResponse<BudgetApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Deletar orçamento
@@ -1161,19 +937,7 @@ const budgetApi = {
     });
       return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1187,19 +951,7 @@ const scheduleApi = {
     });
     return handleResponse<ScheduleApiData[]>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Obter um agendamento por ID
@@ -1211,19 +963,7 @@ const scheduleApi = {
     });
     return handleResponse<ScheduleApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar novo agendamento
@@ -1236,19 +976,7 @@ const scheduleApi = {
     });
     return handleResponse<ScheduleApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Atualizar agendamento existente
@@ -1261,19 +989,7 @@ const scheduleApi = {
     });
     return handleResponse<ScheduleApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Deletar agendamento
@@ -1285,19 +1001,7 @@ const scheduleApi = {
     });
     return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1332,19 +1036,7 @@ const assetApi = {
     });
     return handleResponse<AssetApiData[]>(response);
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter um ativo por ID
   getById: async (id: string): Promise<AssetApiData> => {
@@ -1355,19 +1047,7 @@ const assetApi = {
     });
     return handleResponse<AssetApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Criar novo ativo
@@ -1380,19 +1060,7 @@ const assetApi = {
       });
       return handleResponse<AssetApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Atualizar ativo existente
   update: async (id: string, data: UpdateAssetPayload): Promise<AssetApiData> => {
@@ -1404,19 +1072,7 @@ const assetApi = {
     });
     return handleResponse<AssetApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   // Deletar ativo
@@ -1428,19 +1084,7 @@ const assetApi = {
     });
     return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1479,19 +1123,7 @@ const assetHoldingApi = {
       currentValue: typeof h.currentValue === 'string' ? parseFloat(h.currentValue) : h.currentValue,
     }));
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter um holding por ID
   getById: async (id: string): Promise<AssetHoldingApiData> => {
@@ -1506,19 +1138,7 @@ const assetHoldingApi = {
       currentValue: typeof data.currentValue === 'string' ? parseFloat(data.currentValue) : data.currentValue,
     };
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Atualizar o valor atual de um holding
   updateValue: async (id: string, data: UpdateAssetHoldingValuePayload): Promise<AssetHoldingApiData> => {
@@ -1534,19 +1154,7 @@ const assetHoldingApi = {
       currentValue: typeof result.currentValue === 'string' ? parseFloat(result.currentValue) : result.currentValue,
     };
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Deletar um holding
   delete: async (id: string): Promise<{ message: string }> => {
@@ -1557,19 +1165,7 @@ const assetHoldingApi = {
     });
     return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1621,19 +1217,7 @@ const goalApi = {
       currentAmount: typeof g.currentAmount === 'string' ? parseFloat(g.currentAmount) : g.currentAmount,
     }));
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter uma meta por ID
   getById: async (id: string): Promise<GoalApiData> => {
@@ -1649,19 +1233,7 @@ const goalApi = {
       currentAmount: typeof data.currentAmount === 'string' ? parseFloat(data.currentAmount) : data.currentAmount,
     };
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Criar nova meta
   create: async (data: CreateGoalPayload): Promise<GoalApiData> => {
@@ -1673,19 +1245,7 @@ const goalApi = {
       });
       return handleResponse<GoalApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Atualizar meta existente
   update: async (id: string, data: UpdateGoalPayload): Promise<GoalApiData> => {
@@ -1697,19 +1257,7 @@ const goalApi = {
       });
       return handleResponse<GoalApiData>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Deletar meta
   delete: async (id: string): Promise<{ message: string }> => {
@@ -1720,19 +1268,7 @@ const goalApi = {
     });
     return handleResponse<{ message: string }>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1758,19 +1294,7 @@ const scoreApi = {
     });
     return handleResponse<ScoreApiData>(response);
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Recalcular score do usuário
   recalculateScore: async (): Promise<ScoreApiData> => {
@@ -1781,19 +1305,7 @@ const scoreApi = {
     });
     return handleResponse<ScoreApiData>(response);
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -1854,19 +1366,7 @@ const gamificationApi = {
       });
       return handleResponse<GamificationRulesResponse>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 
   getEvents: async (): Promise<ScoreEventsByDay[]> => {
@@ -1877,19 +1377,7 @@ const gamificationApi = {
       });
       return handleResponse<ScoreEventsByDay[]>(response);
     };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
 };
 
@@ -2286,19 +1774,7 @@ const reportApi = {
     });
     return handleResponse<ExpenseReport>(response);
       };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de receitas por categoria
   getIncomeByCategory: async (
@@ -2317,19 +1793,7 @@ const reportApi = {
     });
     return handleResponse<IncomeReport>(response);
         };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de Fluxo de Caixa
   getCashFlow: async (
@@ -2350,19 +1814,7 @@ const reportApi = {
     });
     return handleResponse<CashFlowReport>(response);
         };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de Evolução do Saldo / Patrimônio
   getBalanceEvolution: async (
@@ -2381,19 +1833,7 @@ const reportApi = {
     });
     return handleResponse<BalanceEvolutionReport>(response);
           };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de Metas Financeiras
   getGoals: async (): Promise<GoalsReport> => {
@@ -2404,19 +1844,7 @@ const reportApi = {
     });
     return handleResponse<GoalsReport>(response);
         };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de Dívidas e Obrigações
   getDebts: async (): Promise<DebtsReport> => {
@@ -2427,19 +1855,7 @@ const reportApi = {
     });
     return handleResponse<DebtsReport>(response);
           };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de Investimentos
   getInvestments: async (
@@ -2462,20 +1878,7 @@ const reportApi = {
     });
     return handleResponse<InvestmentsReport>(response);
         };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório de Orçamento
   getBudget: async (
@@ -2494,19 +1897,7 @@ const reportApi = {
     });
     return handleResponse<BudgetReport>(response);
         };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-        }
-      }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   },
   // Obter relatório Anual
   getAnnual: async (year?: number): Promise<AnnualReport> => {
@@ -2526,19 +1917,7 @@ const reportApi = {
     });
     return handleResponse<AnnualReport>(response);
         };
-    try {
-      return await doRequest();
-    } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.toLowerCase().includes('token')) {
-        try {
-          await refreshAccessToken();
-          return await doRequest();
-        } catch {
-          throw error;
-          }
-        }
-      throw error;
-    }
+    return withRetryAuth(doRequest);
   }
 };
 

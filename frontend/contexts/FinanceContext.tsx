@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FinanceState, Category, Account, Transaction, Budget, Schedule, UserProfile, Investment, Asset, AssetHolding, Goal, Theme, Achievement, TransactionType } from '../types';
 import { INITIAL_CATEGORIES, INITIAL_ACCOUNTS } from '../constants';
-import api, { authApi, categoryApi } from '../services/api';
+import api, { authApi, categoryApi, SessionLostError } from '../services/api';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
 
@@ -115,6 +115,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.log('refreshCategories: Atualizando estado com', mappedCategories.length, 'categorias.');
       setState(prev => ({ ...prev, categories: mappedCategories }));
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar categorias';
       setCategoriesError(message);
       console.error('Erro ao buscar categorias do backend:', error);
@@ -166,6 +167,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await refreshCategories();
       }
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao criar categorias padrão';
       setCategoriesError(message);
       console.error('Erro ao criar categorias padrão no backend:', error);
@@ -504,6 +506,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setState(prev => ({ ...prev, categories: [...prev.categories, newCategory] }));
         toast.success('Categoria criada com sucesso!');
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao criar categoria';
         setCategoriesError(message);
         console.error('Erro ao criar categoria:', error);
@@ -545,6 +548,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }));
         toast.success('Categoria atualizada com sucesso!');
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar categoria';
         setCategoriesError(message);
         console.error('Erro ao atualizar categoria:', error);
@@ -566,6 +570,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setState(prev => ({ ...prev, categories: prev.categories.filter(cat => cat.id !== id) }));
         toast.success('Categoria excluída com sucesso!');
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir categoria';
         setCategoriesError(message);
         console.error('Erro ao excluir categoria:', error);
@@ -674,6 +679,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao criar transação';
         console.error('Erro ao criar transação:', error);
         toast.error(message);
@@ -786,6 +792,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Transação atualizada com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar transação';
         console.error('Erro ao atualizar transação:', error);
         toast.error(message);
@@ -834,6 +841,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await api.transaction.delete(id);
         toast.success('Transação excluída com sucesso!');
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir transação';
         console.error('Erro ao excluir transação:', error);
         toast.error(message);
@@ -879,6 +887,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Orçamento criado com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao criar orçamento';
         console.error('Erro ao criar orçamento:', error);
         toast.error(message);
@@ -912,6 +921,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Orçamento atualizado com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar orçamento';
         console.error('Erro ao atualizar orçamento:', error);
         toast.error(message);
@@ -929,6 +939,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await api.budget.delete(id);
         toast.success('Orçamento excluído com sucesso!');
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir orçamento';
         console.error('Erro ao excluir orçamento:', error);
         toast.error(message);
@@ -973,6 +984,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Agendamento criado com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao criar agendamento';
         console.error('Erro ao criar agendamento:', error);
         toast.error(message);
@@ -1016,6 +1028,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar agendamento';
         console.error('Erro ao atualizar agendamento:', error);
         toast.error(message);
@@ -1037,6 +1050,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir agendamento';
         console.error('Erro ao excluir agendamento:', error);
         toast.error(message);
@@ -1072,6 +1086,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Ativo criado com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao criar ativo';
         console.error('Erro ao criar ativo:', error);
         toast.error(message);
@@ -1106,6 +1121,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Ativo atualizado com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar ativo';
         console.error('Erro ao atualizar ativo:', error);
         toast.error(message);
@@ -1125,6 +1141,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Ativo excluído com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir ativo';
         console.error('Erro ao excluir ativo:', error);
         toast.error(message);
@@ -1158,6 +1175,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Valor do ativo atualizado com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar valor do ativo';
         console.error('Erro ao atualizar valor do ativo:', error);
         toast.error(message);
@@ -1173,6 +1191,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Ativo excluído com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir ativo';
         console.error('Erro ao excluir ativo:', error);
         toast.error(message);
@@ -1206,6 +1225,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Meta criada com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao criar meta';
         console.error('Erro ao criar meta:', error);
         toast.error(message);
@@ -1246,6 +1266,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Meta atualizada com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao atualizar meta';
         console.error('Erro ao atualizar meta:', error);
         toast.error(message);
@@ -1265,6 +1286,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toast.success('Meta excluída com sucesso!');
         return;
       } catch (error) {
+        if (error instanceof SessionLostError) return;
         const message = error instanceof Error ? error.message : 'Erro ao excluir meta';
         console.error('Erro ao excluir meta:', error);
         toast.error(message);

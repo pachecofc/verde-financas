@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAccounts } from '../contexts/AccountContext';
 import { useFinance } from '../contexts/FinanceContext';
 import { Plus, Building2, Trash2, Edit2, Wallet, TrendingUp, DollarSign, X, MoreVertical, CreditCard } from 'lucide-react';
-import { Account, AccountType } from '../services/api';
+import { Account, AccountType, SessionLostError } from '../services/api';
 import { Loader2 } from 'lucide-react'; // Para loading states
 import { toast } from 'sonner'; // Para notificações
 // Importa os componentes do Radix UI Dropdown Menu
@@ -112,9 +112,9 @@ export const Accounts: React.FC = () => {
       await deleteAccount(id, true); // Força a exclusão de transações associadas
       toast.success('Conta excluída com sucesso!');
     } catch (err: any) {
+      if (err instanceof SessionLostError) return;
       // Se o erro for 409 (conflito de transações), o backend já envia uma mensagem específica
-      // O AccountContext já exibe o toast.error, mas podemos personalizar aqui se necessário
-      if (err.message.includes('transações associadas')) {
+      if (err.message?.includes('transações associadas')) {
         toast.error('Não foi possível excluir a conta: ' + err.message);
       } else {
         toast.error('Falha ao excluir conta.');

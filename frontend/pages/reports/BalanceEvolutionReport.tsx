@@ -22,7 +22,7 @@ import {
   Wallet,
   Coins,
 } from 'lucide-react';
-import api, { BalanceEvolutionReport as BalanceEvolutionReportType } from '../../services/api';
+import api, { BalanceEvolutionReport as BalanceEvolutionReportType, SessionLostError } from '../../services/api';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -56,6 +56,7 @@ export const BalanceEvolutionReport: React.FC<BalanceEvolutionReportProps> = ({ 
       const data = await api.report.getBalanceEvolution(startDate, endDate);
       setReport(data);
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar relatório';
       toast.error(message);
       console.error('Erro ao carregar relatório:', error);

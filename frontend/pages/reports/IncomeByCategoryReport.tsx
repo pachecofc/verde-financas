@@ -23,7 +23,7 @@ import {
   ArrowLeft,
   TrendingUp,
 } from 'lucide-react';
-import api, { IncomeReport } from '../../services/api';
+import api, { IncomeReport, SessionLostError } from '../../services/api';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -58,6 +58,7 @@ export const IncomeByCategoryReport: React.FC<IncomeByCategoryReportProps> = ({ 
       const data = await api.report.getIncomeByCategory(startDate, endDate);
       setReport(data);
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar relatório';
       toast.error(message);
       console.error('Erro ao carregar relatório:', error);

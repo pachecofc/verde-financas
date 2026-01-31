@@ -29,7 +29,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
-import api, { AnnualReport as AnnualReportType } from '../../services/api';
+import api, { AnnualReport as AnnualReportType, SessionLostError } from '../../services/api';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -50,6 +50,7 @@ export const AnnualReport: React.FC<AnnualReportProps> = ({ onBack }) => {
       const data = await api.report.getAnnual(selectedYear);
       setReport(data);
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar relatório';
       toast.error(message);
       console.error('Erro ao carregar relatório:', error);

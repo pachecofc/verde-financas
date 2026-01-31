@@ -20,7 +20,7 @@ import {
   Calendar,
   DollarSign,
 } from 'lucide-react';
-import api, { DebtsReport as DebtsReportType } from '../../services/api';
+import api, { DebtsReport as DebtsReportType, SessionLostError } from '../../services/api';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -40,6 +40,7 @@ export const DebtsReport: React.FC<DebtsReportProps> = ({ onBack }) => {
       const data = await api.report.getDebts();
       setReport(data);
     } catch (error) {
+      if (error instanceof SessionLostError) return;
       const message = error instanceof Error ? error.message : 'Erro ao carregar relatório';
       toast.error(message);
       console.error('Erro ao carregar relatório:', error);
