@@ -19,12 +19,26 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
     user, transactions, accounts, budgets, schedules, goals, categories, updateUserProfile 
   } = useFinance();
   
+  const displayName = authUser?.name || user?.name || 'investidor';
+  const greetingText = `Olá, ${displayName}! Sou seu assistente financeiro Verde. Posso analisar seus gastos, orçamentos e metas para te ajudar com decisões de compra. Como posso ajudar hoje?`;
+
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: `Olá, ${user?.name || 'investidor'}! Sou seu assistente financeiro Verde. Posso analisar seus gastos, orçamentos e metas para te ajudar com decisões de compra. Como posso ajudar hoje?` }
+    { role: 'model', text: greetingText }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Atualizar saudação quando o nome do usuário estiver disponível (ex.: após refresh no deploy)
+  useEffect(() => {
+    setMessages(prev => {
+      const first = prev[0];
+      if (first?.role === 'model' && first?.text !== greetingText) {
+        return [{ ...first, text: greetingText }, ...prev.slice(1)];
+      }
+      return prev;
+    });
+  }, [displayName]);
 
   useEffect(() => {
     if (scrollRef.current) {
