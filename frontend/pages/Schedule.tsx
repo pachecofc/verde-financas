@@ -20,6 +20,7 @@ import {
   ArrowUp,
   ArrowDown,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { Schedule as ScheduleType, TransactionType } from "../types";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ export const Schedule: React.FC = () => {
     updateSchedule,
     deleteSchedule,
     addTransaction,
+    refreshSchedules,
   } = useFinance();
   const { accounts } = useAccounts();
 
@@ -70,6 +72,7 @@ export const Schedule: React.FC = () => {
     month: number;
     day: number;
   } | null>(null);
+  const [schedulesRefreshing, setSchedulesRefreshing] = useState(false);
   const [formData, setFormData] = useState({
     description: "",
     amount: "",
@@ -477,16 +480,33 @@ export const Schedule: React.FC = () => {
             Agende pagamentos, recebimentos ou transferências.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingId(null);
-            setShowModal(true);
-          }}
-          className="flex items-center justify-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white px-6 py-3 rounded-xl transition-all font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98]"
-        >
-          <Plus className="w-5 h-5" />
-          Agendar Lançamento
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              setSchedulesRefreshing(true);
+              try {
+                await refreshSchedules();
+              } finally {
+                setSchedulesRefreshing(false);
+              }
+            }}
+            disabled={schedulesRefreshing}
+            className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 flex-shrink-0"
+            title="Atualizar agendamentos"
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${schedulesRefreshing ? "animate-spin" : ""}`} />
+          </button>
+          <button
+            onClick={() => {
+              setEditingId(null);
+              setShowModal(true);
+            }}
+            className="flex items-center justify-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white px-6 py-3 rounded-xl transition-all font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98]"
+          >
+            <Plus className="w-5 h-5" />
+            Agendar Lançamento
+          </button>
+        </div>
       </div>
 
       {/* Totais, busca e ordenação */}

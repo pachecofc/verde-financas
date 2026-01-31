@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAccounts } from '../contexts/AccountContext';
 import { useFinance } from '../contexts/FinanceContext';
-import { Plus, Building2, Trash2, Edit2, Wallet, TrendingUp, DollarSign, X, MoreVertical, CreditCard } from 'lucide-react';
+import { Plus, Building2, Trash2, Edit2, Wallet, TrendingUp, DollarSign, X, MoreVertical, CreditCard, RefreshCw } from 'lucide-react';
 import { Account, AccountType, SessionLostError } from '../services/api';
 import { Loader2 } from 'lucide-react'; // Para loading states
 import { toast } from 'sonner'; // Para notificações
@@ -138,12 +138,22 @@ export const Accounts: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Minhas Contas</h1>
           <p className="text-slate-500 dark:text-slate-400">Bancos e cartões de crédito conectados.</p>
         </div>
-        <button
-          onClick={() => { setEditingId(null); setShowModal(true); }}
-          className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white px-6 py-3 rounded-xl transition-all shadow-lg dark:shadow-none active:scale-[0.98]"
-        >
-          <Plus className="w-5 h-5" /> Adicionar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchAccounts()}
+            disabled={loading}
+            className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 flex-shrink-0"
+            title="Atualizar contas"
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => { setEditingId(null); setShowModal(true); }}
+            className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white px-6 py-3 rounded-xl transition-all shadow-lg dark:shadow-none active:scale-[0.98]"
+          >
+            <Plus className="w-5 h-5" /> Adicionar
+          </button>
+        </div>
       </div>
 
       {/* Loading State */}

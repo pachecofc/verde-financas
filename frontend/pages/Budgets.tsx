@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   Plus, Target, Trash2, Edit2, Sparkles, Crown, Loader2, 
   X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical, Star,
-  Search, ArrowUpDown, ArrowUp, ArrowDown
+  Search, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw
 } from 'lucide-react';
 import { Budget, Category } from '../types';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -233,6 +233,21 @@ export const Budgets: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">Planeje seus gastos e controle suas categorias.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={async () => {
+              setBudgetsLoading(true);
+              try {
+                await refreshState();
+              } finally {
+                setBudgetsLoading(false);
+              }
+            }}
+            disabled={budgetsLoading}
+            className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 flex-shrink-0"
+            title="Atualizar orçamentos"
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${budgetsLoading ? 'animate-spin' : ''}`} />
+          </button>
           <button 
             onClick={handleSmartBudgetClick}
             className="flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-slate-800/50 px-5 py-3 rounded-xl transition-all font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 active:scale-[0.98] relative group"

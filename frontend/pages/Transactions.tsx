@@ -25,7 +25,8 @@ export const Transactions: React.FC = () => {
   const { user: authUser } = useAuth();
   const { 
     transactions, categories, assets, user, theme,
-    addTransaction, updateTransaction, deleteTransaction, updateUserProfile 
+    addTransaction, updateTransaction, deleteTransaction, updateUserProfile,
+    refreshTransactions,
   } = useFinance();
   const { accounts } = useAccounts();
   
@@ -40,6 +41,7 @@ export const Transactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { isImporting, setIsImporting, setImportProgress } = useImportProgress();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [transactionsRefreshing, setTransactionsRefreshing] = useState(false);
 
   // Importação CSV States
   const [importStep, setImportStep] = useState<ImportStep>('upload');
@@ -595,6 +597,21 @@ export const Transactions: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">Gerencie seus lançamentos e automatize com IA.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={async () => {
+              setTransactionsRefreshing(true);
+              try {
+                await refreshTransactions();
+              } finally {
+                setTransactionsRefreshing(false);
+              }
+            }}
+            disabled={transactionsRefreshing}
+            className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 flex-shrink-0"
+            title="Atualizar transações"
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${transactionsRefreshing ? 'animate-spin' : ''}`} />
+          </button>
           <button onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative group">
             <Camera className="w-5 h-5 group-hover:animate-pulse" /> Scanner
             {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}

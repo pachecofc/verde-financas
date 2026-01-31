@@ -38,6 +38,8 @@ interface FinanceContextType extends FinanceState {
   refreshGoals: () => Promise<void>;
   refreshState: () => Promise<void>;
   refreshUserScore: () => Promise<void>;
+  refreshTransactions: () => Promise<void>;
+  refreshSchedules: () => Promise<void>;
   updateUserProfile: (u: UserProfile) => void;
   logout: () => void;
   toggleTheme: () => void;
@@ -1327,7 +1329,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addAsset, updateAsset, deleteAsset,
       refreshAssetHoldings, updateAssetHoldingValue, deleteAssetHolding,
       addGoal, updateGoal, deleteGoal, refreshGoals,
-      refreshState, refreshUserScore, updateUserProfile, logout, toggleTheme
+      refreshState, refreshUserScore, refreshTransactions, refreshSchedules, updateUserProfile, logout, toggleTheme
     }}>
       {children}
     </FinanceContext.Provider>
