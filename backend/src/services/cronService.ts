@@ -2,6 +2,9 @@ import { prisma } from '../prisma';
 import { UserService } from './userService';
 import { GamificationService } from './gamificationService';
 
+/** Máximo aceito por setTimeout/setInterval no Node.js (2^31 - 1 ms). */
+const MAX_DELAY_MS = 2147483647;
+
 /**
  * Serviço de cron job para executar tarefas agendadas
  * - Diariamente à meia-noite: hard delete de usuários expirados; INACTIVITY (7 dias sem login)
@@ -9,29 +12,24 @@ import { GamificationService } from './gamificationService';
  */
 export class CronService {
   private static dailyIntervalId: NodeJS.Timeout | null = null;
-  private static monthlyIntervalId: NodeJS.Timeout | null = null;
 
   static start() {
     const now = new Date();
-    const midnight = new Date();
+    const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
-    const msUntilMidnight = midnight.getTime() - now.getTime();
+    let msUntilMidnight = midnight.getTime() - now.getTime();
+    if (msUntilMidnight <= 0) msUntilMidnight += 24 * 60 * 60 * 1000;
+    const delayDaily = Math.min(msUntilMidnight, MAX_DELAY_MS);
+
+    const minDelayMs = 60 * 1000; // 1 minuto para o pool estabilizar
+    const delayFirst = Math.max(delayDaily, minDelayMs);
 
     setTimeout(() => {
-      this.runDailyJobs();
+      this.runScheduledJobs();
       this.dailyIntervalId = setInterval(() => {
-        this.runDailyJobs();
+        this.runScheduledJobs();
       }, 24 * 60 * 60 * 1000);
-    }, msUntilMidnight);
-
-    const nextFirst = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const msUntilFirst = nextFirst.getTime() - now.getTime();
-    setTimeout(() => {
-      this.runMonthlyJobs();
-      this.monthlyIntervalId = setInterval(() => {
-        this.runMonthlyJobs();
-      }, 30 * 24 * 60 * 60 * 1000);
-    }, Math.max(msUntilFirst, 0));
+    }, Math.min(delayFirst, MAX_DELAY_MS));
 
     console.log('✅ Cron jobs iniciados (hard delete + gamificação diária/mensal).');
   }
@@ -41,11 +39,14 @@ export class CronService {
       clearInterval(this.dailyIntervalId);
       this.dailyIntervalId = null;
     }
-    if (this.monthlyIntervalId) {
-      clearInterval(this.monthlyIntervalId);
-      this.monthlyIntervalId = null;
-    }
     console.log('⏹️ Cron jobs parados.');
+  }
+
+  private static runScheduledJobs() {
+    this.runDailyJobs();
+    if (new Date().getDate() === 1) {
+      this.runMonthlyJobs();
+    }
   }
 
   private static async runDailyJobs() {

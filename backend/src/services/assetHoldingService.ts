@@ -1,7 +1,6 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 export class AssetHoldingService {
   // Obter todos os holdings de um usuário
