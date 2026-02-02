@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { AuditService } from './auditService';
 
 export class ScheduleService {
   // Listar todos os agendamentos do usuário
@@ -112,6 +113,14 @@ export class ScheduleService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'SCHEDULE_CREATE',
+      resourceType: 'schedules',
+      resourceId: newSchedule.id,
+    });
+
     return newSchedule;
   }
 
@@ -207,6 +216,14 @@ export class ScheduleService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'SCHEDULE_UPDATE',
+      resourceType: 'schedules',
+      resourceId: scheduleId,
+    });
+
     return updatedSchedule;
   }
 
@@ -222,6 +239,14 @@ export class ScheduleService {
 
     await prisma.schedule.delete({
       where: { id: scheduleId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'SCHEDULE_DELETE',
+      resourceType: 'schedules',
+      resourceId: scheduleId,
     });
 
     return { message: 'Agendamento excluído com sucesso.' };

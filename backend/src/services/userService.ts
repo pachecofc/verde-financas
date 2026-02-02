@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { UserPlan } from '@prisma/client';
 import { GamificationService } from './gamificationService';
+import { AuditService } from './auditService';
 
 interface UpdateProfileData {
   name?: string;
@@ -23,6 +24,15 @@ export class UserService {
       select: { id: true, name: true, email: true, avatarUrl: true },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'USER_UPDATE',
+      resourceType: 'users',
+      resourceId: userId,
+      metadata: { field: 'avatarUrl' },
+    });
+
     if (hadNoAvatar) {
       await GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
     }
@@ -40,6 +50,15 @@ export class UserService {
       data: payload as { name?: string; email?: string; plan?: UserPlan; stripeCustomerId?: string | null },
       select: { id: true, name: true, email: true, avatarUrl: true, plan: true, stripeCustomerId: true },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'USER_UPDATE',
+      resourceType: 'users',
+      resourceId: userId,
+    });
+
     return user;
   }
 
@@ -49,6 +68,16 @@ export class UserService {
       where: { id: userId },
       data: { deletedAt: new Date() } as any,
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'USER_DELETE',
+      resourceType: 'users',
+      resourceId: userId,
+      metadata: { type: 'soft' },
+    });
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, name: true, email: true },
@@ -62,6 +91,16 @@ export class UserService {
       where: { id: userId },
       data: { deletedAt: null } as any,
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'USER_UPDATE',
+      resourceType: 'users',
+      resourceId: userId,
+      metadata: { type: 'reactivate' },
+    });
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, name: true, email: true },
@@ -82,6 +121,16 @@ export class UserService {
         },
       } as any,
     });
+
+    if (result.count > 0) {
+      await AuditService.log({
+        actorType: 'system',
+        actorId: null,
+        action: 'USER_HARD_DELETE',
+        resourceType: 'users',
+        metadata: { count: result.count },
+      });
+    }
 
     return result.count;
   }

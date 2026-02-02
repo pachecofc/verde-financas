@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { GamificationService } from './gamificationService';
+import { AuditService } from './auditService';
 
 export class BudgetService {
   // Listar todos os orçamentos do usuário
@@ -77,6 +78,14 @@ export class BudgetService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'BUDGET_CREATE',
+      resourceType: 'budgets',
+      resourceId: newBudget.id,
+    });
+
     if (budgetCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_BUDGET').catch(() => {});
     }
@@ -140,6 +149,14 @@ export class BudgetService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'BUDGET_UPDATE',
+      resourceType: 'budgets',
+      resourceId: budgetId,
+    });
+
     return updatedBudget;
   }
 
@@ -157,6 +174,14 @@ export class BudgetService {
     // Deletar orçamento
     await prisma.budget.delete({
       where: { id: budgetId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'BUDGET_DELETE',
+      resourceType: 'budgets',
+      resourceId: budgetId,
     });
 
     return { message: 'Orçamento excluído com sucesso.' };

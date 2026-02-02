@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { GamificationService } from './gamificationService';
+import { AuditService } from './auditService';
 
 export class AssetService {
   // Listar todos os ativos do usuário
@@ -53,6 +54,14 @@ export class AssetService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ASSET_CREATE',
+      resourceType: 'assets',
+      resourceId: newAsset.id,
+    });
+
     if (assetCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_ASSET').catch(() => {});
     }
@@ -93,6 +102,14 @@ export class AssetService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ASSET_UPDATE',
+      resourceType: 'assets',
+      resourceId: assetId,
+    });
+
     return updatedAsset;
   }
 
@@ -108,6 +125,14 @@ export class AssetService {
 
     await prisma.asset.delete({
       where: { id: assetId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ASSET_DELETE',
+      resourceType: 'assets',
+      resourceId: assetId,
     });
 
     return { message: 'Ativo excluído com sucesso.' };

@@ -279,3 +279,18 @@ model UserScoreEvent {
 
   @@map("user_score_events")
 }
+
+// AuditLog - Registro de auditoria para integridade e governança
+model AuditLog {
+  id           String   @id @default(uuid())
+  occurredAt   DateTime @default(now())
+  actorType    String   // 'user' | 'system' | 'cron'
+  actorId      String?  // UUID do usuário ou null para system/cron
+  action       String   // ex: LOGIN, USER_UPDATE, TRANSACTION_CREATE
+  resourceType String   // ex: users, transactions, accounts
+  resourceId   String?
+  metadata     Json?    // IP, user-agent ou resumo não-PII
+  createdAt    DateTime @default(now())
+
+  @@map("audit_logs")
+}

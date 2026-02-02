@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { GamificationService } from './gamificationService';
+import { AuditService } from './auditService';
 
 export class GoalService {
   // Listar todas as metas do usuário
@@ -66,6 +67,14 @@ export class GoalService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'GOAL_CREATE',
+      resourceType: 'goals',
+      resourceId: newGoal.id,
+    });
+
     if (goalCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_GOAL').catch(() => {});
     }
@@ -122,6 +131,14 @@ export class GoalService {
       data: updateData,
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'GOAL_UPDATE',
+      resourceType: 'goals',
+      resourceId: goalId,
+    });
+
     const newCurrent = Number(updated.currentAmount);
     const newTarget = Number(updated.targetAmount);
     if (!wasReached && newCurrent >= newTarget) {
@@ -157,6 +174,14 @@ export class GoalService {
 
     await prisma.goal.delete({
       where: { id: goalId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'GOAL_DELETE',
+      resourceType: 'goals',
+      resourceId: goalId,
     });
   }
 }

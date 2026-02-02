@@ -6,6 +6,7 @@ import { AuthRequest, AuthResponse } from '../types';
 import { sendEmail } from '../config/mailer';
 import crypto from 'crypto';
 import { TwoFactorService } from './twoFactorService';
+import { AuditService } from './auditService';
 
 // Adicionar a URL do frontend para o link de reset
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -44,6 +45,14 @@ export class AuthService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'USER_CREATE',
+      resourceType: 'users',
+      resourceId: user.id,
+    });
+
     // Gerar token JWT de acesso (curta duração)
     const token = this.generateAccessToken({ id: user.id, email: user.email });
 
@@ -80,6 +89,13 @@ export class AuthService {
         where: { id: user.id },
         data: { deletedAt: null } as any,
       });
+      await AuditService.log({
+        actorType: 'user',
+        actorId: user.id,
+        action: 'USER_REACTIVATE',
+        resourceType: 'users',
+        resourceId: user.id,
+      });
     }
 
     // Verificar senha
@@ -108,6 +124,14 @@ export class AuthService {
 
     // Gerar token JWT de acesso (curta duração)
     const token = this.generateAccessToken({ id: user.id, email: user.email });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'LOGIN',
+      resourceType: 'users',
+      resourceId: user.id,
+    });
 
     return {
       token,
@@ -145,6 +169,15 @@ export class AuthService {
 
     // Gerar token JWT de acesso
     const token = this.generateAccessToken({ id: user.id, email: user.email });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'LOGIN',
+      resourceType: 'users',
+      resourceId: user.id,
+      metadata: { twoFactor: true },
+    });
 
     return {
       token,
@@ -191,6 +224,14 @@ export class AuthService {
       },
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'PASSWORD_RESET_REQUEST',
+      resourceType: 'users',
+      resourceId: user.id,
+    });
+
     const resetUrl = `${FRONTEND_URL}/#/reset-password/${resetToken}`;
 
     const emailHtml = `
@@ -229,6 +270,14 @@ export class AuthService {
         passwordResetExpires: null, // Limpa a expiração
       },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: user.id,
+      action: 'PASSWORD_RESET',
+      resourceType: 'users',
+      resourceId: user.id,
+    });
   }
 
   // Alterar senha do usuário logado
@@ -261,6 +310,14 @@ export class AuthService {
       data: {
         password: newHashedPassword,
       },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'PASSWORD_CHANGE',
+      resourceType: 'users',
+      resourceId: userId,
     });
   }
 }

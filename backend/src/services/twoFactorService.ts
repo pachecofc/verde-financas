@@ -2,6 +2,7 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import bcrypt from 'bcrypt';
 import { prisma } from '../prisma';
+import { AuditService } from './auditService';
 
 export class TwoFactorService {
   // Gera secret TOTP e retorna objeto com secret e QR code
@@ -125,6 +126,14 @@ export class TwoFactorService {
         twoFactorBackupCodes: encryptedBackupCodes,
       } as any,
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'TWO_FACTOR_ENABLE',
+      resourceType: 'users',
+      resourceId: userId,
+    });
   }
 
   // Desabilita 2FA para um usuário
@@ -136,6 +145,14 @@ export class TwoFactorService {
         twoFactorEnabled: false,
         twoFactorBackupCodes: [],
       } as any,
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'TWO_FACTOR_DISABLE',
+      resourceType: 'users',
+      resourceId: userId,
     });
   }
 

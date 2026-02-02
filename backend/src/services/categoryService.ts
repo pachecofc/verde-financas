@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { AuditService } from './auditService';
 
 export type CategoryTypeString = 'income' | 'expense';
 
@@ -43,7 +44,7 @@ export class CategoryService {
     }
 
     // Criar categoria
-    return await prisma.category.create({
+    const category = await prisma.category.create({
       data: {
         userId,
         name,
@@ -54,6 +55,16 @@ export class CategoryService {
         isDefault: isDefault || false,
       },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'CATEGORY_CREATE',
+      resourceType: 'categories',
+      resourceId: category.id,
+    });
+
+    return category;
   }
 
   // Atualizar categoria
@@ -85,7 +96,7 @@ export class CategoryService {
     }
 
     // Atualizar categoria
-    return await prisma.category.update({
+    const updated = await prisma.category.update({
       where: { id: categoryId },
       data: {
         ...(name && { name }),
@@ -95,6 +106,16 @@ export class CategoryService {
         ...(parentId !== undefined && { parentId: parentId || null }),
       },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'CATEGORY_UPDATE',
+      resourceType: 'categories',
+      resourceId: categoryId,
+    });
+
+    return updated;
   }
 
   // Deletar categoria
@@ -119,10 +140,19 @@ export class CategoryService {
       );
     }
 
-    // Deletar categoria
-    return await prisma.category.delete({
+    await prisma.category.delete({
       where: { id: categoryId },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'CATEGORY_DELETE',
+      resourceType: 'categories',
+      resourceId: categoryId,
+    });
+
+    return;
   }
 
   // Método para criar categorias em batelada, útil para categorias padrão
@@ -176,6 +206,14 @@ export class CategoryService {
       }
     }, {
       timeout: 15000, // Aumenta o timeout para 15 segundos (15000 ms). O padrão é 5000 ms.
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'CATEGORY_CREATE',
+      resourceType: 'categories',
+      metadata: { batch: true, count: categoriesData.length },
     });
 
     // Retornar as categorias criadas (opcional, pode ser apenas um sucesso)

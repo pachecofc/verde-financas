@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../prisma';
+import { AuditService } from './auditService';
 
 export class AssetHoldingService {
   // Obter todos os holdings de um usuário
@@ -58,6 +59,14 @@ export class AssetHoldingService {
           asset: true,
         },
       });
+
+      await AuditService.log({
+        actorType: 'user',
+        actorId: userId,
+        action: 'ASSET_HOLDING_UPDATE',
+        resourceType: 'asset_holdings',
+        resourceId: holding.id,
+      });
     } else {
       // Se não existe, criar novo
       holding = await prisma.assetHolding.create({
@@ -69,6 +78,14 @@ export class AssetHoldingService {
         include: {
           asset: true,
         },
+      });
+
+      await AuditService.log({
+        actorType: 'user',
+        actorId: userId,
+        action: 'ASSET_HOLDING_CREATE',
+        resourceType: 'asset_holdings',
+        resourceId: holding.id,
       });
     }
 
@@ -86,7 +103,7 @@ export class AssetHoldingService {
       throw new Error('Asset holding not found');
     }
 
-    return await prisma.assetHolding.update({
+    const updated = await prisma.assetHolding.update({
       where: { id: holdingId },
       data: {
         currentValue: new Decimal(newValue),
@@ -95,6 +112,16 @@ export class AssetHoldingService {
         asset: true,
       },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ASSET_HOLDING_UPDATE',
+      resourceType: 'asset_holdings',
+      resourceId: holdingId,
+    });
+
+    return updated;
   }
 
   // Deletar um holding (quando todas as transações relacionadas são removidas)
@@ -109,6 +136,14 @@ export class AssetHoldingService {
 
     await prisma.assetHolding.delete({
       where: { id: holdingId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ASSET_HOLDING_DELETE',
+      resourceType: 'asset_holdings',
+      resourceId: holdingId,
     });
   }
 
@@ -125,16 +160,25 @@ export class AssetHoldingService {
 
     if (holding) {
       const newValue = holding.currentValue.toNumber() - amount;
-      
+
       if (newValue <= 0) {
         // Se o valor ficar zero ou negativo, deletar o holding
         await prisma.assetHolding.delete({
           where: { id: holding.id },
         });
+
+        await AuditService.log({
+          actorType: 'user',
+          actorId: userId,
+          action: 'ASSET_HOLDING_DELETE',
+          resourceType: 'asset_holdings',
+          resourceId: holding.id,
+        });
+
         return null;
       } else {
         // Atualizar o valor
-        return await prisma.assetHolding.update({
+        const updated = await prisma.assetHolding.update({
           where: { id: holding.id },
           data: {
             currentValue: new Decimal(newValue),
@@ -143,6 +187,16 @@ export class AssetHoldingService {
             asset: true,
           },
         });
+
+        await AuditService.log({
+          actorType: 'user',
+          actorId: userId,
+          action: 'ASSET_HOLDING_UPDATE',
+          resourceType: 'asset_holdings',
+          resourceId: holding.id,
+        });
+
+        return updated;
       }
     }
 

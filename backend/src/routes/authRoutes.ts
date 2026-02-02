@@ -4,6 +4,7 @@ import { AuthService } from '../services/authService';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/authMiddleware';
 import { RefreshTokenService } from '../services/refreshTokenService';
 import { UserService } from '../services/userService';
+import { AuditService } from '../services/auditService';
 import { REFRESH_TOKEN_EXPIRATION_DAYS } from '../config/jwt';
 import { requireTwoFactor } from '../middleware/twoFactorMiddleware';
 import { validateBody } from '../middleware/validationMiddleware';
@@ -205,6 +206,15 @@ router.post('/logout', async (req: AuthenticatedRequest, res: Response) => {
     if (refreshToken) {
       await RefreshTokenService.revokeToken(refreshToken);
       res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/auth' });
+    }
+    if (req.userId) {
+      await AuditService.log({
+        actorType: 'user',
+        actorId: req.userId,
+        action: 'LOGOUT',
+        resourceType: 'users',
+        resourceId: req.userId,
+      });
     }
     return res.status(200).json({ message: 'Logout realizado com sucesso.' });
   } catch (error) {

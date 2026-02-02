@@ -2,6 +2,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../prisma';
 import { AccountType } from '@prisma/client'; // Importar o enum AccountType do Prisma Client
 import { GamificationService } from './gamificationService';
+import { AuditService } from './auditService';
 
 interface CreateAccountData {
   name: string;
@@ -32,6 +33,15 @@ export class AccountService {
         balance: parseFloat(data.balance.toFixed(2)), // Garantir 2 casas decimais
       },
     });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ACCOUNT_CREATE',
+      resourceType: 'accounts',
+      resourceId: account.id,
+    });
+
     if (accountCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_ACCOUNT').catch(() => {});
     }
@@ -90,6 +100,14 @@ export class AccountService {
       data: updateData,
     });
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ACCOUNT_UPDATE',
+      resourceType: 'accounts',
+      resourceId: accountId,
+    });
+
     return updatedAccount;
   }
 
@@ -124,6 +142,14 @@ export class AccountService {
     // 4. Excluir a conta
     await prisma.account.delete({
       where: { id: accountId, userId: userId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'ACCOUNT_DELETE',
+      resourceType: 'accounts',
+      resourceId: accountId,
     });
 
     return { message: 'Conta e transações associadas (se houver) removidas com sucesso.' };

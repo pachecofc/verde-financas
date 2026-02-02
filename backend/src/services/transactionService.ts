@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { AssetHoldingService } from './assetHoldingService';
 import { GamificationService } from './gamificationService';
+import { AuditService } from './auditService';
 
 export class TransactionService {
   // Listar todas as transações do usuário
@@ -272,6 +273,14 @@ export class TransactionService {
       }
     }
 
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'TRANSACTION_CREATE',
+      resourceType: 'transactions',
+      resourceId: newTransaction.id,
+    });
+
     return newTransaction;
   }
 
@@ -486,6 +495,15 @@ export class TransactionService {
     ) {
       await GamificationService.registerEvent(userId, 'CATEGORIZATION').catch(() => {});
     }
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'TRANSACTION_UPDATE',
+      resourceType: 'transactions',
+      resourceId: transactionId,
+    });
+
     return updated;
   }
 
@@ -545,6 +563,14 @@ export class TransactionService {
     // Deletar transação
     await prisma.transaction.delete({
       where: { id: transactionId },
+    });
+
+    await AuditService.log({
+      actorType: 'user',
+      actorId: userId,
+      action: 'TRANSACTION_DELETE',
+      resourceType: 'transactions',
+      resourceId: transactionId,
     });
   }
 
