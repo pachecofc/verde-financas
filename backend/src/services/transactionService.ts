@@ -104,6 +104,8 @@ export class TransactionService {
       include: {
         category: true,
         account: true,
+        toAccount: true,
+        asset: true,
         user: {
           select: {
             id: true,
