@@ -2,17 +2,18 @@ import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { GamificationService } from './gamificationService';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 export class GoalService {
   // Listar todas as metas do usuário
   static async getGoalsByUserId(userId: string) {
-    return await prisma.goal.findMany({
+    const goals = await prisma.goal.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+    return goals.map((g) => ({ ...g, name: decrypt(userId, g.name) ?? g.name }));
   }
 
-  // Obter uma meta específica por ID
   static async getGoalById(userId: string, goalId: string) {
     const goal = await prisma.goal.findFirst({
       where: { id: goalId, userId },
@@ -22,7 +23,7 @@ export class GoalService {
       throw new Error('Meta não encontrada ou não pertence ao usuário.');
     }
 
-    return goal;
+    return { ...goal, name: decrypt(userId, goal.name) ?? goal.name };
   }
 
   // Criar nova meta
@@ -54,11 +55,11 @@ export class GoalService {
 
     const goalCount = await prisma.goal.count({ where: { userId } });
 
-    // Criar meta
+    const encryptedName = encrypt(userId, name) ?? name;
     const newGoal = await prisma.goal.create({
       data: {
         userId,
-        name,
+        name: encryptedName,
         targetAmount: new Decimal(targetAmount),
         currentAmount: new Decimal(currentAmount),
         deadline: deadline || null,
@@ -78,7 +79,7 @@ export class GoalService {
     if (goalCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_GOAL').catch(() => {});
     }
-    return newGoal;
+    return { ...newGoal, name: decrypt(userId, newGoal.name) ?? newGoal.name };
   }
 
   // Atualizar meta
@@ -115,11 +116,12 @@ export class GoalService {
     const prevCurrent = Number(goal.currentAmount);
     const prevTarget = Number(goal.targetAmount);
     const wasReached = prevCurrent >= prevTarget;
-    const nameLower = (goal.name || '').toLowerCase();
+    const goalNamePlain = decrypt(userId, goal.name) ?? goal.name ?? '';
+    const nameLower = goalNamePlain.toLowerCase();
 
     // Atualizar meta
     const updateData: any = {};
-    if (data.name !== undefined) updateData.name = data.name;
+    if (data.name !== undefined) updateData.name = encrypt(userId, data.name) ?? data.name;
     if (data.targetAmount !== undefined) updateData.targetAmount = new Decimal(data.targetAmount);
     if (data.currentAmount !== undefined) updateData.currentAmount = new Decimal(data.currentAmount);
     if (data.deadline !== undefined) updateData.deadline = data.deadline;
@@ -152,7 +154,7 @@ export class GoalService {
     ) {
       await GamificationService.registerEvent(userId, 'EMERGENCY_FUND', { goalId }).catch(() => {});
     }
-    return updated;
+    return { ...updated, name: decrypt(userId, updated.name) ?? updated.name };
   }
 
   // Deletar meta

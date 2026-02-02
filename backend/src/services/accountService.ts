@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { AccountType } from '@prisma/client'; // Importar o enum AccountType do Prisma Client
 import { GamificationService } from './gamificationService';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 interface CreateAccountData {
   name: string;
@@ -29,6 +30,8 @@ export class AccountService {
     const account = await prisma.account.create({
       data: {
         ...data,
+        name: encrypt(userId, data.name) ?? data.name,
+        bankName: data.bankName !== undefined ? (encrypt(userId, data.bankName) ?? data.bankName) : undefined,
         userId,
         balance: parseFloat(data.balance.toFixed(2)), // Garantir 2 casas decimais
       },
@@ -45,27 +48,37 @@ export class AccountService {
     if (accountCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_ACCOUNT').catch(() => {});
     }
-    return account;
+    return {
+      ...account,
+      name: decrypt(userId, account.name) ?? account.name,
+      bankName: account.bankName != null ? (decrypt(userId, account.bankName) ?? account.bankName) : account.bankName,
+    };
   }
 
-  // Obter todas as contas de um usuário
   static async getAccountsByUserId(userId: string) {
     const accounts = await prisma.account.findMany({
       where: { userId },
       orderBy: { name: 'asc' },
     });
-    return accounts;
+    return accounts.map((a) => ({
+      ...a,
+      name: decrypt(userId, a.name) ?? a.name,
+      bankName: a.bankName != null ? (decrypt(userId, a.bankName) ?? a.bankName) : a.bankName,
+    }));
   }
 
-  // Obter uma única conta por ID
   static async getAccountById(accountId: string, userId: string) {
     const account = await prisma.account.findUnique({
-      where: { id: accountId, userId }, // Garantir que a conta pertence ao usuário
+      where: { id: accountId, userId },
     });
     if (!account) {
       throw new Error('Conta não encontrada ou não pertence ao usuário.');
     }
-    return account;
+    return {
+      ...account,
+      name: decrypt(userId, account.name) ?? account.name,
+      bankName: account.bankName != null ? (decrypt(userId, account.bankName) ?? account.bankName) : account.bankName,
+    };
   }
 
   // Atualizar uma conta existente
@@ -89,10 +102,15 @@ export class AccountService {
       throw new Error('Conta não encontrada ou não pertence ao usuário.'); // <--- Esta é a mensagem de erro!
     }
 
-    // Preparar os dados para atualização, convertendo balance para Decimal se presente
     const updateData: any = { ...data };
     if (data.balance !== undefined) {
       updateData.balance = new Decimal(data.balance);
+    }
+    if (data.name !== undefined) {
+      updateData.name = encrypt(userId, data.name) ?? data.name;
+    }
+    if (data.bankName !== undefined) {
+      updateData.bankName = encrypt(userId, data.bankName) ?? data.bankName;
     }
 
     const updatedAccount = await prisma.account.update({
@@ -108,7 +126,14 @@ export class AccountService {
       resourceId: accountId,
     });
 
-    return updatedAccount;
+    return {
+      ...updatedAccount,
+      name: decrypt(userId, updatedAccount.name) ?? updatedAccount.name,
+      bankName:
+        updatedAccount.bankName != null
+          ? (decrypt(userId, updatedAccount.bankName) ?? updatedAccount.bankName)
+          : updatedAccount.bankName,
+    };
   }
 
   // Excluir uma conta com verificação de transações

@@ -3,6 +3,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { AssetHoldingService } from './assetHoldingService';
 import { GamificationService } from './gamificationService';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 export class TransactionService {
   // Listar todas as transações do usuário
@@ -44,7 +45,7 @@ export class TransactionService {
       }
     }
 
-    return await prisma.transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where,
       include: {
         category: true,
@@ -61,6 +62,39 @@ export class TransactionService {
       },
       orderBy: { date: 'desc' },
     });
+    return transactions.map((t) => ({
+      ...t,
+      description: decrypt(userId, t.description) ?? t.description,
+      user: t.user
+        ? { ...t.user, name: decrypt(userId, t.user.name) ?? t.user.name }
+        : t.user,
+      category: t.category
+        ? { ...t.category, name: decrypt(userId, t.category.name) ?? t.category.name }
+        : t.category,
+      account: t.account
+        ? {
+            ...t.account,
+            name: decrypt(userId, t.account.name) ?? t.account.name,
+            bankName:
+              t.account.bankName != null
+                ? (decrypt(userId, t.account.bankName) ?? t.account.bankName)
+                : t.account.bankName,
+          }
+        : t.account,
+      toAccount: t.toAccount
+        ? {
+            ...t.toAccount,
+            name: decrypt(userId, t.toAccount.name) ?? t.toAccount.name,
+            bankName:
+              t.toAccount.bankName != null
+                ? (decrypt(userId, t.toAccount.bankName) ?? t.toAccount.bankName)
+                : t.toAccount.bankName,
+          }
+        : t.toAccount,
+      asset: t.asset
+        ? { ...t.asset, name: decrypt(userId, t.asset.name) ?? t.asset.name }
+        : t.asset,
+    }));
   }
 
   // Obter uma transação específica
@@ -84,7 +118,39 @@ export class TransactionService {
       throw new Error('Transaction not found');
     }
 
-    return transaction;
+    return {
+      ...transaction,
+      description: decrypt(userId, transaction.description) ?? transaction.description,
+      user: transaction.user
+        ? { ...transaction.user, name: decrypt(userId, transaction.user.name) ?? transaction.user.name }
+        : transaction.user,
+      category: transaction.category
+        ? { ...transaction.category, name: decrypt(userId, transaction.category.name) ?? transaction.category.name }
+        : transaction.category,
+      account: transaction.account
+        ? {
+            ...transaction.account,
+            name: decrypt(userId, transaction.account.name) ?? transaction.account.name,
+            bankName:
+              transaction.account.bankName != null
+                ? (decrypt(userId, transaction.account.bankName) ?? transaction.account.bankName)
+                : transaction.account.bankName,
+          }
+        : transaction.account,
+      toAccount: transaction.toAccount
+        ? {
+            ...transaction.toAccount,
+            name: decrypt(userId, transaction.toAccount.name) ?? transaction.toAccount.name,
+            bankName:
+              transaction.toAccount.bankName != null
+                ? (decrypt(userId, transaction.toAccount.bankName) ?? transaction.toAccount.bankName)
+                : transaction.toAccount.bankName,
+          }
+        : transaction.toAccount,
+      asset: transaction.asset
+        ? { ...transaction.asset, name: decrypt(userId, transaction.asset.name) ?? transaction.asset.name }
+        : transaction.asset,
+    };
   }
 
   // Listar externalIds do usuário (para dedup em importação CSV)
@@ -189,12 +255,12 @@ export class TransactionService {
       }
     }
 
-    // Criar transação
+    const encryptedDescription = encrypt(userId, description) ?? description;
     const newTransaction = await prisma.transaction.create({
       data: {
         userId,
         categoryId: (type === 'transfer' || type === 'adjustment') ? null : categoryId, // Null para transfer/adjustment
-        description,
+        description: encryptedDescription,
         amount: new Decimal(amount),
         type,
         date,
@@ -281,7 +347,10 @@ export class TransactionService {
       resourceId: newTransaction.id,
     });
 
-    return newTransaction;
+    return {
+      ...newTransaction,
+      description: decrypt(userId, newTransaction.description) ?? newTransaction.description,
+    };
   }
 
   // Atualizar transação
@@ -445,9 +514,10 @@ export class TransactionService {
       });
     }
 
-    // Atualizar transação
     const updateData: any = {
-      ...(description && { description }),
+      ...(description !== undefined && {
+        description: encrypt(userId, description) ?? description,
+      }),
       ...(amount !== undefined && { amount: new Decimal(amount) }),
       ...(type && { type }),
       ...(date && { date }),
@@ -504,7 +574,10 @@ export class TransactionService {
       resourceId: transactionId,
     });
 
-    return updated;
+    return {
+      ...updated,
+      description: decrypt(userId, updated.description) ?? updated.description,
+    };
   }
 
   // Deletar transação

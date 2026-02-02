@@ -1,19 +1,30 @@
 import { prisma } from '../prisma';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
+
+function decryptCategory(userId: string, cat: { name: string; parent?: { name: string } | null; children?: Array<{ name: string }> }) {
+  return {
+    ...cat,
+    name: decrypt(userId, cat.name) ?? cat.name,
+    parent: cat.parent ? { ...cat.parent, name: decrypt(userId, cat.parent.name) ?? cat.parent.name } : cat.parent,
+    children: cat.children?.map((c) => ({ ...c, name: decrypt(userId, c.name) ?? c.name })) ?? cat.children,
+  };
+}
 
 export type CategoryTypeString = 'income' | 'expense';
 
 export class CategoryService {
   // Listar todas as categorias do usuário
   static async getCategories(userId: string) {
-    return await prisma.category.findMany({
+    const categories = await prisma.category.findMany({
       where: { userId },
       include: {
-        parent: true,      // Inclui a categoria pai (se for subcategoria)
-        children: true,    // Inclui as subcategorias
+        parent: true,
+        children: true,
       },
       orderBy: { name: 'asc' },
     });
+    return categories.map((c) => decryptCategory(userId, c));
   }
 
   // Criar nova categoria
@@ -43,11 +54,11 @@ export class CategoryService {
       }
     }
 
-    // Criar categoria
+    const encryptedName = encrypt(userId, name) ?? name;
     const category = await prisma.category.create({
       data: {
         userId,
-        name,
+        name: encryptedName,
         type,
         ...(icon ? { icon } : {}),
         ...(color ? { color } : {}),
@@ -64,7 +75,7 @@ export class CategoryService {
       resourceId: category.id,
     });
 
-    return category;
+    return { ...category, name: decrypt(userId, category.name) ?? category.name };
   }
 
   // Atualizar categoria
@@ -95,16 +106,17 @@ export class CategoryService {
       throw new Error('Type must be "income" or "expense"');
     }
 
-    // Atualizar categoria
+    const updatePayload: Record<string, unknown> = {
+      ...(type && { type }),
+      ...(icon && { icon }),
+      ...(color && { color }),
+      ...(parentId !== undefined && { parentId: parentId || null }),
+    };
+    if (name !== undefined) updatePayload.name = encrypt(userId, name) ?? name;
+
     const updated = await prisma.category.update({
       where: { id: categoryId },
-      data: {
-        ...(name && { name }),
-        ...(type && { type }),
-        ...(icon && { icon }),
-        ...(color && { color }),
-        ...(parentId !== undefined && { parentId: parentId || null }),
-      },
+      data: updatePayload as Parameters<typeof prisma.category.update>[0]['data'],
     });
 
     await AuditService.log({
@@ -115,7 +127,7 @@ export class CategoryService {
       resourceId: categoryId,
     });
 
-    return updated;
+    return { ...updated, name: decrypt(userId, updated.name) ?? updated.name };
   }
 
   // Deletar categoria
@@ -191,14 +203,15 @@ export class CategoryService {
           }
         }
 
+        const encryptedCatName = encrypt(userId, catData.name) ?? catData.name;
         const newCat = await tx.category.create({
           data: {
             userId,
-            name: catData.name,
+            name: encryptedCatName,
             type: catData.type,
             icon: catData.icon,
             color: catData.color,
-            parentId: realParentId, // Usar o ID real do pai
+            parentId: realParentId,
             isDefault: catData.isDefault ?? false,
           },
         });
@@ -216,9 +229,10 @@ export class CategoryService {
       metadata: { batch: true, count: categoriesData.length },
     });
 
-    // Retornar as categorias criadas (opcional, pode ser apenas um sucesso)
-    // Para simplificar, vamos buscar todas as categorias do usuário após a transação
-    return prisma.category.findMany({ where: { userId } });
+    const categories = await prisma.category.findMany({
+      where: { userId },
+      include: { parent: true, children: true },
+    });
+    return categories.map((c) => decryptCategory(userId, c));
   }
-
 }

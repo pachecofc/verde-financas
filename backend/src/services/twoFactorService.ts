@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import bcrypt from 'bcrypt';
 import { prisma } from '../prisma';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 export class TwoFactorService {
   // Gera secret TOTP e retorna objeto com secret e QR code
@@ -105,23 +106,19 @@ export class TwoFactorService {
     return false;
   }
 
-  // Nota: O secret TOTP precisa ser armazenado em texto plano (base32) para permitir validação
-  // Isso é seguro porque o secret em si já é um valor aleatório forte
-  // Em produção, considere usar criptografia simétrica se necessário
-
-  // Habilita 2FA para um usuário
+  // Habilita 2FA para um usuário (secret criptografado com chave do usuário)
   static async enableTwoFactor(
     userId: string,
     secret: string,
     backupCodes: string[]
   ): Promise<void> {
-    // Secret armazenado em base32 (texto plano) - necessário para validação TOTP
     const encryptedBackupCodes = await this.encryptBackupCodes(backupCodes);
+    const encryptedSecret = encrypt(userId, secret) ?? secret;
 
     await prisma.user.update({
       where: { id: userId },
       data: {
-        twoFactorSecret: secret, // Armazenado em base32
+        twoFactorSecret: encryptedSecret,
         twoFactorEnabled: true,
         twoFactorBackupCodes: encryptedBackupCodes,
       } as any,
@@ -177,8 +174,8 @@ export class TwoFactorService {
       return true;
     }
 
-    // Se não for backup code, tentar como TOTP
-    // O secret está armazenado em base32 (texto plano) para permitir validação
-    return this.verifyToken(userWith2FA.twoFactorSecret, code);
+    // Descriptografar secret TOTP para validação
+    const plainSecret = decrypt(userId, userWith2FA.twoFactorSecret) ?? userWith2FA.twoFactorSecret ?? '';
+    return this.verifyToken(plainSecret, code);
   }
 }

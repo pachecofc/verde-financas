@@ -7,6 +7,7 @@ import { sendEmail } from '../config/mailer';
 import crypto from 'crypto';
 import { TwoFactorService } from './twoFactorService';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 // Adicionar a URL do frontend para o link de reset
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -36,13 +37,17 @@ export class AuthService {
     // Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Criar usuário
+    const plainName = name || email.split('@')[0];
     const user = await prisma.user.create({
       data: {
         email,
-        name: name || email.split('@')[0],
+        name: plainName,
         password: hashedPassword,
       },
+    });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { name: encrypt(user.id, plainName) ?? plainName },
     });
 
     await AuditService.log({
@@ -61,7 +66,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: plainName,
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
       },
@@ -108,13 +113,13 @@ export class AuthService {
     // Verificar se 2FA está habilitado
     const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
     if (userWith2FA.twoFactorEnabled) {
-      // Retornar sem token, indicando que 2FA é necessário
+      const nameDecrypted = decrypt(user.id, user.name) ?? user.name;
       return {
         token: '', // Token vazio - será gerado após validação do 2FA
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: nameDecrypted,
           avatarUrl: user.avatarUrl || undefined,
           plan: user.plan || undefined,
         },
@@ -133,12 +138,13 @@ export class AuthService {
       resourceId: user.id,
     });
 
+    const nameDecrypted = decrypt(user.id, user.name) ?? user.name;
     return {
       token,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: nameDecrypted,
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
       },
@@ -179,12 +185,13 @@ export class AuthService {
       metadata: { twoFactor: true },
     });
 
+    const nameDecrypted2FA = decrypt(user.id, user.name) ?? user.name;
     return {
       token,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: nameDecrypted2FA,
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
       },

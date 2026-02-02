@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { UserPlan } from '@prisma/client';
 import { GamificationService } from './gamificationService';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 interface UpdateProfileData {
   name?: string;
@@ -36,12 +37,15 @@ export class UserService {
     if (hadNoAvatar) {
       await GamificationService.registerEvent(userId, 'PROFILE_COMPLETE').catch(() => {});
     }
-    return user;
+    return {
+      ...user,
+      name: decrypt(userId, user.name) ?? user.name,
+    };
   }
 
   static async updateUserProfile(userId: string, data: UpdateProfileData) {
     const payload: Record<string, unknown> = {};
-    if (data.name !== undefined) payload.name = data.name;
+    if (data.name !== undefined) payload.name = encrypt(userId, data.name) ?? data.name;
     if (data.email !== undefined) payload.email = data.email;
     if (data.plan !== undefined) payload.plan = data.plan;
     if (data.stripeCustomerId !== undefined) payload.stripeCustomerId = data.stripeCustomerId;
@@ -59,7 +63,10 @@ export class UserService {
       resourceId: userId,
     });
 
-    return user;
+    return {
+      ...user,
+      name: decrypt(userId, user.name) ?? user.name,
+    };
   }
 
   // Soft delete: marca o usuário como deletado
@@ -82,7 +89,9 @@ export class UserService {
       where: { id: userId },
       select: { id: true, name: true, email: true },
     });
-    return user;
+    return user
+      ? { ...user, name: decrypt(userId, user.name) ?? user.name }
+      : user;
   }
 
   // Reativação: remove a marca de deletado
@@ -105,7 +114,9 @@ export class UserService {
       where: { id: userId },
       select: { id: true, name: true, email: true },
     });
-    return user;
+    return user
+      ? { ...user, name: decrypt(userId, user.name) ?? user.name }
+      : user;
   }
 
   // Hard delete: deleta fisicamente usuários que passaram dos 30 dias

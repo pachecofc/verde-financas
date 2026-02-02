@@ -1,17 +1,18 @@
 import { prisma } from '../prisma';
 import { GamificationService } from './gamificationService';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 export class AssetService {
   // Listar todos os ativos do usuário
   static async getAssetsByUserId(userId: string) {
-    return await prisma.asset.findMany({
+    const assets = await prisma.asset.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+    return assets.map((a) => ({ ...a, name: decrypt(userId, a.name) ?? a.name }));
   }
 
-  // Obter um ativo específico por ID
   static async getAssetById(userId: string, assetId: string) {
     const asset = await prisma.asset.findFirst({
       where: { id: assetId, userId },
@@ -21,7 +22,7 @@ export class AssetService {
       throw new Error('Ativo não encontrado ou não pertence ao usuário.');
     }
 
-    return asset;
+    return { ...asset, name: decrypt(userId, asset.name) ?? asset.name };
   }
 
   // Criar novo ativo
@@ -45,9 +46,10 @@ export class AssetService {
     }
 
     const assetCount = await prisma.asset.count({ where: { userId } });
+    const encryptedName = encrypt(userId, name) ?? name;
     const newAsset = await prisma.asset.create({
       data: {
-        name,
+        name: encryptedName,
         incomeType,
         color: color || null,
         userId,
@@ -65,7 +67,7 @@ export class AssetService {
     if (assetCount === 0) {
       await GamificationService.registerEvent(userId, 'FIRST_ASSET').catch(() => {});
     }
-    return newAsset;
+    return { ...newAsset, name: decrypt(userId, newAsset.name) ?? newAsset.name };
   }
 
   // Atualizar ativo existente
@@ -92,14 +94,17 @@ export class AssetService {
       throw new Error('incomeType deve ser "fixed" ou "variable".');
     }
 
-    // Atualizar ativo
+    const updatePayload: Record<string, unknown> = {
+      ...(data.incomeType !== undefined && { incomeType: data.incomeType }),
+      ...(data.color !== undefined && { color: data.color || null }),
+    };
+    if (data.name !== undefined) {
+      updatePayload.name = encrypt(userId, data.name) ?? data.name;
+    }
+
     const updatedAsset = await prisma.asset.update({
       where: { id: assetId },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.incomeType !== undefined && { incomeType: data.incomeType }),
-        ...(data.color !== undefined && { color: data.color || null }),
-      },
+      data: updatePayload as Parameters<typeof prisma.asset.update>[0]['data'],
     });
 
     await AuditService.log({
@@ -110,7 +115,7 @@ export class AssetService {
       resourceId: assetId,
     });
 
-    return updatedAsset;
+    return { ...updatedAsset, name: decrypt(userId, updatedAsset.name) ?? updatedAsset.name };
   }
 
   // Deletar ativo

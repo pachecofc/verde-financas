@@ -1,10 +1,11 @@
 import { prisma } from '../prisma';
 import { AuditService } from './auditService';
+import { encrypt, decrypt } from './encryptionService';
 
 export class ScheduleService {
   // Listar todos os agendamentos do usuário
   static async getSchedulesByUserId(userId: string) {
-    return await prisma.schedule.findMany({
+    const schedules = await prisma.schedule.findMany({
       where: { userId },
       include: {
         category: true,
@@ -13,9 +14,35 @@ export class ScheduleService {
       },
       orderBy: { date: 'asc' },
     });
+    return schedules.map((s) => ({
+      ...s,
+      description: decrypt(userId, s.description) ?? s.description,
+      category: s.category
+        ? { ...s.category, name: decrypt(userId, s.category.name) ?? s.category.name }
+        : s.category,
+      account: s.account
+        ? {
+            ...s.account,
+            name: decrypt(userId, s.account.name) ?? s.account.name,
+            bankName:
+              s.account.bankName != null
+                ? (decrypt(userId, s.account.bankName) ?? s.account.bankName)
+                : s.account.bankName,
+          }
+        : s.account,
+      toAccount: s.toAccount
+        ? {
+            ...s.toAccount,
+            name: decrypt(userId, s.toAccount.name) ?? s.toAccount.name,
+            bankName:
+              s.toAccount.bankName != null
+                ? (decrypt(userId, s.toAccount.bankName) ?? s.toAccount.bankName)
+                : s.toAccount.bankName,
+          }
+        : s.toAccount,
+    }));
   }
 
-  // Obter um agendamento específico por ID
   static async getScheduleById(userId: string, scheduleId: string) {
     const schedule = await prisma.schedule.findFirst({
       where: { id: scheduleId, userId },
@@ -30,7 +57,33 @@ export class ScheduleService {
       throw new Error('Agendamento não encontrado ou não pertence ao usuário.');
     }
 
-    return schedule;
+    return {
+      ...schedule,
+      description: decrypt(userId, schedule.description) ?? schedule.description,
+      category: schedule.category
+        ? { ...schedule.category, name: decrypt(userId, schedule.category.name) ?? schedule.category.name }
+        : schedule.category,
+      account: schedule.account
+        ? {
+            ...schedule.account,
+            name: decrypt(userId, schedule.account.name) ?? schedule.account.name,
+            bankName:
+              schedule.account.bankName != null
+                ? (decrypt(userId, schedule.account.bankName) ?? schedule.account.bankName)
+                : schedule.account.bankName,
+          }
+        : schedule.account,
+      toAccount: schedule.toAccount
+        ? {
+            ...schedule.toAccount,
+            name: decrypt(userId, schedule.toAccount.name) ?? schedule.toAccount.name,
+            bankName:
+              schedule.toAccount.bankName != null
+                ? (decrypt(userId, schedule.toAccount.bankName) ?? schedule.toAccount.bankName)
+                : schedule.toAccount.bankName,
+          }
+        : schedule.toAccount,
+    };
   }
 
   // Criar novo agendamento
@@ -93,10 +146,10 @@ export class ScheduleService {
       }
     }
 
-    // Criar agendamento
+    const encryptedDescription = encrypt(userId, description) ?? description;
     const newSchedule = await prisma.schedule.create({
       data: {
-        description,
+        description: encryptedDescription,
         amount,
         date,
         frequency,
@@ -121,7 +174,33 @@ export class ScheduleService {
       resourceId: newSchedule.id,
     });
 
-    return newSchedule;
+    return {
+      ...newSchedule,
+      description: decrypt(userId, newSchedule.description) ?? newSchedule.description,
+      category: newSchedule.category
+        ? { ...newSchedule.category, name: decrypt(userId, newSchedule.category.name) ?? newSchedule.category.name }
+        : newSchedule.category,
+      account: newSchedule.account
+        ? {
+            ...newSchedule.account,
+            name: decrypt(userId, newSchedule.account.name) ?? newSchedule.account.name,
+            bankName:
+              newSchedule.account.bankName != null
+                ? (decrypt(userId, newSchedule.account.bankName) ?? newSchedule.account.bankName)
+                : newSchedule.account.bankName,
+          }
+        : newSchedule.account,
+      toAccount: newSchedule.toAccount
+        ? {
+            ...newSchedule.toAccount,
+            name: decrypt(userId, newSchedule.toAccount.name) ?? newSchedule.toAccount.name,
+            bankName:
+              newSchedule.toAccount.bankName != null
+                ? (decrypt(userId, newSchedule.toAccount.bankName) ?? newSchedule.toAccount.bankName)
+                : newSchedule.toAccount.bankName,
+          }
+        : newSchedule.toAccount,
+    };
   }
 
   // Atualizar agendamento existente
@@ -198,7 +277,9 @@ export class ScheduleService {
     const updatedSchedule = await prisma.schedule.update({
       where: { id: scheduleId },
       data: {
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: encrypt(userId, data.description) ?? data.description,
+        }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.date !== undefined && { date: data.date }),
         ...(data.frequency !== undefined && { frequency: data.frequency }),
@@ -224,7 +305,33 @@ export class ScheduleService {
       resourceId: scheduleId,
     });
 
-    return updatedSchedule;
+    return {
+      ...updatedSchedule,
+      description: decrypt(userId, updatedSchedule.description) ?? updatedSchedule.description,
+      category: updatedSchedule.category
+        ? { ...updatedSchedule.category, name: decrypt(userId, updatedSchedule.category.name) ?? updatedSchedule.category.name }
+        : updatedSchedule.category,
+      account: updatedSchedule.account
+        ? {
+            ...updatedSchedule.account,
+            name: decrypt(userId, updatedSchedule.account.name) ?? updatedSchedule.account.name,
+            bankName:
+              updatedSchedule.account.bankName != null
+                ? (decrypt(userId, updatedSchedule.account.bankName) ?? updatedSchedule.account.bankName)
+                : updatedSchedule.account.bankName,
+          }
+        : updatedSchedule.account,
+      toAccount: updatedSchedule.toAccount
+        ? {
+            ...updatedSchedule.toAccount,
+            name: decrypt(userId, updatedSchedule.toAccount.name) ?? updatedSchedule.toAccount.name,
+            bankName:
+              updatedSchedule.toAccount.bankName != null
+                ? (decrypt(userId, updatedSchedule.toAccount.bankName) ?? updatedSchedule.toAccount.bankName)
+                : updatedSchedule.toAccount.bankName,
+          }
+        : updatedSchedule.toAccount,
+    };
   }
 
   // Deletar agendamento

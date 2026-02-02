@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { decrypt } from './encryptionService';
 
 export interface ExpenseByCategory {
   categoryId: string;
@@ -88,7 +89,7 @@ export class ReportService {
       } else {
         categoryMap.set(expense.categoryId, {
           categoryId: expense.categoryId,
-          categoryName: expense.category.name,
+          categoryName: decrypt(userId, expense.category.name) ?? expense.category.name,
           categoryIcon: expense.category.icon || undefined,
           categoryColor: expense.category.color || undefined,
           totalAmount: amount,
@@ -160,7 +161,7 @@ export class ReportService {
         } else {
           previousCategoryMap.set(expense.categoryId, {
             categoryId: expense.categoryId,
-            categoryName: expense.category.name,
+            categoryName: decrypt(userId, expense.category.name) ?? expense.category.name,
             totalAmount: amount,
           });
         }
@@ -285,7 +286,7 @@ export class ReportService {
       } else {
         categoryMap.set(income.categoryId, {
           categoryId: income.categoryId,
-          categoryName: income.category.name,
+          categoryName: decrypt(userId, income.category.name) ?? income.category.name,
           categoryIcon: income.category.icon || undefined,
           categoryColor: income.category.color || undefined,
           totalAmount: amount,
@@ -787,7 +788,7 @@ export class ReportService {
 
       return {
         id: goal.id,
-        name: goal.name,
+        name: decrypt(userId, goal.name) ?? goal.name,
         targetAmount,
         currentAmount,
         percentage: Math.min(100, percentage),
@@ -1047,7 +1048,7 @@ export class ReportService {
 
       return {
         id: schedule.id,
-        description: schedule.description,
+        description: decrypt(userId, schedule.description) ?? schedule.description,
         amount,
         monthlyImpact,
         frequency: schedule.frequency,
@@ -1064,10 +1065,10 @@ export class ReportService {
         paidAmount,
         remainingAmount,
         remainingCost,
-        categoryName: schedule.category?.name || 'Sem categoria',
+        categoryName: (schedule.category ? (decrypt(userId, schedule.category.name) ?? schedule.category.name) : null) || 'Sem categoria',
         categoryIcon: schedule.category?.icon || null,
         categoryColor: schedule.category?.color || null,
-        accountName: schedule.account.name,
+        accountName: decrypt(userId, schedule.account.name) ?? schedule.account.name,
         daysUntilNextPayment: Math.ceil((scheduleDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
       };
     });
@@ -1195,7 +1196,7 @@ export class ReportService {
 
       return {
         assetId: holding.assetId,
-        assetName: holding.asset.name,
+        assetName: decrypt(userId, holding.asset.name) ?? holding.asset.name,
         assetColor: holding.asset.color,
         incomeType: holding.asset.incomeType,
         currentValue,
@@ -1245,7 +1246,7 @@ export class ReportService {
       } else {
         monthData.investedByAsset.set(transaction.assetId, {
           assetId: transaction.assetId,
-          assetName: transaction.asset.name,
+          assetName: decrypt(userId, transaction.asset.name) ?? transaction.asset.name,
           invested: amount,
         });
       }
@@ -1276,7 +1277,7 @@ export class ReportService {
           const asset = holding?.asset || assetHoldings.find(h => h.assetId === assetId)?.asset;
           return {
             assetId,
-            assetName: asset?.name || 'Desconhecido',
+            assetName: (asset ? (decrypt(userId, asset.name) ?? asset.name) : null) || 'Desconhecido',
             value,
           };
         });
@@ -1301,7 +1302,7 @@ export class ReportService {
         totalValue,
         byAsset: assetHoldings.map(holding => ({
           assetId: holding.assetId,
-          assetName: holding.asset.name,
+          assetName: decrypt(userId, holding.asset.name) ?? holding.asset.name,
           value: holding.currentValue.toNumber(),
         })),
       });
@@ -1440,7 +1441,7 @@ export class ReportService {
       return {
         budgetId: budget.id,
         categoryId: budget.categoryId,
-        categoryName: budget.category.name,
+        categoryName: decrypt(userId, budget.category.name) ?? budget.category.name,
         categoryIcon: budget.category.icon,
         categoryColor: budget.category.color,
         planned,
@@ -1731,7 +1732,7 @@ export class ReportService {
       const amount = transaction.amount.toNumber();
       const categoryData = {
         categoryId: transaction.categoryId,
-        categoryName: transaction.category.name,
+        categoryName: decrypt(userId, transaction.category.name) ?? transaction.category.name,
         categoryIcon: transaction.category.icon,
         categoryColor: transaction.category.color,
         total: 0,
