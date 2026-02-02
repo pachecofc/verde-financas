@@ -80,7 +80,7 @@
             "code": "BUDGET_RESPECTED",
             "name": "Orçamento Respeitado",
             "points": 20,
-            "trigger": "Para cada categoria que não estourou o limite no mês."
+            "trigger": "Uma vez por mês, se todos os orçamentos cadastrados permanecerem dentro do limite."
           },
           {
             "code": "GOAL_REACHED",
@@ -110,7 +110,7 @@
             "code": "BUDGET_OVERFLOW",
             "name": "Estourar Orçamento",
             "points": -50,
-            "trigger": "Ultrapassar o limite definido para uma categoria."
+            "trigger": "Uma vez por mês, se algum orçamento cadastrado ultrapassou o limite."
           },
           {
             "code": "OVERDUE_DEBT",

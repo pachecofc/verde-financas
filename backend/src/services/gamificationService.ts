@@ -90,14 +90,23 @@ export class GamificationService {
       where: { userId },
       include: { category: true },
     });
-    for (const b of budgets) {
-      const spent = await BudgetService.calculateSpentForMonth(userId, b.categoryId, year, monthIndex);
-      const limit = Number(b.limit);
-      if (spent <= limit) {
-        await this.registerEvent(userId, 'BUDGET_RESPECTED').catch(() => {});
-      } else {
-        await this.registerEvent(userId, 'BUDGET_OVERFLOW').catch(() => {});
-      }
+
+    if (budgets.length === 0) return;
+
+    const results = await Promise.all(
+      budgets.map(async (b) => {
+        const spent = await BudgetService.calculateSpentForMonth(userId, b.categoryId, year, monthIndex);
+        const limit = Number(b.limit);
+        return spent <= limit;
+      })
+    );
+
+    const allRespected = results.every(Boolean);
+    const anyOverflow = results.some((r) => !r);
+    if (allRespected) {
+      await this.registerEvent(userId, 'BUDGET_RESPECTED').catch(() => {});
+    } else if (anyOverflow) {
+      await this.registerEvent(userId, 'BUDGET_OVERFLOW').catch(() => {});
     }
   }
 }
