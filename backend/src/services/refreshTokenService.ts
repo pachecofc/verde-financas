@@ -7,6 +7,12 @@ export class RefreshTokenService {
     const token = crypto.randomBytes(64).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60 * 1000);
 
+    // Definir contexto RLS para esta conexão (signup/login/verify-2fa não passam pelo authMiddleware)
+    await prisma.$executeRawUnsafe(
+      "SELECT set_config('app.current_user_id', $1, false)",
+      userId
+    );
+
     await prisma.refreshToken.create({
       data: {
         token,
