@@ -16,6 +16,7 @@ import {
   resetPasswordSchema,
   changePasswordSchema,
 } from '../validations/authSchemas';
+import { isConnectionOrDatabaseError, AUTH_CONNECTION_ERROR_MESSAGE } from '../utils/errorUtils';
 
 const router = Router();
 
@@ -56,9 +57,11 @@ router.post('/signup', validateBody(signupSchema), async (req: AuthenticatedRequ
 
     res.status(201).json(result);
   } catch (error) {
-    res.status(400).json({
-      error: error instanceof Error ? error.message : 'Signup failed',
-    });
+    const status = isConnectionOrDatabaseError(error) ? 503 : 400;
+    const message = isConnectionOrDatabaseError(error)
+      ? AUTH_CONNECTION_ERROR_MESSAGE
+      : (error instanceof Error ? error.message : 'Signup failed');
+    res.status(status).json({ error: message });
   }
 });
 
@@ -83,9 +86,11 @@ router.post('/login', authSensitiveLimiter, validateBody(loginSchema), async (re
 
     res.status(200).json(result);
   } catch (error) {
-    res.status(401).json({
-      error: error instanceof Error ? error.message : 'Login failed',
-    });
+    const status = isConnectionOrDatabaseError(error) ? 503 : 401;
+    const message = isConnectionOrDatabaseError(error)
+      ? AUTH_CONNECTION_ERROR_MESSAGE
+      : (error instanceof Error ? error.message : 'Login failed');
+    res.status(status).json({ error: message });
   }
 });
 
@@ -102,9 +107,11 @@ router.post('/login/verify-2fa', authSensitiveLimiter, validateBody(verifyLoginT
 
     res.status(200).json(result);
   } catch (error) {
-    res.status(401).json({
-      error: error instanceof Error ? error.message : '2FA verification failed',
-    });
+    const status = isConnectionOrDatabaseError(error) ? 503 : 401;
+    const message = isConnectionOrDatabaseError(error)
+      ? AUTH_CONNECTION_ERROR_MESSAGE
+      : (error instanceof Error ? error.message : '2FA verification failed');
+    res.status(status).json({ error: message });
   }
 });
 

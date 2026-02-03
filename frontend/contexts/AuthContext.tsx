@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import { authApi, AuthUser, LoginPayload, SignupPayload, ForgotPasswordPayload, ResetPasswordPayload, UpdatedUserResponse, ChangePasswordPayload } from '../services/api';
+import { authApi, AuthUser, LoginPayload, SignupPayload, ForgotPasswordPayload, ResetPasswordPayload, UpdatedUserResponse, ChangePasswordPayload, getAuthFriendlyErrorMessage } from '../services/api';
 
 // Estender AuthUser para incluir avatarUrl e plan
 export interface ExtendedAuthUser extends AuthUser {
@@ -62,8 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(authResponse.user);
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao fazer login';
-      setError(message);
+      setError(getAuthFriendlyErrorMessage(err));
       return false;
     } finally {
       setIsLoading(false);
@@ -81,8 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(response.user as ExtendedAuthUser);
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao verificar código 2FA';
-      setError(message);
+      setError(getAuthFriendlyErrorMessage(err));
       return false;
     } finally {
       setIsLoading(false);
@@ -100,8 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(response.user as ExtendedAuthUser); // Cast para ExtendedAuthUser
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao criar conta';
-      setError(message);
+      setError(getAuthFriendlyErrorMessage(err));
       return false;
     } finally {
       setIsLoading(false);
@@ -141,8 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authApi.requestPasswordReset(data);
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao solicitar redefinição de senha';
-      setError(message);
+      setError(getAuthFriendlyErrorMessage(err));
       return false;
     } finally {
       setIsLoading(false);
@@ -157,8 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authApi.resetPassword(data);
       return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao redefinir senha';
-      setError(message);
+      setError(getAuthFriendlyErrorMessage(err));
       return false;
     } finally {
       setIsLoading(false);

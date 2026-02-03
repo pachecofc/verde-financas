@@ -18,6 +18,31 @@ const getAuthHeaders = (): HeadersInit => {
   };
 };
 
+/** Mensagem amigável quando há falha de conexão/rede em login ou signup */
+export const AUTH_CONNECTION_ERROR_MESSAGE =
+  'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente em alguns instantes.';
+
+const NETWORK_ERROR_PATTERNS = [
+  'failed to fetch',
+  'network error',
+  'load failed',
+  'networkrequestfailed',
+  'econnrefused',
+  'etimedout',
+  'err_connection_refused',
+  'err_connection_reset',
+];
+
+/** Retorna mensagem amigável para erros de rede/conexão em fluxos de autenticação */
+export function getAuthFriendlyErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const lower = message.toLowerCase();
+  if (NETWORK_ERROR_PATTERNS.some((p) => lower.includes(p))) {
+    return AUTH_CONNECTION_ERROR_MESSAGE;
+  }
+  return message || 'Ocorreu um erro. Tente novamente.';
+}
+
 // Função genérica para tratamento de erros
 const handleResponse = async <T>(response: Response): Promise<T> => {
   if (!response.ok) {
