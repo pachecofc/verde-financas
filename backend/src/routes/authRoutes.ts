@@ -57,6 +57,9 @@ router.post('/signup', validateBody(signupSchema), async (req: AuthenticatedRequ
 
     res.status(201).json(result);
   } catch (error) {
+    if (isConnectionOrDatabaseError(error)) {
+      console.error('[auth] Database/connection error (signup):', error);
+    }
     const status = isConnectionOrDatabaseError(error) ? 503 : 400;
     const message = isConnectionOrDatabaseError(error)
       ? AUTH_CONNECTION_ERROR_MESSAGE
@@ -86,6 +89,9 @@ router.post('/login', authSensitiveLimiter, validateBody(loginSchema), async (re
 
     res.status(200).json(result);
   } catch (error) {
+    if (isConnectionOrDatabaseError(error)) {
+      console.error('[auth] Database/connection error (login):', error);
+    }
     const status = isConnectionOrDatabaseError(error) ? 503 : 401;
     const message = isConnectionOrDatabaseError(error)
       ? AUTH_CONNECTION_ERROR_MESSAGE
@@ -107,6 +113,9 @@ router.post('/login/verify-2fa', authSensitiveLimiter, validateBody(verifyLoginT
 
     res.status(200).json(result);
   } catch (error) {
+    if (isConnectionOrDatabaseError(error)) {
+      console.error('[auth] Database/connection error (verify-2fa):', error);
+    }
     const status = isConnectionOrDatabaseError(error) ? 503 : 401;
     const message = isConnectionOrDatabaseError(error)
       ? AUTH_CONNECTION_ERROR_MESSAGE
