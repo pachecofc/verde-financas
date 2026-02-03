@@ -24,6 +24,9 @@ import path from 'path';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Confiar no proxy reverso (Render, etc.) para IP correto no rate limit
+app.set('trust proxy', 1);
+
 // Stripe webhook precisa do body bruto para verificar assinatura (antes de express.json)
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use('/api/webhooks/stripe', stripeWebhookRoutes);
