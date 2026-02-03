@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
-import { Plus, Trash2, Edit2, RefreshCw, MoreVertical, Search, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, RefreshCw, MoreVertical, Search, AlertCircle, Loader2 } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Asset } from '../types';
 
@@ -292,9 +292,16 @@ export const Assets: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-3 px-4 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all font-semibold shadow-lg dark:shadow-none active:scale-[0.98] disabled:opacity-50"
+                  className="flex-1 py-3 px-4 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all font-semibold shadow-lg dark:shadow-none active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Adicionar Ativo'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {editingId ? 'Salvando...' : 'Criando...'}
+                    </>
+                  ) : (
+                    editingId ? 'Salvar Alterações' : 'Adicionar Ativo'
+                  )}
                 </button>
               </div>
             </form>
