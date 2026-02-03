@@ -31,6 +31,9 @@ const NETWORK_ERROR_PATTERNS = [
   'etimedout',
   'err_connection_refused',
   'err_connection_reset',
+  "can't reach",
+  'reach database server',
+  'database server',
 ];
 
 /** Retorna mensagem amigável para erros de rede/conexão em fluxos de autenticação */

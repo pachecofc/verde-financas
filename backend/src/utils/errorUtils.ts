@@ -15,6 +15,9 @@ const CONNECTION_KEYWORDS = [
   'enotfound',
   'connection refused',
   "can't reach",
+  "can't reach database",
+  'reach database server',
+  'database server',
   'connect econnrefused',
   'connection timed out',
   'connection pool',
@@ -23,9 +26,23 @@ const CONNECTION_KEYWORDS = [
   'getaddrinfo',
 ];
 
+function getErrorText(error: unknown): string {
+  if (!error) return '';
+  const parts: string[] = [];
+  if (error instanceof Error) {
+    parts.push(error.message);
+    const errWithCause = error as Error & { cause?: unknown };
+    if (errWithCause.cause instanceof Error) parts.push(errWithCause.cause.message);
+    const errWithMeta = error as unknown as { meta?: unknown };
+    if (errWithMeta.meta != null) parts.push(JSON.stringify(errWithMeta.meta));
+  }
+  parts.push(String(error));
+  return parts.join(' ').toLowerCase();
+}
+
 export function isConnectionOrDatabaseError(error: unknown): boolean {
   if (!error) return false;
-  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  const msg = getErrorText(error);
   if (CONNECTION_KEYWORDS.some((k) => msg.includes(k))) return true;
   const code = (error as { code?: string }).code;
   if (code && PRISMA_CONNECTION_CODES.has(code)) return true;
