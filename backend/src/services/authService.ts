@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { TwoFactorService } from './twoFactorService';
 import { AuditService } from './auditService';
 import { encrypt, decrypt } from './encryptionService';
+import { setRlsUserContext } from '../utils/rlsContext';
 
 // Adicionar a URL do frontend para o link de reset
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -50,6 +51,7 @@ export class AuthService {
       data: { name: encrypt(user.id, plainName) ?? plainName },
     });
 
+    await setRlsUserContext(user.id);
     await AuditService.log({
       actorType: 'user',
       actorId: user.id,
@@ -94,6 +96,7 @@ export class AuthService {
         where: { id: user.id },
         data: { deletedAt: null } as any,
       });
+      await setRlsUserContext(user.id);
       await AuditService.log({
         actorType: 'user',
         actorId: user.id,
@@ -130,6 +133,7 @@ export class AuthService {
     // Gerar token JWT de acesso (curta duração)
     const token = this.generateAccessToken({ id: user.id, email: user.email });
 
+    await setRlsUserContext(user.id);
     await AuditService.log({
       actorType: 'user',
       actorId: user.id,
@@ -176,6 +180,7 @@ export class AuthService {
     // Gerar token JWT de acesso
     const token = this.generateAccessToken({ id: user.id, email: user.email });
 
+    await setRlsUserContext(user.id);
     await AuditService.log({
       actorType: 'user',
       actorId: user.id,
@@ -231,6 +236,7 @@ export class AuthService {
       },
     });
 
+    await setRlsUserContext(user.id);
     await AuditService.log({
       actorType: 'user',
       actorId: user.id,
@@ -278,6 +284,7 @@ export class AuthService {
       },
     });
 
+    await setRlsUserContext(user.id);
     await AuditService.log({
       actorType: 'user',
       actorId: user.id,
