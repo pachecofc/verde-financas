@@ -192,10 +192,12 @@ export const CashFlowReport: React.FC<CashFlowReportProps> = ({ onBack }) => {
       <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="cashflow-report-start" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Data Inicial
             </label>
             <input
+              id="cashflow-report-start"
+              name="startDate"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -203,10 +205,12 @@ export const CashFlowReport: React.FC<CashFlowReportProps> = ({ onBack }) => {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="cashflow-report-end" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Data Final
             </label>
             <input
+              id="cashflow-report-end"
+              name="endDate"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -214,10 +218,12 @@ export const CashFlowReport: React.FC<CashFlowReportProps> = ({ onBack }) => {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="cashflow-report-granularity" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Granularidade
             </label>
             <select
+              id="cashflow-report-granularity"
+              name="granularity"
               value={granularity}
               onChange={(e) => setGranularity(e.target.value as 'daily' | 'weekly' | 'monthly')}
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
@@ -361,8 +367,10 @@ export const CashFlowReport: React.FC<CashFlowReportProps> = ({ onBack }) => {
                 </p>
               </div>
               {report.trend && (
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label htmlFor="cashflow-report-show-trend" className="flex items-center gap-2 cursor-pointer">
                   <input
+                    id="cashflow-report-show-trend"
+                    name="showTrend"
                     type="checkbox"
                     checked={showTrend}
                     onChange={(e) => setShowTrend(e.target.checked)}

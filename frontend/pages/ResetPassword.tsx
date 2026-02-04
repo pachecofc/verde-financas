@@ -91,11 +91,16 @@ export const ResetPassword: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nova Senha</label>
+            <label htmlFor="reset-new-password" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Nova Senha</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
-                type={showPassword ? "text" : "password"} placeholder="••••••••" required
+                id="reset-new-password"
+                name="newPassword"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                autoComplete="new-password"
                 className="w-full pl-12 pr-12 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
@@ -111,11 +116,16 @@ export const ResetPassword: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+            <label htmlFor="reset-confirm-password" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
-                type={showPassword ? "text" : "password"} placeholder="••••••••" required
+                id="reset-confirm-password"
+                name="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                autoComplete="new-password"
                 className="w-full pl-12 pr-12 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}

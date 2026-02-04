@@ -52,14 +52,14 @@ export const Login: React.FC = () => {
         password: formData.password,
       });
 
-      // Se o login retornar que 2FA é necessário
-      if (result && 'requiresTwoFactor' in result && result.requiresTwoFactor) {
+      // Se o login retornar que 2FA é necessário (result é objeto); senão result é true = sucesso
+      if (typeof result === 'object' && result !== null && 'requiresTwoFactor' in result && result.requiresTwoFactor) {
         setRequiresTwoFactor(true);
         setTwoFactorUserId(result.user?.id || null);
         return;
       }
 
-      success = result as boolean;
+      success = result === true;
     }
 
     if (success) {
@@ -120,11 +120,16 @@ export const Login: React.FC = () => {
         <form onSubmit={handleAuth} className="space-y-5">
           {isRegistering && (
             <div className="space-y-1 animate-in slide-in-from-top-2 duration-300">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Seu Nome</label>
+              <label htmlFor="login-name" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Seu Nome</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
-                  type="text" placeholder="Como quer ser chamado?" required
+                  id="login-name"
+                  name="name"
+                  type="text"
+                  placeholder="Como quer ser chamado?"
+                  required
+                  autoComplete="name"
                   className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
@@ -134,11 +139,16 @@ export const Login: React.FC = () => {
           )}
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">E-mail</label>
+            <label htmlFor="login-email" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">E-mail</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
-                type="email" placeholder="seu@email.com" required
+                id="login-email"
+                name="email"
+                type="email"
+                placeholder="seu@email.com"
+                required
+                autoComplete="email"
                 className="w-full pl-12 pr-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium"
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
@@ -148,7 +158,7 @@ export const Login: React.FC = () => {
 
           <div className="space-y-1">
             <div className="flex justify-between items-center px-1">
-              <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Senha</label>
+              <label htmlFor="login-password" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Senha</label>
               {!isRegistering && (
                 <Link to="/forgot-password" className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest hover:underline">Esqueci a senha</Link>
               )}
@@ -156,7 +166,12 @@ export const Login: React.FC = () => {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
-                type={showPassword ? "text" : "password"} placeholder="••••••••" required
+                id="login-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                autoComplete={isRegistering ? "new-password" : "current-password"}
                 className="w-full pl-12 pr-12 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium"
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}

@@ -92,10 +92,12 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            <label htmlFor="twofactor-code" className="text-sm font-bold text-slate-700 dark:text-slate-300">
               Código de Autenticação
             </label>
             <input
+              id="twofactor-code"
+              name="twoFactorCode"
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -108,6 +110,7 @@ export const TwoFactorModal: React.FC<TwoFactorModalProps> = ({
               }}
               className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold text-center text-2xl tracking-widest"
               placeholder="000000"
+              autoComplete="one-time-code"
               autoFocus
               disabled={isLoading}
             />

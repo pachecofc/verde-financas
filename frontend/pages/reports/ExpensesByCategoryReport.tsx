@@ -176,10 +176,12 @@ export const ExpensesByCategoryReport: React.FC<ExpensesByCategoryReportProps> =
       <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="expenses-report-start" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Data Inicial
             </label>
             <input
+              id="expenses-report-start"
+              name="startDate"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -187,10 +189,12 @@ export const ExpensesByCategoryReport: React.FC<ExpensesByCategoryReportProps> =
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="expenses-report-end" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Data Final
             </label>
             <input
+              id="expenses-report-end"
+              name="endDate"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}

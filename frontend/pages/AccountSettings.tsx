@@ -345,7 +345,7 @@ export const AccountSettings: React.FC = () => {
 
             {/* Avatar */}
             <div className="flex flex-col items-center gap-4">
-              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <label htmlFor="account-avatar-upload" className="relative group cursor-pointer block">
                 <div className="w-28 h-28 rounded-[2rem] overflow-hidden border-4 border-emerald-50 dark:border-emerald-900/30 shadow-xl relative bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center transition-transform group-hover:scale-105">
                   {displayAvatar ? (
                     <img src={getAvatarSrc(displayAvatar)} alt="Avatar" className="w-full h-full object-cover" />
@@ -356,19 +356,22 @@ export const AccountSettings: React.FC = () => {
                     <Camera className="w-6 h-6" />
                   </div>
                 </div>
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
-              </div>
+                <input id="account-avatar-upload" name="avatar" type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} aria-label="Enviar foto de perfil" />
+              </label>
             </div>
 
             {/* Nome */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <label htmlFor="account-form-name" className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Nome de Exibição
               </label>
               <input
+                id="account-form-name"
+                name="name"
                 type="text"
                 required
+                autoComplete="name"
                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
                 value={accountForm.name}
                 onChange={e => setAccountForm({ ...accountForm, name: e.target.value })}
@@ -377,13 +380,16 @@ export const AccountSettings: React.FC = () => {
 
             {/* Email */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <label htmlFor="account-form-email" className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 E-mail
               </label>
               <input
+                id="account-form-email"
+                name="email"
                 type="email"
                 required
+                autoComplete="email"
                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
                 value={accountForm.email}
                 onChange={e => setAccountForm({ ...accountForm, email: e.target.value })}
@@ -406,12 +412,15 @@ export const AccountSettings: React.FC = () => {
               {showPasswordFields && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Senha Atual</label>
+                    <label htmlFor="account-form-current-password" className="text-sm font-bold text-slate-700 dark:text-slate-300">Senha Atual</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <input
+                        id="account-form-current-password"
+                        name="currentPassword"
                         type={showPasswordFields ? "text" : "password"}
                         placeholder="••••••••"
+                        autoComplete="current-password"
                         className="w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
                         value={accountForm.currentPassword}
                         onChange={e => setAccountForm({ ...accountForm, currentPassword: e.target.value })}
@@ -419,12 +428,15 @@ export const AccountSettings: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Nova Senha</label>
+                    <label htmlFor="account-form-new-password" className="text-sm font-bold text-slate-700 dark:text-slate-300">Nova Senha</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <input
+                        id="account-form-new-password"
+                        name="newPassword"
                         type={showPasswordFields ? "text" : "password"}
                         placeholder="••••••••"
+                        autoComplete="new-password"
                         className="w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
                         value={accountForm.newPassword}
                         onChange={e => setAccountForm({ ...accountForm, newPassword: e.target.value })}
@@ -432,12 +444,15 @@ export const AccountSettings: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Confirmar Nova Senha</label>
+                    <label htmlFor="account-form-confirm-password" className="text-sm font-bold text-slate-700 dark:text-slate-300">Confirmar Nova Senha</label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                       <input
+                        id="account-form-confirm-password"
+                        name="confirmPassword"
                         type={showPasswordFields ? "text" : "password"}
                         placeholder="••••••••"
+                        autoComplete="new-password"
                         className="w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
                         value={accountForm.confirmPassword}
                         onChange={e => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
@@ -682,10 +697,12 @@ export const AccountSettings: React.FC = () => {
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+              <label htmlFor="disable-2fa-password" className="text-sm font-bold text-slate-700 dark:text-slate-300">
                 Senha Atual
               </label>
               <input
+                id="disable-2fa-password"
+                name="password"
                 type="password"
                 value={disable2FAPassword}
                 onChange={(e) => {
@@ -694,6 +711,7 @@ export const AccountSettings: React.FC = () => {
                 }}
                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 autoFocus
               />
             </div>

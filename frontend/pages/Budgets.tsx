@@ -272,10 +272,13 @@ export const Budgets: React.FC = () => {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 pointer-events-none" />
             <input
+              id="budgets-search"
+              name="search"
               type="text"
               placeholder="Buscar por categoria ou subcategoria..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              aria-label="Buscar orçamentos por categoria"
               className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />
           </div>
@@ -458,9 +461,11 @@ export const Budgets: React.FC = () => {
                          <p className="text-sm text-emerald-800 dark:text-emerald-300 font-medium">A IA do Gemini irá analisar seu histórico de 90 dias e distribuir seu orçamento baseando-se na regra 55/10/10/10/10/5.</p>
                       </div>
                       <div className="space-y-1">
-                         <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Valor Total para Alocar (Mensal)</label>
-                         <input 
-                           type="number" 
+                         <label htmlFor="budget-smart-amount" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Valor Total para Alocar (Mensal)</label>
+                         <input
+                           id="budget-smart-amount"
+                           name="smartAmount"
+                           type="number"
                            placeholder="Ex: 5000"
                            className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-2xl font-black text-slate-900 dark:text-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
                            value={smartAmount}
@@ -569,8 +574,10 @@ export const Budgets: React.FC = () => {
             <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-slate-100">{editingId ? 'Editar Orçamento' : 'Novo Orçamento'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categoria</label>
-                <select 
+                <label htmlFor="budget-form-category" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categoria</label>
+                <select
+                  id="budget-form-category"
+                  name="categoryId"
                   className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
@@ -586,14 +593,16 @@ export const Budgets: React.FC = () => {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limite Mensal (R$)</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  required 
-                  className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" 
-                  value={formData.limit} 
-                  onChange={(e) => setFormData({ ...formData, limit: e.target.value })} 
+                <label htmlFor="budget-form-limit" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limite Mensal (R$)</label>
+                <input
+                  id="budget-form-limit"
+                  name="limit"
+                  type="number"
+                  step="0.01"
+                  required
+                  className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  value={formData.limit}
+                  onChange={(e) => setFormData({ ...formData, limit: e.target.value })}
                   disabled={isSavingBudget}
                 />
               </div>

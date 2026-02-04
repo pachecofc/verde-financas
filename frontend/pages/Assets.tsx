@@ -103,8 +103,11 @@ export const Assets: React.FC = () => {
           <div className="relative w-full sm:w-auto flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <input
+              id="assets-search"
+              name="search"
               type="text"
               placeholder="Buscar ativo..."
+              aria-label="Buscar ativos"
               className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -232,10 +235,12 @@ export const Assets: React.FC = () => {
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                <label htmlFor="asset-form-name" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                   Nome do Ativo
                 </label>
                 <input
+                  id="asset-form-name"
+                  name="name"
                   type="text"
                   required
                   className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
@@ -246,10 +251,12 @@ export const Assets: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                <label htmlFor="asset-form-incomeType" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                   Tipo de Renda
                 </label>
                 <select
+                  id="asset-form-incomeType"
+                  name="incomeType"
                   required
                   className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
                   value={formData.incomeType}
@@ -260,10 +267,10 @@ export const Assets: React.FC = () => {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+              <div className="space-y-1" role="group" aria-labelledby="asset-color-label">
+                <span id="asset-color-label" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                   Cor (Opcional)
-                </label>
+                </span>
                 <div className="grid grid-cols-8 gap-2">
                   {colorOptions.map(color => (
                     <button

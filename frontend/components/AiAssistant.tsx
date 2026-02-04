@@ -188,9 +188,12 @@ export const AiAssistant: React.FC<{ isOpen: boolean; onClose: () => void }> = (
         <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0">
            {isPremium ? (
              <div className="relative">
-                <input 
-                  type="text" 
+                <input
+                  id="ai-assistant-input"
+                  name="message"
+                  type="text"
                   placeholder="Pergunte algo... (ex: Posso comprar um PS5?)"
+                  aria-label="Mensagem para o assistente de IA"
                   className="w-full pl-5 pr-14 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm font-medium"
                   value={input}
                   onChange={e => setInput(e.target.value)}

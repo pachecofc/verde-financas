@@ -633,7 +633,7 @@ export const Transactions: React.FC = () => {
         <div className="flex flex-col xl:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input type="text" placeholder="Buscar por descrição..." className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input id="transactions-search" name="search" type="text" placeholder="Buscar por descrição..." aria-label="Buscar transações por descrição" className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-2 gap-2">
              <select className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none" value={filters.categoryId} onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}>
@@ -781,7 +781,7 @@ export const Transactions: React.FC = () => {
                        <p className="text-sm text-slate-400 mt-2">ou clique para selecionar de uma pasta</p>
                     </div>
                     <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition-all">Selecionar Arquivo</button>
-                    <input type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && parseCsvFile(e.target.files[0])} />
+                    <input id="transactions-csv-upload" name="csv" type="file" ref={fileInputRef} className="hidden" accept=".csv" onChange={(e) => e.target.files && parseCsvFile(e.target.files[0])} aria-label="Enviar arquivo CSV" />
                  </div>
                )}
 
@@ -811,16 +811,16 @@ export const Transactions: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                        {(['date', 'description', 'amount'] as const).map(field => (
                          <div key={field} className="space-y-1">
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-1">{field === 'date' ? 'Data' : field === 'description' ? 'Descrição' : 'Valor'}</label>
-                            <select className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping[field]} onChange={e => setColumnMapping({...columnMapping, [field]: e.target.value})}>
+                            <label htmlFor={`import-map-${field}`} className="text-[10px] font-black uppercase text-slate-400 ml-1">{field === 'date' ? 'Data' : field === 'description' ? 'Descrição' : 'Valor'}</label>
+                            <select id={`import-map-${field}`} name={`columnMapping.${field}`} className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping[field]} onChange={e => setColumnMapping({...columnMapping, [field]: e.target.value})}>
                                <option value="">Selecione a coluna...</option>
                                {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
                          </div>
                        ))}
                        <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Identificador (opcional)</label>
-                          <select className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping.identifier} onChange={e => setColumnMapping({...columnMapping, identifier: e.target.value})}>
+                          <label htmlFor="import-map-identifier" className="text-[10px] font-black uppercase text-slate-400 ml-1">Identificador (opcional)</label>
+                          <select id="import-map-identifier" name="columnMapping.identifier" className="w-full p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-emerald-500 font-bold" value={columnMapping.identifier} onChange={e => setColumnMapping({...columnMapping, identifier: e.target.value})}>
                              <option value="">Não mapear</option>
                              {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                           </select>
@@ -847,8 +847,8 @@ export const Transactions: React.FC = () => {
                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
                        <div className="space-y-1">
-                          <label className="text-[10px] font-black uppercase text-slate-400">Importar para a Conta:</label>
-                          <select className="w-full md:w-64 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold" value={importAccountId} onChange={e => setImportAccountId(e.target.value)}>
+                          <label htmlFor="import-account" className="text-[10px] font-black uppercase text-slate-400">Importar para a Conta:</label>
+                          <select id="import-account" name="importAccountId" className="w-full md:w-64 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold" value={importAccountId} onChange={e => setImportAccountId(e.target.value)}>
                              {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                           </select>
                        </div>
@@ -931,31 +931,31 @@ export const Transactions: React.FC = () => {
                 ))}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Descrição</label>
-                <input type="text" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                <label htmlFor="transaction-description" className="text-[10px] font-black text-slate-400 uppercase ml-1">Descrição</label>
+                <input id="transaction-description" name="description" type="text" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Valor (R$)</label>
-                  <input type="number" step="0.01" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+                  <label htmlFor="transaction-amount" className="text-[10px] font-black text-slate-400 uppercase ml-1">Valor (R$)</label>
+                  <input id="transaction-amount" name="amount" type="number" step="0.01" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label>
-                  <input type="date" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                  <label htmlFor="transaction-date" className="text-[10px] font-black text-slate-400 uppercase ml-1">Data</label>
+                  <input id="transaction-date" name="date" type="date" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Conta</label>
-                  <select required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.accountId} onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}>
+                  <label htmlFor="transaction-account" className="text-[10px] font-black text-slate-400 uppercase ml-1">Conta</label>
+                  <select id="transaction-account" name="accountId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.accountId} onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}>
                     <option value="">Escolha...</option>
                     {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
                 </div>
                 {(formData.type == 'expense' || formData.type == 'income') && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
-                  <select required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.categoryId} onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}>
+                  <label htmlFor="transaction-category" className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
+                  <select id="transaction-category" name="categoryId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.categoryId} onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}>
                     <option value="">Escolha...</option>
                     {categories.filter(c => c.type === (formData.type === 'income' ? 'income' : 'expense')).slice().sort((a, b) => getCategoryFullName(a.id).localeCompare(getCategoryFullName(b.id), 'pt-BR', { sensitivity: 'base' })).map(c => <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>)}
                   </select>
@@ -965,8 +965,8 @@ export const Transactions: React.FC = () => {
               {formData.type === 'transfer' && (
                 <>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Conta Destino</label>
-                    <select required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.toAccountId} onChange={(e) => {
+                    <label htmlFor="transaction-to-account" className="text-[10px] font-black text-slate-400 uppercase ml-1">Conta Destino</label>
+                    <select id="transaction-to-account" name="toAccountId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.toAccountId} onChange={(e) => {
                       const selectedAccount = accounts.find(a => a.id === e.target.value);
                       setFormData({ ...formData, toAccountId: e.target.value, assetId: selectedAccount?.type !== 'INVESTMENT' ? '' : formData.assetId });
                     }}>
@@ -976,8 +976,8 @@ export const Transactions: React.FC = () => {
                   </div>
                   {formData.toAccountId && accounts.find(a => a.id === formData.toAccountId)?.type === 'INVESTMENT' && (
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Ativo</label>
-                      <select required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.assetId} onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}>
+                      <label htmlFor="transaction-asset" className="text-[10px] font-black text-slate-400 uppercase ml-1">Ativo</label>
+                      <select id="transaction-asset" name="assetId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.assetId} onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}>
                         <option value="">Escolha o ativo...</option>
                         {assets.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(asset => (
                           <option key={asset.id} value={asset.id}>{asset.name}</option>

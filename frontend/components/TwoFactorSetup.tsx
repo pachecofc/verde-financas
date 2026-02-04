@@ -206,10 +206,12 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         )}
 
         <div className="space-y-2">
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+          <label htmlFor="twofactor-verify-code" className="text-sm font-bold text-slate-700 dark:text-slate-300">
             Código de Verificação
           </label>
           <input
+            id="twofactor-verify-code"
+            name="verificationCode"
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
@@ -222,6 +224,7 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
             }}
             className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all dark:text-slate-100 font-bold text-center text-2xl tracking-widest"
             placeholder="000000"
+            autoComplete="one-time-code"
             autoFocus
             disabled={isVerifying}
           />

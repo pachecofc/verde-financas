@@ -331,16 +331,18 @@ export const Investments: React.FC = () => {
              <h3 className="text-xl font-bold mb-6 text-slate-900 dark:text-slate-100">Atualizar Valor do Ativo</h3>
              <form onSubmit={handleAssetValueSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Valor Atual (R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
+                  <label htmlFor="investment-asset-value" className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Valor Atual (R$)</label>
+                  <input
+                    id="investment-asset-value"
+                    name="amount"
+                    type="number"
+                    step="0.01"
                     min="0"
-                    required 
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" 
-                    value={assetValueForm.amount} 
-                    onChange={e => setAssetValueForm({...assetValueForm, amount: e.target.value})} 
-                    placeholder="0,00" 
+                    required
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500"
+                    value={assetValueForm.amount}
+                    onChange={e => setAssetValueForm({...assetValueForm, amount: e.target.value})}
+                    placeholder="0,00"
                   />
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                     Use este campo para ajustar o valor do ativo devido a valorização ou desvalorização.
@@ -361,30 +363,32 @@ export const Investments: React.FC = () => {
              <h3 className="text-xl font-bold mb-6 text-slate-900 dark:text-slate-100">{editingGoalId ? 'Editar Meta' : 'Nova Meta Financeira'}</h3>
              <form onSubmit={handleGoalSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Título da Meta</label>
-                  <input required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" value={goalForm.name} onChange={e => setGoalForm({...goalForm, name: e.target.value})} placeholder="Ex: Viagem à Disney" />
+                  <label htmlFor="investment-goal-name" className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Título da Meta</label>
+                  <input id="investment-goal-name" name="name" required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" value={goalForm.name} onChange={e => setGoalForm({...goalForm, name: e.target.value})} placeholder="Ex: Viagem à Disney" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Valor Alvo (R$)</label>
-                    <input type="number" required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" value={goalForm.targetAmount} onChange={e => setGoalForm({...goalForm, targetAmount: e.target.value})} placeholder="20000" />
+                    <label htmlFor="investment-goal-target" className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Valor Alvo (R$)</label>
+                    <input id="investment-goal-target" name="targetAmount" type="number" required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" value={goalForm.targetAmount} onChange={e => setGoalForm({...goalForm, targetAmount: e.target.value})} placeholder="20000" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Já Tenho (R$)</label>
-                    <input type="number" required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" value={goalForm.currentAmount} onChange={e => setGoalForm({...goalForm, currentAmount: e.target.value})} placeholder="500" />
+                    <label htmlFor="investment-goal-current" className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Já Tenho (R$)</label>
+                    <input id="investment-goal-current" name="currentAmount" type="number" required className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" value={goalForm.currentAmount} onChange={e => setGoalForm({...goalForm, currentAmount: e.target.value})} placeholder="500" />
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Data Limite</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500" 
-                    value={goalForm.deadline} 
-                    onChange={e => setGoalForm({...goalForm, deadline: e.target.value})} 
+                  <label htmlFor="investment-goal-deadline" className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Data Limite</label>
+                  <input
+                    id="investment-goal-deadline"
+                    name="deadline"
+                    type="date"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:border-emerald-500"
+                    value={goalForm.deadline}
+                    onChange={e => setGoalForm({...goalForm, deadline: e.target.value})}
                   />
                 </div>
                 <div className="space-y-1">
-                   <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ícone Representativo</label>
+                   <label id="investment-goal-icon-label" className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ícone Representativo</label>
                    <div className="grid grid-cols-6 gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                       {['✈️', '🏠', '🚗', '🎓', '💍', '👶', '🏖️', '💻', '🚲', '🏥', '🎉', '💰'].map(emoji => (
                         <button 

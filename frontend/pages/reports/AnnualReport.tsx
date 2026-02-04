@@ -216,10 +216,12 @@ export const AnnualReport: React.FC<AnnualReportProps> = ({ onBack }) => {
       <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="annual-report-year" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Ano
             </label>
             <select
+              id="annual-report-year"
+              name="selectedYear"
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"

@@ -752,10 +752,13 @@ export const Schedule: React.FC = () => {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 pointer-events-none" />
               <input
+                id="schedule-search"
+                name="search"
                 type="text"
                 placeholder="Buscar por descrição..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Buscar agendamentos por descrição"
                 className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               />
             </div>
@@ -1034,10 +1037,12 @@ export const Schedule: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                <label htmlFor="schedule-description" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                   Descrição
                 </label>
                 <input
+                  id="schedule-description"
+                  name="description"
                   type="text"
                   required
                   className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
@@ -1050,10 +1055,12 @@ export const Schedule: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                  <label htmlFor="schedule-amount" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                     Valor R$
                   </label>
                   <input
+                    id="schedule-amount"
+                    name="amount"
                     type="number"
                     step="0.01"
                     required
@@ -1065,10 +1072,12 @@ export const Schedule: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                  <label htmlFor="schedule-date" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                     Data
                   </label>
                   <input
+                    id="schedule-date"
+                    name="date"
                     type="date"
                     required
                     className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
@@ -1082,10 +1091,12 @@ export const Schedule: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                  <label htmlFor="schedule-account" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                     Conta
                   </label>
                   <select
+                    id="schedule-account"
+                    name="accountId"
                     required
                     className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
                     value={formData.accountId}
@@ -1110,10 +1121,12 @@ export const Schedule: React.FC = () => {
                 </div>
                 {formData.type === "transfer" ? (
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                    <label htmlFor="schedule-to-account" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                       Conta Destino
                     </label>
                     <select
+                      id="schedule-to-account"
+                      name="toAccountId"
                       required
                       className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
                       value={formData.toAccountId}
@@ -1142,10 +1155,12 @@ export const Schedule: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                    <label htmlFor="schedule-category" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                       Categoria
                     </label>
                     <select
+                      id="schedule-category"
+                      name="categoryId"
                       required
                       className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
                       value={formData.categoryId}
@@ -1176,10 +1191,12 @@ export const Schedule: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                <label htmlFor="schedule-frequency" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
                   Frequência
                 </label>
                 <select
+                  id="schedule-frequency"
+                  name="frequency"
                   className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:border-emerald-500 transition-all"
                   value={formData.frequency}
                   onChange={(e) =>

@@ -206,10 +206,12 @@ export const InvestmentsReport: React.FC<InvestmentsReportProps> = ({ onBack }) 
       <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="investments-report-start" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Data Inicial
             </label>
             <input
+              id="investments-report-start"
+              name="startDate"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -217,10 +219,12 @@ export const InvestmentsReport: React.FC<InvestmentsReportProps> = ({ onBack }) 
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="investments-report-end" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Data Final
             </label>
             <input
+              id="investments-report-end"
+              name="endDate"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -228,10 +232,12 @@ export const InvestmentsReport: React.FC<InvestmentsReportProps> = ({ onBack }) 
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label htmlFor="investments-report-asset" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Filtrar por Ativo
             </label>
             <select
+              id="investments-report-asset"
+              name="selectedAssetId"
               value={selectedAssetId}
               onChange={(e) => setSelectedAssetId(e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"

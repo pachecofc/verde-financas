@@ -48,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await authApi.login(data);
       
-      // Se 2FA for necessário, retornar informação especial
-      if ('requiresTwoFactor' in response && response.requiresTwoFactor) {
+      // Se 2FA for necessário, retornar informação especial (response é sempre objeto da API)
+      if (typeof response === 'object' && response !== null && 'requiresTwoFactor' in response && response.requiresTwoFactor) {
         return {
           requiresTwoFactor: true,
           user: response.user as ExtendedAuthUser,

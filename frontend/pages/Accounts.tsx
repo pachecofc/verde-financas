@@ -264,8 +264,9 @@ export const Accounts: React.FC = () => {
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome da Conta</label>
                 <input
-                  type="text"
                   id="name"
+                  name="name"
+                  type="text"
                   className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-emerald-500 focus:border-emerald-500"
                   value={formData.name}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -275,8 +276,9 @@ export const Accounts: React.FC = () => {
               <div>
                 <label htmlFor="balance" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Saldo Inicial</label>
                 <input
-                  type="number"
                   id="balance"
+                  name="balance"
+                  type="number"
                   className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-emerald-500 focus:border-emerald-500"
                   value={formData.balance}
                   onChange={e => setFormData({ ...formData, balance: e.target.value })}
@@ -287,8 +289,9 @@ export const Accounts: React.FC = () => {
               <div>
                 <label htmlFor="currency" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Moeda</label>
                 <input
-                  type="text"
                   id="currency"
+                  name="currency"
+                  type="text"
                   className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-emerald-500 focus:border-emerald-500"
                   value={formData.currency}
                   onChange={e => setFormData({ ...formData, currency: e.target.value })}
@@ -300,6 +303,7 @@ export const Accounts: React.FC = () => {
                 <label htmlFor="type" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo de Conta</label>
                 <select
                   id="type"
+                  name="type"
                   className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-emerald-500 focus:border-emerald-500"
                   value={formData.type}
                   onChange={e => setFormData({ ...formData, type: e.target.value as AccountType })}
@@ -313,8 +317,9 @@ export const Accounts: React.FC = () => {
               <div>
                 <label htmlFor="bankName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nome do Banco (Opcional)</label>
                 <input
-                  type="text"
                   id="bankName"
+                  name="bankName"
+                  type="text"
                   className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-emerald-500 focus:border-emerald-500"
                   value={formData.bankName}
                   onChange={e => setFormData({ ...formData, bankName: e.target.value })}
@@ -323,8 +328,9 @@ export const Accounts: React.FC = () => {
               <div>
                 <label htmlFor="color" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cor (Opcional)</label>
                 <input
-                  type="color"
                   id="color"
+                  name="color"
+                  type="color"
                   className="w-full h-10 p-1 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 focus:ring-emerald-500 focus:border-emerald-500"
                   value={formData.color}
                   onChange={e => setFormData({ ...formData, color: e.target.value })}

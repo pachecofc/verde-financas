@@ -169,8 +169,11 @@ export const Categories: React.FC = () => {
           <div className="relative w-full sm:w-auto flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <input
+              id="categories-search"
+              name="search"
               type="text"
               placeholder="Buscar categoria..."
+              aria-label="Buscar categorias"
               className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -349,14 +352,16 @@ export const Categories: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Nome da Categoria</label>
-                <input required placeholder="Ex: Alimentação, Lazer..." className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <label htmlFor="category-form-name" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Nome da Categoria</label>
+                <input id="category-form-name" name="name" required placeholder="Ex: Alimentação, Lazer..." className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Tipo</label>
+                  <label htmlFor="category-form-type" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Tipo</label>
                   <select
+                    id="category-form-type"
+                    name="type"
                     className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     value={formData.type}
                     onChange={e => setFormData({...formData, type: e.target.value as any, parentId: ''})}
@@ -367,9 +372,11 @@ export const Categories: React.FC = () => {
                 </div>
 
                 <div className="space-y-1 relative" ref={pickerRef}>
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Ícone</label>
+                  <label htmlFor="category-form-icon" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Ícone</label>
                   <div className="relative">
                     <input
+                      id="category-form-icon"
+                      name="icon"
                       readOnly
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg text-center text-xl cursor-pointer hover:border-emerald-500 transition-all outline-none"
@@ -410,8 +417,10 @@ export const Categories: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Subcategoria de (Opcional)</label>
+                <label htmlFor="category-form-parent" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Subcategoria de (Opcional)</label>
                 <select
+                  id="category-form-parent"
+                  name="parentId"
                   className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   value={formData.parentId}
                   onChange={e => setFormData({...formData, parentId: e.target.value})}
@@ -424,9 +433,9 @@ export const Categories: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Cor Visual</label>
+                <label htmlFor="category-form-color" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Cor Visual</label>
                 <div className="flex gap-3 items-center bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <input type="color" className="w-12 h-10 border-none p-0 block cursor-pointer bg-transparent" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
+                  <input id="category-form-color" name="color" type="color" className="w-12 h-10 border-none p-0 block cursor-pointer bg-transparent" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} />
                   <span className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{formData.color}</span>
                 </div>
               </div>
