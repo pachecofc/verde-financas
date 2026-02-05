@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart as RePieChart, Pie, Cell, Legend, AreaChart, Area, ComposedChart
@@ -12,17 +12,6 @@ import { Link } from 'react-router-dom';
 export const Dashboard: React.FC = () => {
   const { transactions, categories, schedules, budgets, theme, user } = useFinance();
   const { accounts } = useAccounts(); // Usar contas do AccountContext (vindas do backend)
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    // Aguardar dois frames para garantir que o DOM está totalmente renderizado
-    const handle = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setIsMounted(true);
-      });
-    });
-    return () => cancelAnimationFrame(handle);
-  }, []);
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -217,47 +206,45 @@ export const Dashboard: React.FC = () => {
         </div>
         
         <div className="h-[350px] w-full min-h-[350px] min-w-0">
-          {isMounted && (
-            <ResponsiveContainer width="100%" height="100%" minHeight={350} minWidth={0}>
-              <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={({ x, y, payload }) => {
-                    const item = cashFlowData[payload.index];
-                    return (
-                      <text x={x} y={y + 15} fill={item.isFuture ? '#10b981' : '#94a3b8'} fontSize={11} fontWeight={item.isFuture ? 'bold' : 'normal'} textAnchor="middle">
-                        {payload.value} {item.isFuture ? '*' : ''}
-                      </text>
-                    );
-                  }}
-                />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', padding: '16px' }} 
-                  cursor={{ fill: '#f8fafc' }}
-                  formatter={(value: number, name: string) => [formatCurrency(value), name]}
-                />
-                <Bar name="Receita Realizada" dataKey="realizedIncome" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
-                <Bar name="Receita Prevista" dataKey="predictedIncome" stackId="a" fill="#10b981" opacity={0.3} radius={[4, 4, 0, 0]} />
-                
-                <Bar name="Despesa Realizada" dataKey="realizedExpense" stackId="b" fill="#f43f5e" radius={[0, 0, 0, 0]} />
-                <Bar name="Despesa Prevista" dataKey="predictedExpense" stackId="b" fill="#f43f5e" opacity={0.3} radius={[4, 4, 0, 0]} />
-                
-                <Area 
-                  name="Saldo Mensal" 
-                  type="monotone" 
-                  dataKey="netFlow" 
-                  fill="#f8fafc" 
-                  stroke="#cbd5e1" 
-                  strokeWidth={2}
-                  dot={{ fill: '#94a3b8', r: 4 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          )}
+          <ResponsiveContainer width="100%" height="100%" minHeight={350} minWidth={0}>
+            <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={({ x, y, payload }) => {
+                  const item = cashFlowData[payload.index];
+                  return (
+                    <text x={x} y={y + 15} fill={item.isFuture ? '#10b981' : '#94a3b8'} fontSize={11} fontWeight={item.isFuture ? 'bold' : 'normal'} textAnchor="middle">
+                      {payload.value} {item.isFuture ? '*' : ''}
+                    </text>
+                  );
+                }}
+              />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', padding: '16px' }} 
+                cursor={{ fill: '#f8fafc' }}
+                formatter={(value: number, name: string) => [formatCurrency(value), name]}
+              />
+              <Bar name="Receita Realizada" dataKey="realizedIncome" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+              <Bar name="Receita Prevista" dataKey="predictedIncome" stackId="a" fill="#10b981" opacity={0.3} radius={[4, 4, 0, 0]} />
+              
+              <Bar name="Despesa Realizada" dataKey="realizedExpense" stackId="b" fill="#f43f5e" radius={[0, 0, 0, 0]} />
+              <Bar name="Despesa Prevista" dataKey="predictedExpense" stackId="b" fill="#f43f5e" opacity={0.3} radius={[4, 4, 0, 0]} />
+              
+              <Area 
+                name="Saldo Mensal" 
+                type="monotone" 
+                dataKey="netFlow" 
+                fill="#f8fafc" 
+                stroke="#cbd5e1" 
+                strokeWidth={2}
+                dot={{ fill: '#94a3b8', r: 4 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
         <div className="mt-4 flex items-start gap-2 text-slate-400">
            <Info className="w-4 h-4 mt-0.5 shrink-0" />
@@ -297,7 +284,7 @@ export const Dashboard: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6">Gastos por Categoria</h3>
           <div className="h-[250px] w-full min-h-[250px] min-w-0">
-            {isMounted && expenseByCategory.length > 0 ? (
+            {expenseByCategory.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%" minHeight={250} minWidth={0}>
                 <RePieChart>
                   <Pie
