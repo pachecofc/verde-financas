@@ -142,6 +142,17 @@ export const Transactions: React.FC = () => {
     return `${parent?.icon || ''} ${parent?.name || ''} > ${cat.icon} ${cat.name}`;
   };
 
+  /** Nome da categoria sem ícone, para ordenação alfabética correta. */
+  const getCategorySortName = (catId: string) => {
+    if (catId === 'sys-transfer') return 'Transferência';
+    if (catId === 'sys-adjustment') return 'Ajuste de Saldo';
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) return 'Sem Categoria';
+    if (!cat.parentId) return cat.name;
+    const parent = categories.find(c => c.id === cat.parentId);
+    return `${parent?.name || ''} > ${cat.name}`.trim();
+  };
+
   const handleDeleteTransaction = (t: Transaction) => {
     const isTransfer = t.type === 'transfer' && t.toAccountId;
     if (isTransfer) {
@@ -880,7 +891,10 @@ export const Transactions: React.FC = () => {
                                setImportedRows(newRows);
                             }}>
                                <option value="">📦 Sem categoria (definir depois)</option>
-                               {categories.filter(c => c.type === row.type).map(c => <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>)}
+                               {categories
+                                 .filter(c => c.type === row.type)
+                                 .sort((a, b) => getCategorySortName(a.id).localeCompare(getCategorySortName(b.id), 'pt-BR', { sensitivity: 'base' }))
+                                 .map(c => <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>)}
                             </select>
                          </div>
                        ))}
