@@ -622,6 +622,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         const apiTransaction = await api.transaction.create(payload);
+        const normalizedAmount = typeof apiTransaction.amount === 'string'
+          ? parseFloat(apiTransaction.amount)
+          : apiTransaction.amount;
         
         // Normalizar a data para formato YYYY-MM-DD
         let normalizedDate = apiTransaction.date;
@@ -639,7 +642,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newTransaction: Transaction = {
           id: apiTransaction.id,
           description: apiTransaction.description,
-          amount: apiTransaction.amount,
+          amount: normalizedAmount,
           type: apiTransaction.type as TransactionType,
           date: normalizedDate,
           categoryId: apiTransaction.categoryId || (apiTransaction.type === 'transfer' ? 'sys-transfer' : apiTransaction.type === 'adjustment' ? 'sys-adjustment' : ''),
@@ -760,6 +763,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         const apiTransaction = await api.transaction.update(id, payload);
+        const normalizedAmount = typeof apiTransaction.amount === 'string'
+          ? parseFloat(apiTransaction.amount)
+          : apiTransaction.amount;
 
         // Normalizar a data para formato YYYY-MM-DD
         let normalizedDate = apiTransaction.date;
@@ -777,7 +783,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const updatedTransaction: Transaction = {
           id: apiTransaction.id,
           description: apiTransaction.description,
-          amount: apiTransaction.amount,
+          amount: normalizedAmount,
           type: apiTransaction.type as TransactionType,
           date: normalizedDate,
           categoryId: apiTransaction.categoryId || (apiTransaction.type === 'transfer' ? 'sys-transfer' : apiTransaction.type === 'adjustment' ? 'sys-adjustment' : ''),
