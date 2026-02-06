@@ -8,7 +8,6 @@ import { Accounts } from './pages/Accounts';
 import { Budgets } from './pages/Budgets';
 import { Schedule } from './pages/Schedule';
 import { Investments } from './pages/Investments';
-import { Assets } from './pages/Assets';
 import { Gamification } from './pages/Gamification';
 import { ScoreRules } from './pages/ScoreRules';
 import { Reports } from './pages/Reports';
@@ -69,13 +68,7 @@ export const App: React.FC = () => {
               />
               <Route
                 path="/assets"
-                element={
-                  <PrivateRoute>
-                    <Layout>
-                      <Assets />
-                    </Layout>
-                  </PrivateRoute>
-                }
+                element={<Navigate to="/investments#ativos" replace />}
               />
               <Route
                 path="/transactions"

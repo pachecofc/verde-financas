@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccounts } from '../contexts/AccountContext';
@@ -989,21 +990,42 @@ export const Transactions: React.FC = () => {
                     </select>
                   </div>
                   {formData.toAccountId && accounts.find(a => a.id === formData.toAccountId)?.type === 'INVESTMENT' && (
-                    <div className="space-y-1">
-                      <label htmlFor="transaction-asset" className="text-[10px] font-black text-slate-400 uppercase ml-1">Ativo</label>
-                      <select id="transaction-asset" name="assetId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.assetId} onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}>
-                        <option value="">Escolha o ativo...</option>
-                        {assets.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(asset => (
-                          <option key={asset.id} value={asset.id}>{asset.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    assets.length === 0 ? (
+                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-slate-100">Nenhum ativo cadastrado</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                              Para transferir para uma conta de investimentos, é necessário cadastrar ao menos um ativo (ex.: Tesouro Direto, Ações).
+                            </p>
+                            <Link
+                              to="/investments#ativos"
+                              className="inline-flex items-center gap-2 mt-3 text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                            >
+                              Cadastrar ativo
+                              <ArrowRight className="w-4 h-4" />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <label htmlFor="transaction-asset" className="text-[10px] font-black text-slate-400 uppercase ml-1">Ativo</label>
+                        <select id="transaction-asset" name="assetId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.assetId} onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}>
+                          <option value="">Escolha o ativo...</option>
+                          {assets.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(asset => (
+                            <option key={asset.id} value={asset.id}>{asset.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )
                   )}
                 </>
               )}
               <button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || (formData.type === 'transfer' && formData.toAccountId && accounts.find(a => a.id === formData.toAccountId)?.type === 'INVESTMENT' && assets.length === 0)}
                 className="w-full py-4 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-black rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (

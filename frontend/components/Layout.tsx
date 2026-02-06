@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ArrowLeftRight, PieChart, CalendarDays, CreditCard, LogOut,
   Menu, X, Tags, User as UserIcon, TrendingUp,
-  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, Coins, FileText, Loader2, CheckCircle2
+  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, FileText, Loader2, CheckCircle2
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,7 +60,6 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { name: 'Relatórios', path: '/reports', icon: FileText },
     { name: 'Contas', path: '/accounts', icon: CreditCard },
     { name: 'Categorias', path: '/categories', icon: Tags },
-    { name: 'Ativos', path: '/assets', icon: Coins },
   ];
 
   const isActive = (path: string) => location.pathname === path;

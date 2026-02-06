@@ -32,6 +32,7 @@ interface FinanceContextType extends FinanceState {
   addAsset: (a: Omit<Asset, 'id'>) => Promise<void>;
   updateAsset: (id: string, a: Partial<Omit<Asset, 'id'>>) => Promise<void>;
   deleteAsset: (id: string) => Promise<void>;
+  refreshAssets: () => Promise<void>;
   addGoal: (g: Omit<Goal, 'id'>) => Promise<void>;
   updateGoal: (id: string, g: Partial<Omit<Goal, 'id'>>) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
@@ -1339,7 +1340,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addBudget, updateBudget, deleteBudget,
       addSchedule, updateSchedule, deleteSchedule,
       addInvestment, updateInvestment, deleteInvestment,
-      addAsset, updateAsset, deleteAsset,
+      addAsset, updateAsset, deleteAsset, refreshAssets,
       refreshAssetHoldings, updateAssetHoldingValue, deleteAssetHolding,
       addGoal, updateGoal, deleteGoal, refreshGoals,
       refreshState, refreshUserScore, refreshTransactions, refreshSchedules, updateUserProfile, logout, toggleTheme
