@@ -97,15 +97,17 @@ export class GamificationService {
       budgets.map(async (b) => {
         const spent = await BudgetService.calculateSpentForMonth(userId, b.categoryId, year, monthIndex);
         const limit = Number(b.limit);
-        return spent <= limit;
+        const respected = spent <= limit;
+        const isExpense = b.category.type === 'expense';
+        return { respected, isExpense };
       })
     );
 
-    const allRespected = results.every(Boolean);
-    const anyOverflow = results.some((r) => !r);
+    const allRespected = results.every((r) => r.respected);
+    const anyExpenseOverflow = results.some((r) => !r.respected && r.isExpense);
     if (allRespected) {
       await this.registerEvent(userId, 'BUDGET_RESPECTED').catch(() => {});
-    } else if (anyOverflow) {
+    } else if (anyExpenseOverflow) {
       await this.registerEvent(userId, 'BUDGET_OVERFLOW').catch(() => {});
     }
   }

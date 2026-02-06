@@ -20,7 +20,7 @@ const getAuthHeaders = (): HeadersInit => {
 
 /** Mensagem amigável quando há falha de conexão/rede em login ou signup */
 export const AUTH_CONNECTION_ERROR_MESSAGE =
-  'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente em alguns instantes.';
+  'Não foi possível conectar ao servidor de banco de dados. Verifique sua internet e tente novamente em alguns instantes.';
 
 const NETWORK_ERROR_PATTERNS = [
   'failed to fetch',

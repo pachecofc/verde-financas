@@ -1385,21 +1385,25 @@ export class ReportService {
       usagePercentage: number;
     }>;
   }> {
-    // Buscar todos os orçamentos do usuário
+    // Buscar todos os orçamentos do usuário (com categoria e filhas para regra pai/filhas)
     const budgets = await prisma.budget.findMany({
       where: {
         userId,
       },
       include: {
-        category: true,
+        category: {
+          include: {
+            children: { select: { id: true } },
+          },
+        },
       },
     });
 
-    // Buscar todas as transações de despesa no período
-    const expenseTransactions = await prisma.transaction.findMany({
+    // Buscar transações de despesa e receita no período (para orçamentos de ambos os tipos)
+    const transactions = await prisma.transaction.findMany({
       where: {
         userId,
-        type: 'expense',
+        type: { in: ['income', 'expense'] },
         date: {
           gte: startDate,
           lte: endDate,
@@ -1410,20 +1414,30 @@ export class ReportService {
       },
     });
 
-    // Calcular gasto por categoria
-    const spentByCategory = new Map<string, number>();
-    expenseTransactions.forEach(transaction => {
-      if (transaction.categoryId) {
-        const amount = transaction.amount.toNumber();
-        const existing = spentByCategory.get(transaction.categoryId) || 0;
-        spentByCategory.set(transaction.categoryId, existing + amount);
+    const amountByCategoryExpense = new Map<string, number>();
+    const amountByCategoryIncome = new Map<string, number>();
+    transactions.forEach(transaction => {
+      if (!transaction.categoryId) return;
+      const amount = transaction.amount.toNumber();
+      if (transaction.type === 'expense') {
+        const existing = amountByCategoryExpense.get(transaction.categoryId) || 0;
+        amountByCategoryExpense.set(transaction.categoryId, existing + amount);
+      } else {
+        const existing = amountByCategoryIncome.get(transaction.categoryId) || 0;
+        amountByCategoryIncome.set(transaction.categoryId, existing + amount);
       }
     });
 
-    // Processar cada orçamento
+    // Processar cada orçamento (spent = soma da categoria e filhas, pelo tipo da categoria)
     const budgetData = budgets.map(budget => {
       const planned = budget.limit.toNumber();
-      const spent = spentByCategory.get(budget.categoryId) || 0;
+      const categoryIds =
+        budget.category.parentId === null
+          ? [budget.categoryId, ...budget.category.children.map((c) => c.id)]
+          : [budget.categoryId];
+      const mapToUse =
+        budget.category.type === 'income' ? amountByCategoryIncome : amountByCategoryExpense;
+      const spent = categoryIds.reduce((sum, id) => sum + (mapToUse.get(id) || 0), 0);
       const remaining = planned - spent;
       const usagePercentage = planned > 0 ? (spent / planned) * 100 : 0;
       const variation = spent - planned;

@@ -194,21 +194,36 @@ export class BudgetService {
     return this.calculateSpentForMonth(userId, categoryId, now.getFullYear(), now.getMonth());
   }
 
-  // Calcular o valor gasto na categoria em um mês específico (year: ano, monthIndex: 0-11)
+  // Calcular o valor realizado (spent) na categoria do orçamento em um mês específico.
+  // Considera categoria pai (soma pai + filhas) e o tipo da categoria (income ou expense).
   static async calculateSpentForMonth(
     userId: string,
     categoryId: string,
     year: number,
     monthIndex: number
   ): Promise<number> {
+    const category = await prisma.category.findFirst({
+      where: { id: categoryId, userId },
+    });
+    if (!category) return 0;
+
+    let categoryIds: string[] = [categoryId];
+    if (!category.parentId) {
+      const children = await prisma.category.findMany({
+        where: { parentId: categoryId, userId },
+        select: { id: true },
+      });
+      categoryIds = [categoryId, ...children.map((c) => c.id)];
+    }
+
     const startOfMonth = new Date(year, monthIndex, 1);
     const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
     const transactions = await prisma.transaction.findMany({
       where: {
         userId,
-        categoryId,
-        type: 'expense',
+        type: category.type as 'income' | 'expense',
         date: { gte: startOfMonth, lte: endOfMonth },
+        categoryId: { in: categoryIds },
       },
     });
     return transactions.reduce((sum, t) => sum + Number(t.amount), 0);

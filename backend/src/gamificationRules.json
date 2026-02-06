@@ -110,7 +110,7 @@
             "code": "BUDGET_OVERFLOW",
             "name": "Estourar Orçamento",
             "points": -50,
-            "trigger": "Uma vez por mês, se algum orçamento cadastrado ultrapassou o limite."
+            "trigger": "Uma vez por mês, se algum orçamento de despesa ultrapassou o limite (orçamentos de receita não geram penalidade)."
           },
           {
             "code": "OVERDUE_DEBT",

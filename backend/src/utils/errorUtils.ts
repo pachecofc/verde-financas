@@ -51,4 +51,4 @@ export function isConnectionOrDatabaseError(error: unknown): boolean {
 
 /** Mensagem amigável para falha de conexão em telas de login/signup */
 export const AUTH_CONNECTION_ERROR_MESSAGE =
-  'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente em alguns instantes.';
+  'Não foi possível conectar ao servidor de banco de dados. Verifique sua internet e tente novamente em alguns instantes.';

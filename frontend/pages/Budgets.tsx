@@ -199,6 +199,14 @@ export const Budgets: React.FC = () => {
     return `${parent?.icon || ''} ${parent?.name || ''} > ${cat.icon} ${cat.name}`;
   };
 
+  const getCategorySortName = (catId: string) => {
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) return '';
+    if (!cat.parentId) return cat.name;
+    const parent = categories.find(c => c.id === cat.parentId);
+    return `${parent?.name || ''} > ${cat.name}`.trim();
+  };
+
   const filteredAndSortedBudgets = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     let list = budgets;
@@ -585,8 +593,8 @@ export const Budgets: React.FC = () => {
                 >
                   <option value="">Selecione...</option>
                   {categories
-                    .filter(c => c.type === 'expense')
-                    .sort((a, b) => getCategoryFullName(a.id).localeCompare(getCategoryFullName(b.id)))
+                    .slice()
+                    .sort((a, b) => getCategorySortName(a.id).localeCompare(getCategorySortName(b.id), 'pt-BR', { sensitivity: 'base' }))
                     .map(c => (
                       <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>
                     ))}

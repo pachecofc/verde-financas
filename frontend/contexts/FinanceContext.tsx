@@ -1311,14 +1311,21 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (isBackendAuthenticated()) {
       await refreshBudgets();
     } else {
-      // Se não autenticado, calcular localmente
-    setState(prev => {
-      const updatedBudgets = prev.budgets.map(budget => {
-        const spent = prev.transactions.filter(t => t.categoryId === budget.categoryId && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-        return { ...budget, spent };
+      // Se não autenticado, calcular localmente (pai/filhas + tipo da categoria: income ou expense)
+      setState(prev => {
+        const updatedBudgets = prev.budgets.map(budget => {
+          const cat = prev.categories.find(c => c.id === budget.categoryId);
+          if (!cat) return { ...budget, spent: 0 };
+          const categoryIds = !cat.parentId
+            ? [budget.categoryId, ...prev.categories.filter(c => c.parentId === budget.categoryId).map(c => c.id)]
+            : [budget.categoryId];
+          const spent = prev.transactions
+            .filter(t => t.type === cat.type && categoryIds.includes(t.categoryId))
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+          return { ...budget, spent };
+        });
+        return { ...prev, budgets: updatedBudgets };
       });
-      return { ...prev, budgets: updatedBudgets };
-    });
     }
   }, [isBackendAuthenticated, refreshBudgets]);
 

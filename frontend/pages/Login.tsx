@@ -102,10 +102,10 @@ export const Login: React.FC = () => {
             V
           </div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tighter">
-            {isRegistering ? 'Criar sua conta' : 'Bem-vindo de volta'}
+            {isRegistering ? 'Crie sua conta no Verde' : 'Sua jornada continua'}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-            {isRegistering ? 'Comece sua jornada financeira hoje.' : 'Acesse suas finanças agora mesmo.'}
+            {isRegistering ? 'Onde suas metas criam raízes e prosperam.' : 'Tudo em seu lugar, no seu tempo.'}
           </p>
         </div>
 

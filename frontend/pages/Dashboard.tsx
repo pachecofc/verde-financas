@@ -29,11 +29,14 @@ export const Dashboard: React.FC = () => {
   const totalExpense = currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
 
   const budgetAlerts = useMemo(() => {
-    return budgets.map(b => {
-      const cat = categories.find(c => c.id === b.categoryId);
-      const percent = (b.spent / b.limit) * 100;
-      return { ...b, categoryName: cat?.name, percent };
-    }).filter(b => b.percent >= 80).sort((a, b) => b.percent - a.percent);
+    return budgets
+      .map(b => {
+        const cat = categories.find(c => c.id === b.categoryId);
+        const percent = (b.spent / b.limit) * 100;
+        return { ...b, categoryName: cat?.name, percent, categoryType: cat?.type };
+      })
+      .filter(b => b.percent >= 80 && b.categoryType === 'expense')
+      .sort((a, b) => b.percent - a.percent);
   }, [budgets, categories]);
 
   const expenseByCategory = useMemo(() => {
