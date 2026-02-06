@@ -45,8 +45,8 @@ export const AccountSettings: React.FC = () => {
   const stripePortalUrl = import.meta.env.VITE_STRIPE_PORTAL_URL || 'https://billing.stripe.com/p/login/test_dRm5kD4KJ1ex1Mm8XxefC00';
   const stripeManageUrl = authUser?.plan === 'PREMIUM' ? stripePortalUrl : stripeCheckoutUrl;
 
-  // Estado para exclusão de conta
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Estado para exclusão de conta (0 = oculto, 1 = primeira confirmação, 2 = segunda confirmação)
+  const [deleteConfirmStep, setDeleteConfirmStep] = useState<0 | 1 | 2>(0);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -492,19 +492,58 @@ export const AccountSettings: React.FC = () => {
                     Seus dados serão mantidos por 30 dias. Se mudar de ideia, faça login para reativar.
                   </p>
                 </div>
-                {!showDeleteConfirm ? (
+                {deleteConfirmStep === 0 ? (
                   <button
                     type="button"
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={() => setDeleteConfirmStep(1)}
                     className="px-6 py-3 bg-rose-600 dark:bg-rose-500 hover:bg-rose-700 dark:hover:bg-rose-400 text-white font-bold rounded-xl transition-all flex items-center gap-2"
                   >
                     <Trash2 className="w-5 h-5" />
                     Excluir Conta
                   </button>
+                ) : deleteConfirmStep === 1 ? (
+                  <div className="space-y-4 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl">
+                    {authUser?.plan === 'PREMIUM' ? (
+                      <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
+                        Atenção: excluir sua conta <strong>não cancela</strong> sua assinatura no Stripe. Você precisará cancelar a assinatura separadamente no Portal do Cliente para evitar cobranças. Deseja prosseguir mesmo assim?
+                      </p>
+                    ) : (
+                      <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
+                        Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita facilmente.
+                      </p>
+                    )}
+                    {deleteError && (
+                      <div className="bg-rose-100 dark:bg-rose-900/40 border border-rose-300 dark:border-rose-700 rounded-lg p-3">
+                        <p className="text-sm text-rose-700 dark:text-rose-300">{deleteError}</p>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteConfirmStep(2);
+                          setDeleteError(null);
+                        }}
+                        className="flex-1 px-6 py-3 bg-rose-600 dark:bg-rose-500 hover:bg-rose-700 dark:hover:bg-rose-400 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                      >
+                        Prosseguir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteConfirmStep(0);
+                          setDeleteError(null);
+                        }}
+                        className="flex-1 px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-4 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl">
                     <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
-                      Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita facilmente.
+                      Confirme novamente que deseja excluir sua conta. Esta ação não pode ser desfeita facilmente.
                     </p>
                     {deleteError && (
                       <div className="bg-rose-100 dark:bg-rose-900/40 border border-rose-300 dark:border-rose-700 rounded-lg p-3">
@@ -533,12 +572,12 @@ export const AccountSettings: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setShowDeleteConfirm(false);
+                          setDeleteConfirmStep(1);
                           setDeleteError(null);
                         }}
                         className="flex-1 px-6 py-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all"
                       >
-                        Cancelar
+                        Voltar
                       </button>
                     </div>
                   </div>
