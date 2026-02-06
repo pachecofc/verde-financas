@@ -255,8 +255,11 @@ export const Investments: React.FC = () => {
                           backgroundColor: chartStyles.tooltipBg, 
                           borderRadius: '12px', 
                           border: `1px solid ${chartStyles.tooltipBorder}`,
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
                           color: theme === 'dark' ? '#f1f5f9' : '#0f172a'
                         }}
+                        labelStyle={{ color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}
+                        itemStyle={{ color: theme === 'dark' ? '#f1f5f9' : '#0f172a' }}
                         formatter={(val: number) => formatCurrency(val)} 
                       />
                     </PieChart>

@@ -2,17 +2,28 @@ import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { prisma } from '../prisma';
 import { AuditService } from './auditService';
+import { decrypt } from './encryptionService';
+
+function mapHoldingWithDecryptedAsset<T extends { asset: { name: string } }>(userId: string, holding: T): T {
+  return {
+    ...holding,
+    asset: holding.asset
+      ? { ...holding.asset, name: decrypt(userId, holding.asset.name) ?? holding.asset.name }
+      : holding.asset,
+  };
+}
 
 export class AssetHoldingService {
   // Obter todos os holdings de um usuário
   static async getHoldingsByUserId(userId: string) {
-    return await prisma.assetHolding.findMany({
+    const holdings = await prisma.assetHolding.findMany({
       where: { userId },
       include: {
         asset: true,
       },
       orderBy: { updatedAt: 'desc' },
     });
+    return holdings.map((h) => mapHoldingWithDecryptedAsset(userId, h));
   }
 
   // Obter um holding específico por ID
@@ -28,7 +39,7 @@ export class AssetHoldingService {
       throw new Error('Asset holding not found');
     }
 
-    return holding;
+    return mapHoldingWithDecryptedAsset(userId, holding);
   }
 
   // Obter ou criar um holding para um ativo
@@ -89,7 +100,7 @@ export class AssetHoldingService {
       });
     }
 
-    return holding;
+    return mapHoldingWithDecryptedAsset(userId, holding);
   }
 
   // Atualizar o valor atual de um holding
@@ -121,7 +132,7 @@ export class AssetHoldingService {
       resourceId: holdingId,
     });
 
-    return updated;
+    return mapHoldingWithDecryptedAsset(userId, updated);
   }
 
   // Deletar um holding (quando todas as transações relacionadas são removidas)
@@ -196,7 +207,7 @@ export class AssetHoldingService {
           resourceId: holding.id,
         });
 
-        return updated;
+        return mapHoldingWithDecryptedAsset(userId, updated);
       }
     }
 
