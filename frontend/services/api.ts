@@ -135,25 +135,64 @@ function scheduleProactiveRefresh(token: string): void {
   }, delay);
 }
 
-// Refresh real (uma única chamada ao backend); em falha, notifica sessão perdida
+function isRefreshTransientFailure(response: Response | null, error: unknown): boolean {
+  if (error != null) {
+    const msg = String(error instanceof Error ? error.message : error).toLowerCase();
+    return NETWORK_ERROR_PATTERNS.some((p) => msg.includes(p)) || msg.includes('failed to fetch');
+  }
+  // 5xx = servidor temporariamente indisponível
+  return response != null && response.status >= 500;
+}
+
+const REFRESH_RETRY_COUNT = 2; // até 3 tentativas no total
+const REFRESH_RETRY_DELAY_MS = 1500;
+
+// Refresh real; retenta em falhas transitórias (rede, 5xx); 401 = sessão perdida de fato
 async function doRefresh(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
+  for (let attempt = 0; attempt <= REFRESH_RETRY_COUNT; attempt++) {
+    let response: Response | null = null;
+    try {
+      response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
 
-  if (!response.ok) {
-    accessToken = null;
-    onSessionLost?.();
-    throw new SessionLostError();
-  }
+      // 401 = refresh token inválido/expirado — não retentar
+      if (response.status === 401) {
+        accessToken = null;
+        onSessionLost?.();
+        throw new SessionLostError();
+      }
 
-  const data = await response.json();
-  accessToken = data.token;
-  if (data.user) {
-    localStorage.setItem('auth_user', JSON.stringify(data.user));
+      if (!response.ok) {
+        if (attempt < REFRESH_RETRY_COUNT && isRefreshTransientFailure(response, null)) {
+          await new Promise((r) => setTimeout(r, REFRESH_RETRY_DELAY_MS));
+          continue;
+        }
+        accessToken = null;
+        onSessionLost?.();
+        throw new SessionLostError();
+      }
+
+      const data = await response.json();
+      accessToken = data.token;
+      if (data.user) {
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+      }
+      scheduleProactiveRefresh(data.token);
+      return;
+    } catch (error) {
+      if (error instanceof SessionLostError) throw error;
+      const isTransient = isRefreshTransientFailure(response, error);
+      if (attempt < REFRESH_RETRY_COUNT && isTransient) {
+        await new Promise((r) => setTimeout(r, REFRESH_RETRY_DELAY_MS));
+        continue;
+      }
+      accessToken = null;
+      onSessionLost?.();
+      throw new SessionLostError();
+    }
   }
-  scheduleProactiveRefresh(data.token);
 }
 
 // Garante token válido: uma única refresh em flight; demais 401 aguardam e retry

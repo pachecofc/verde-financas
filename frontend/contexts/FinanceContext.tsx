@@ -900,11 +900,11 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const message = error instanceof Error ? error.message : 'Erro ao criar orçamento';
         console.error('Erro ao criar orçamento:', error);
         toast.error(message);
-        // Continuar para salvar localmente em caso de erro
+        return; // Não adicionar ao estado quando a API rejeita (ex.: orçamento duplicado)
       }
     }
 
-    // Salvar localmente (quando não autenticado ou em caso de erro)
+    // Salvar localmente apenas quando não autenticado
     setState(prev => ({ ...prev, budgets: [...prev.budgets, { ...b, id: generateUniqueId('bud'), spent: 0 }] }));
   }, [isBackendAuthenticated]);
 
