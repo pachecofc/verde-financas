@@ -129,8 +129,10 @@ function scheduleProactiveRefresh(token: string): void {
   const now = Date.now();
   const twoMinutesMs = 2 * 60 * 1000;
   const delay = Math.max(0, expMs - now - twoMinutesMs);
+  console.debug('[auth:refresh] Agendando refresh proativo em', Math.round(delay / 1000), 's');
   proactiveRefreshTimeoutId = setTimeout(() => {
     proactiveRefreshTimeoutId = null;
+    console.debug('[auth:refresh] Refresh proativo disparado');
     doRefresh().catch(() => {});
   }, delay);
 }
@@ -152,6 +154,7 @@ async function doRefresh(): Promise<void> {
   for (let attempt = 0; attempt <= REFRESH_RETRY_COUNT; attempt++) {
     let response: Response | null = null;
     try {
+      console.debug('[auth:refresh] Tentativa', attempt + 1, '/', REFRESH_RETRY_COUNT + 1);
       response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
@@ -159,21 +162,27 @@ async function doRefresh(): Promise<void> {
 
       // 401 = refresh token inválido/expirado — não retentar
       if (response.status === 401) {
+        console.debug('[auth:refresh] 401 - token inválido/expirado ou já revogado');
         accessToken = null;
+        console.debug('[auth:session-lost] Invocando callback (motivo: 401 no refresh)');
         onSessionLost?.();
         throw new SessionLostError();
       }
 
       if (!response.ok) {
         if (attempt < REFRESH_RETRY_COUNT && isRefreshTransientFailure(response, null)) {
+          console.debug('[auth:refresh]', response.status, '- falha transitória, retentando em', REFRESH_RETRY_DELAY_MS, 'ms');
           await new Promise((r) => setTimeout(r, REFRESH_RETRY_DELAY_MS));
           continue;
         }
+        console.debug('[auth:refresh]', response.status, '- falha definitiva após retentativas');
         accessToken = null;
+        console.debug('[auth:session-lost] Invocando callback (motivo: HTTP', response.status, ')');
         onSessionLost?.();
         throw new SessionLostError();
       }
 
+      console.debug('[auth:refresh] Sucesso - novo token obtido');
       const data = await response.json();
       accessToken = data.token;
       if (data.user) {
@@ -185,10 +194,13 @@ async function doRefresh(): Promise<void> {
       if (error instanceof SessionLostError) throw error;
       const isTransient = isRefreshTransientFailure(response, error);
       if (attempt < REFRESH_RETRY_COUNT && isTransient) {
+        console.debug('[auth:refresh] Erro de rede -', error instanceof Error ? error.message : error, '- retentando em', REFRESH_RETRY_DELAY_MS, 'ms');
         await new Promise((r) => setTimeout(r, REFRESH_RETRY_DELAY_MS));
         continue;
       }
+      console.debug('[auth:refresh] Erro definitivo -', error instanceof Error ? error.message : error);
       accessToken = null;
+      console.debug('[auth:session-lost] Invocando callback (motivo: erro de rede/transitório após retentativas)');
       onSessionLost?.();
       throw new SessionLostError();
     }
@@ -198,9 +210,11 @@ async function doRefresh(): Promise<void> {
 // Garante token válido: uma única refresh em flight; demais 401 aguardam e retry
 async function ensureValidToken(): Promise<void> {
   if (refreshPromise) {
+    console.debug('[auth:refresh] Aguardando refresh já em andamento');
     await refreshPromise;
     return;
   }
+  console.debug('[auth:refresh] Iniciando novo refresh');
   refreshPromise = (async () => {
     try {
       await doRefresh();
