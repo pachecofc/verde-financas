@@ -22,6 +22,10 @@ const getAuthHeaders = (): HeadersInit => {
 export const AUTH_CONNECTION_ERROR_MESSAGE =
   'Não foi possível conectar ao servidor de banco de dados. Verifique sua internet e tente novamente em alguns instantes.';
 
+/** Mensagem neutra para 401 "Usuário não encontrado" (evita que usuário pense que conta não existe) */
+export const AUTH_LOGIN_NEUTRAL_MESSAGE =
+  'Não foi possível realizar o login. Verifique seu e-mail e senha. Se o problema persistir, verifique sua conexão e tente novamente em alguns instantes.';
+
 const NETWORK_ERROR_PATTERNS = [
   'failed to fetch',
   'network error',
@@ -39,10 +43,24 @@ const NETWORK_ERROR_PATTERNS = [
 /** Retorna mensagem amigável para erros de rede/conexão em fluxos de autenticação */
 export function getAuthFriendlyErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? '');
+  const status = (error as { status?: number })?.status;
+
+  // 5xx = servidor/conexão indisponível
+  if (status != null && status >= 500) {
+    return AUTH_CONNECTION_ERROR_MESSAGE;
+  }
+
+  // Erros de rede (fetch falhou antes de receber resposta)
   const lower = message.toLowerCase();
   if (NETWORK_ERROR_PATTERNS.some((p) => lower.includes(p))) {
     return AUTH_CONNECTION_ERROR_MESSAGE;
   }
+
+  // "Usuário não encontrado" em login - mensagem neutra
+  if (/usu[aá]rio n[aã]o encontrado/i.test(message)) {
+    return AUTH_LOGIN_NEUTRAL_MESSAGE;
+  }
+
   return message || 'Ocorreu um erro. Tente novamente.';
 }
 
@@ -63,7 +81,9 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
       }
     }
     
-    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    const err = new Error(errorData.error || `HTTP error! status: ${response.status}`) as Error & { status?: number };
+    err.status = response.status;
+    throw err;
   }
   return response.json();
 };

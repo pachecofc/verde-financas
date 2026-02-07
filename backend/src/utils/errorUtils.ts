@@ -24,6 +24,8 @@ const CONNECTION_KEYWORDS = [
   'network',
   'socket hang up',
   'getaddrinfo',
+  'timed out',
+  'timeout',
 ];
 
 function getErrorText(error: unknown): string {
