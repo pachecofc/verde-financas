@@ -24,10 +24,11 @@ const REFRESH_COOKIE_NAME = 'refresh_token';
 
 function getRefreshCookieOptions() {
   const maxAge = REFRESH_TOKEN_EXPIRATION_DAYS * 24 * 60 * 60 * 1000;
+  const isProd = process.env.NODE_ENV !== 'development';
   return {
     httpOnly: true as const,
-    secure: process.env.NODE_ENV !== 'development',
-    sameSite: 'strict' as const,
+    secure: isProd,
+    sameSite: isProd ? ('none' as const) : ('strict' as const), // cross-origin em prod (vercel + render)
     path: '/api/auth',
     maxAge,
   };
