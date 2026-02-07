@@ -60,6 +60,23 @@ export class AuthService {
       resourceId: user.id,
     });
 
+    // E-mail de boas-vindas (não bloqueia o signup em caso de falha)
+    try {
+      const welcomeHtml = `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+          <p style="font-size: 18px; color: #334155; line-height: 1.6;">Olá, ${plainName} 🌿</p>
+          <p style="font-size: 16px; color: #64748b; line-height: 1.7;">Que bom ter você aqui! Sua conta no Verde Finanças foi criada com sucesso.</p>
+          <p style="font-size: 16px; color: #64748b; line-height: 1.7;">Respire fundo. Este é o começo de uma jornada mais tranquila com suas finanças — com clareza, controle e calma para tomar decisões conscientes.</p>
+          <p style="font-size: 16px; color: #64748b; line-height: 1.7;">Quando quiser, acesse o app e comece a organizar sua vida financeira no seu próprio ritmo. Estamos aqui para apoiar.</p>
+          <p style="font-size: 16px; color: #10b981; font-weight: 600; margin-top: 24px;">Um abraço verde,</p>
+          <p style="font-size: 16px; color: #64748b;">Equipe Verde Finanças</p>
+        </div>
+      `;
+      await sendEmail(user.email, 'Bem-vindo(a) ao Verde Finanças 🌿', welcomeHtml);
+    } catch (emailErr) {
+      console.error('[Auth] Erro ao enviar e-mail de boas-vindas:', emailErr);
+    }
+
     // Gerar token JWT de acesso (curta duração)
     const token = this.generateAccessToken({ id: user.id, email: user.email });
 
