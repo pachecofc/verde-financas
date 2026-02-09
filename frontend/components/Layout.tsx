@@ -1,9 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, ArrowLeftRight, PieChart, CalendarDays, CreditCard, LogOut,
-  Menu, X, Tags, User as UserIcon, TrendingUp,
-  Moon, Sun, Sparkles, BrainCircuit, HeartPulse, FileText, Loader2, CheckCircle2
+  LayoutDashboard,
+  ArrowLeftRight,
+  PieChart,
+  CalendarDays,
+  CreditCard,
+  LogOut,
+  Menu,
+  X,
+  Tags,
+  User as UserIcon,
+  TrendingUp,
+  Moon,
+  Sun,
+  Sparkles,
+  BrainCircuit,
+  HeartPulse,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +41,7 @@ function getAvatarSrc(url: string): string {
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
@@ -82,29 +101,82 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden transition-colors duration-300">
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsOpen(false)} />}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 md:relative md:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}
+      >
         <div className="flex flex-col h-full">
-          <div className="p-6 flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">V</div>
-            <span className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Verde<span className="text-emerald-600 dark:text-emerald-400"> Finanças</span></span>
+          <div className="p-6 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                V
+              </div>
+              <span
+                className={`text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight transition-opacity duration-200 ${
+                  isSidebarCollapsed ? 'md:hidden' : ''
+                }`}
+              >
+                Verde
+                <span className="text-emerald-600 dark:text-emerald-400"> Finanças</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+              className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              aria-label={isSidebarCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+            >
+              {isSidebarCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
           </div>
           <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto">
             {menuItems.map((item) => (
-              <Link key={item.path} to={item.path} onClick={() => setIsOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive(item.path) ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
-                <item.icon className={`w-5 h-5 ${isActive(item.path) ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                {item.name}
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
+                } ${
+                  isActive(item.path)
+                    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <item.icon
+                  className={`w-5 h-5 ${
+                    isActive(item.path)
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}
+                />
+                <span className={isSidebarCollapsed ? 'md:hidden' : ''}>{item.name}</span>
               </Link>
             ))}
           </nav>
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
-            <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all">
+            <button
+              onClick={toggleTheme}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all ${
+                isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
+              }`}
+            >
               {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-amber-400" />}
-              {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+              <span className={isSidebarCollapsed ? 'md:hidden' : ''}>
+                {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
+              </span>
             </button>
             <button 
               onClick={handleLogout} 
               disabled={isLoggingOut}
-              className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
+              }`}
             >
               {isLoggingOut ? (
                 <>

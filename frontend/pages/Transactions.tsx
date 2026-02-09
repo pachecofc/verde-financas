@@ -582,10 +582,34 @@ export const Transactions: React.FC = () => {
 
   const filteredTransactions = useMemo((): TransactionRow[] => {
     const rows: TransactionRow[] = [];
+    const hasStartDate = !!filters.startDate;
+    const hasEndDate = !!filters.endDate;
+    const startDate = hasStartDate ? new Date(filters.startDate + 'T00:00:00') : null;
+    const endDate = hasEndDate ? new Date(filters.endDate + 'T23:59:59') : null;
+
     for (const t of transactions) {
       const matchSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory = !filters.categoryId || t.categoryId === filters.categoryId;
-      if (!matchSearch || !matchCategory) continue;
+      let matchDate = true;
+
+      if (hasStartDate || hasEndDate) {
+        const rawDate = t.date || '';
+        const txDateStr = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+        const txDate = new Date(txDateStr + 'T00:00:00');
+
+        if (isNaN(txDate.getTime())) {
+          matchDate = false;
+        } else {
+          if (startDate && txDate < startDate) {
+            matchDate = false;
+          }
+          if (endDate && txDate > endDate) {
+            matchDate = false;
+          }
+        }
+      }
+
+      if (!matchSearch || !matchCategory || !matchDate) continue;
 
       const isTransfer = t.type === 'transfer' && t.toAccountId;
       const matchOrigin = !filters.accountId || t.accountId === filters.accountId;
@@ -601,6 +625,80 @@ export const Transactions: React.FC = () => {
     return rows;
   }, [transactions, searchTerm, filters]);
 
+  const handleExportCsv = () => {
+    if (filteredTransactions.length === 0) {
+      toast.info('Não há transações para exportar com os filtros atuais.');
+      return;
+    }
+
+    const escapeCsvValue = (value: string | number | null | undefined) => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      if (/[;"\n\r]/.test(str)) {
+        const escaped = str.replace(/"/g, '""');
+        return `"${escaped}"`;
+      }
+      return str;
+    };
+
+    const header = [
+      'Descrição',
+      'Data',
+      'Categoria',
+      'Conta Origem',
+      'Conta Destino',
+      'Ativo',
+      'Tipo',
+      'Valor',
+    ].join(';');
+
+    const rows = filteredTransactions.map(({ transaction: t, creditView }) => {
+      const category = getCategoryFullName(t.categoryId);
+      const accountOrigin = accounts.find((a) => a.id === t.accountId)?.name || '';
+      const accountDest = t.toAccountId
+        ? accounts.find((a) => a.id === t.toAccountId)?.name || ''
+        : '';
+      const assetName = t.assetId ? assets.find((a) => a.id === t.assetId)?.name || '' : '';
+      const typeLabel =
+        t.type === 'income'
+          ? 'Receita'
+          : t.type === 'expense'
+          ? 'Despesa'
+          : t.type === 'transfer'
+          ? 'Transferência'
+          : 'Ajuste';
+      const amountSign = creditView || t.type === 'income' ? 1 : -1;
+      const rawAmount = amountSign * Math.abs(t.amount);
+      const amountStr = rawAmount.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+      return [
+        escapeCsvValue(t.description),
+        escapeCsvValue(formatDate(t.date)),
+        escapeCsvValue(category),
+        escapeCsvValue(accountOrigin),
+        escapeCsvValue(accountDest),
+        escapeCsvValue(assetName),
+        escapeCsvValue(typeLabel),
+        escapeCsvValue(amountStr),
+      ].join(';');
+    });
+
+    const csvContent = [header, ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const today = new Date().toISOString().split('T')[0];
+    link.download = `transacoes_${today}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -609,6 +707,12 @@ export const Transactions: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">Gerencie seus lançamentos e automatize com IA.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => handleExportCsv()}
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all flex-shrink-0"
+          >
+            <FileText className="w-5 h-5" /> Exportar CSV
+          </button>
           <button
             onClick={async () => {
               setTransactionsRefreshing(true);
@@ -647,15 +751,59 @@ export const Transactions: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input id="transactions-search" name="search" type="text" placeholder="Buscar por descrição..." aria-label="Buscar transações por descrição" className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-2 gap-2">
-             <select className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none" value={filters.categoryId} onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}>
-               <option value="">Todas Categorias</option>
-               {categories.slice().sort((a, b) => getCategoryFullName(a.id).localeCompare(getCategoryFullName(b.id), 'pt-BR', { sensitivity: 'base' })).map(c => <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>)}
-             </select>
-             <select className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none" value={filters.accountId} onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}>
-               <option value="">Todas as Contas</option>
-               {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-             </select>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <select
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              value={filters.categoryId}
+              onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
+            >
+              <option value="">Todas Categorias</option>
+              {categories
+                .slice()
+                .sort((a, b) =>
+                  getCategoryFullName(a.id).localeCompare(getCategoryFullName(b.id), 'pt-BR', {
+                    sensitivity: 'base',
+                  }),
+                )
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {getCategoryFullName(c.id)}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              value={filters.accountId}
+              onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
+            >
+              <option value="">Todas as Contas</option>
+              {accounts
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+                .map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+            </select>
+            <input
+              id="transactions-start-date"
+              name="startDate"
+              type="date"
+              aria-label="Filtrar transações a partir da data"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+            />
+            <input
+              id="transactions-end-date"
+              name="endDate"
+              type="date"
+              aria-label="Filtrar transações até a data"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+            />
           </div>
         </div>
       </div>
