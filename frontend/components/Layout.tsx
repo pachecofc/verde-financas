@@ -140,6 +140,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsOpen(false)}
+                title={isSidebarCollapsed ? item.name : undefined}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
                 } ${
@@ -162,6 +163,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <button
               onClick={toggleTheme}
+              title={isSidebarCollapsed ? (theme === 'light' ? 'Modo Escuro' : 'Modo Claro') : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all ${
                 isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
               }`}
@@ -171,9 +173,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 {theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
               </span>
             </button>
-            <button 
-              onClick={handleLogout} 
+            <button
+              onClick={handleLogout}
               disabled={isLoggingOut}
+              title={isSidebarCollapsed ? 'Sair' : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
               }`}

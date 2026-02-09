@@ -706,13 +706,7 @@ export const Transactions: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Transações</h1>
           <p className="text-slate-500 dark:text-slate-400">Gerencie seus lançamentos e automatize com IA.</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => handleExportCsv()}
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all flex-shrink-0"
-          >
-            <FileText className="w-5 h-5" /> Exportar CSV
-          </button>
+        <div className="flex gap-2 flex-wrap xl:flex-nowrap">
           <button
             onClick={async () => {
               setTransactionsRefreshing(true);
@@ -728,32 +722,38 @@ export const Transactions: React.FC = () => {
           >
             <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${transactionsRefreshing ? 'animate-spin' : ''}`} />
           </button>
-          <button onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative group">
+          <button onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative group flex-shrink-0">
             <Camera className="w-5 h-5 group-hover:animate-pulse" /> Scanner
             {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}
           </button>
           <button
             onClick={() => { setImportStep('upload'); setShowImportModal(true); }}
             disabled={isImporting}
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
             <FileSpreadsheet className="w-5 h-5" /> Importar CSV
           </button>
-          <button onClick={() => { setEditingId(null); setShowModal(true); }} className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98]">
+          <button
+            onClick={() => handleExportCsv()}
+            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all flex-shrink-0"
+          >
+            <FileText className="w-5 h-5" /> Exportar CSV
+          </button>
+          <button onClick={() => { setEditingId(null); setShowModal(true); }} className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98] flex-shrink-0">
             <Plus className="w-5 h-5" /> Novo Lançamento
           </button>
         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all">
-        <div className="flex flex-col xl:flex-row gap-4">
-          <div className="flex-1 relative">
+        <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-2 xl:gap-4">
+          <div className="relative min-w-0 lg:col-span-4 xl:col-span-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input id="transactions-search" name="search" type="text" placeholder="Buscar por descrição..." aria-label="Buscar transações por descrição" className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input id="transactions-search" name="search" type="text" placeholder="Buscar por descrição..." aria-label="Buscar transações por descrição" className="w-full min-w-0 pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="min-w-0">
             <select
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
               value={filters.categoryId}
               onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
             >
@@ -771,8 +771,10 @@ export const Transactions: React.FC = () => {
                   </option>
                 ))}
             </select>
+          </div>
+          <div className="min-w-0">
             <select
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
               value={filters.accountId}
               onChange={(e) => setFilters({ ...filters, accountId: e.target.value })}
             >
@@ -786,21 +788,25 @@ export const Transactions: React.FC = () => {
                   </option>
                 ))}
             </select>
+          </div>
+          <div className="min-w-0">
             <input
               id="transactions-start-date"
               name="startDate"
               type="date"
               aria-label="Filtrar transações a partir da data"
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
             />
+          </div>
+          <div className="min-w-0">
             <input
               id="transactions-end-date"
               name="endDate"
               type="date"
               aria-label="Filtrar transações até a data"
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none"
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
             />
