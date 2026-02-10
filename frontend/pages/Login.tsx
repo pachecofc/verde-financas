@@ -186,6 +186,40 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
+          {isRegistering && (
+            <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+              <label
+                htmlFor="accept-terms"
+                className="flex items-start gap-2 cursor-pointer select-none"
+              >
+                <input
+                  id="accept-terms"
+                  name="acceptTerms"
+                  type="checkbox"
+                  required
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span>
+                  Li e concordo com os{' '}
+                  <Link
+                    to="/termos"
+                    className="text-emerald-600 dark:text-emerald-400 font-semibold underline"
+                  >
+                    Termos de Uso
+                  </Link>{' '}
+                  e com a{' '}
+                  <Link
+                    to="/privacidade"
+                    className="text-emerald-600 dark:text-emerald-400 font-semibold underline"
+                  >
+                    Política de Privacidade
+                  </Link>
+                  .
+                </span>
+              </label>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}

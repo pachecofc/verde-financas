@@ -15,6 +15,8 @@ import { AccountSettings } from './pages/AccountSettings';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { Terms } from './pages/Terms';
+import { Privacy } from './pages/Privacy';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AccountProvider } from './contexts/AccountContext';
 import { FinanceProvider } from './contexts/FinanceContext';
@@ -40,10 +42,12 @@ export const App: React.FC = () => {
           <AccountProvider>
             <ImportProgressProvider>
             <Routes>
-              {/* Rotas de Autenticação */}
+              {/* Rotas Públicas / Autenticação */}
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/termos" element={<Terms />} />
+              <Route path="/privacidade" element={<Privacy />} />
 
               {/* Rotas Protegidas */}
               <Route
