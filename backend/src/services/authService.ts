@@ -23,7 +23,7 @@ export class AuthService {
   }
 
   // Registrar novo usuário
-  static async signup(data: AuthRequest): Promise<AuthResponse> {
+  static async signup(data: AuthRequest, clientIp?: string): Promise<AuthResponse> {
     const { email, password, name } = data;
 
     // Verificar se usuário já existe
@@ -44,6 +44,10 @@ export class AuthService {
         email,
         name: plainName,
         password: hashedPassword,
+        termsAcceptedAt: new Date(), // Registra o momento exato
+        termsVersion: process.env.CURRENT_TERMS_VERSION,
+        privacyPolicyVersion: process.env.CURRENT_PRIVACY_VERSION,
+        signupIp: clientIp || null, // Salva o IP vindo do controller
       },
     });
     await prisma.user.update({
@@ -58,6 +62,11 @@ export class AuthService {
       action: 'USER_CREATE',
       resourceType: 'users',
       resourceId: user.id,
+      metadata: {
+        termsVersion: process.env.CURRENT_TERMS_VERSION ?? undefined,
+        privacyPolicyVersion: process.env.CURRENT_PRIVACY_VERSION ?? undefined,
+        signupIp: clientIp ?? undefined,
+      },
     });
 
     // E-mail de boas-vindas (não bloqueia o signup em caso de falha)

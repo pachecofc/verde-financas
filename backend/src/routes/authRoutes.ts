@@ -49,8 +49,15 @@ const authSensitiveLimiter = rateLimit({
 router.post('/signup', validateBody(signupSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, password, name } = req.body;
+    // Captura o IP real, considerando proxies (Render/Vercel)
+    const forwarded = req.headers['x-forwarded-for'];
+    const clientIp = (typeof forwarded === 'string'
+      ? forwarded.split(',')[0]?.trim()
+      : Array.isArray(forwarded)
+        ? forwarded[0]?.trim()
+        : undefined) || req.socket.remoteAddress;
 
-    const result = await AuthService.signup({ email, password, name });
+    const result = await AuthService.signup({ email, password, name }, clientIp);
 
     const refreshToken = await RefreshTokenService.createRefreshToken(result.user.id);
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());

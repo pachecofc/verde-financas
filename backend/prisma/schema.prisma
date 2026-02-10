@@ -36,7 +36,11 @@ model User {
   twoFactorSecret      String?   // Secret TOTP criptografado
   twoFactorEnabled     Boolean   @default(false) // Status do 2FA
   twoFactorBackupCodes String[]  // Códigos de backup (criptografados)
-  lastLoginAt         DateTime? // Último login (para regra INACTIVITY)
+  lastLoginAt          DateTime? // Último login (para regra INACTIVITY)
+  termsAcceptedAt      DateTime?  // Data e hora exata do aceite
+  termsVersion         String?    // Versão do termo aceito
+  privacyPolicyVersion  String?   // Versão da política aceita
+  signupIp             String?    // Endereço IP usado no cadastro
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
