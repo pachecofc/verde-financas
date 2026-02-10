@@ -1115,68 +1115,152 @@ export const Transactions: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label htmlFor="transaction-account" className="text-[10px] font-black text-slate-400 uppercase ml-1">Conta</label>
-                  <select id="transaction-account" name="accountId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.accountId} onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}>
+                  <label
+                    htmlFor="transaction-account"
+                    className="text-[10px] font-black text-slate-400 uppercase ml-1"
+                  >
+                    {formData.type === 'transfer' ? 'Conta Origem' : 'Conta'}
+                  </label>
+                  <select
+                    id="transaction-account"
+                    name="accountId"
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none"
+                    value={formData.accountId}
+                    onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
+                  >
                     <option value="">Escolha...</option>
-                    {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    {accounts
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+                      .map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
-                {(formData.type == 'expense' || formData.type == 'income') && (
-                <div className="space-y-1">
-                  <label htmlFor="transaction-category" className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
-                  <select id="transaction-category" name="categoryId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.categoryId} onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}>
-                    <option value="">Escolha...</option>
-                    {categories.filter(c => c.type === (formData.type === 'income' ? 'income' : 'expense')).slice().sort((a, b) => getCategoryFullName(a.id).localeCompare(getCategoryFullName(b.id), 'pt-BR', { sensitivity: 'base' })).map(c => <option key={c.id} value={c.id}>{getCategoryFullName(c.id)}</option>)}
-                  </select>
-                </div>
-                )}
-              </div>
-              {formData.type === 'transfer' && (
-                <>
+                {formData.type === 'transfer' ? (
                   <div className="space-y-1">
-                    <label htmlFor="transaction-to-account" className="text-[10px] font-black text-slate-400 uppercase ml-1">Conta Destino</label>
-                    <select id="transaction-to-account" name="toAccountId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.toAccountId} onChange={(e) => {
-                      const selectedAccount = accounts.find(a => a.id === e.target.value);
-                      setFormData({ ...formData, toAccountId: e.target.value, assetId: selectedAccount?.type !== 'INVESTMENT' ? '' : formData.assetId });
-                    }}>
+                    <label
+                      htmlFor="transaction-to-account"
+                      className="text-[10px] font-black text-slate-400 uppercase ml-1"
+                    >
+                      Conta Destino
+                    </label>
+                    <select
+                      id="transaction-to-account"
+                      name="toAccountId"
+                      required
+                      className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none"
+                      value={formData.toAccountId}
+                      onChange={(e) => {
+                        const selectedAccount = accounts.find((a) => a.id === e.target.value);
+                        setFormData({
+                          ...formData,
+                          toAccountId: e.target.value,
+                          assetId: selectedAccount?.type !== 'INVESTMENT' ? '' : formData.assetId,
+                        });
+                      }}
+                    >
                       <option value="">Escolha...</option>
-                      {accounts.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      {accounts
+                        .slice()
+                        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}
+                          </option>
+                        ))}
                     </select>
                   </div>
-                  {formData.toAccountId && accounts.find(a => a.id === formData.toAccountId)?.type === 'INVESTMENT' && (
-                    assets.length === 0 ? (
-                      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 space-y-3">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-bold text-slate-800 dark:text-slate-100">Nenhum ativo cadastrado</p>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                              Para transferir para uma conta de investimentos, é necessário cadastrar ao menos um ativo (ex.: Tesouro Direto, Ações).
-                            </p>
-                            <Link
-                              to="/investments#ativos"
-                              className="inline-flex items-center gap-2 mt-3 text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
-                            >
-                              Cadastrar ativo
-                              <ArrowRight className="w-4 h-4" />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <label htmlFor="transaction-asset" className="text-[10px] font-black text-slate-400 uppercase ml-1">Ativo</label>
-                        <select id="transaction-asset" name="assetId" required className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none" value={formData.assetId} onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}>
-                          <option value="">Escolha o ativo...</option>
-                          {assets.slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })).map(asset => (
-                            <option key={asset.id} value={asset.id}>{asset.name}</option>
+                ) : (
+                  (formData.type === 'expense' || formData.type === 'income') && (
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="transaction-category"
+                        className="text-[10px] font-black text-slate-400 uppercase ml-1"
+                      >
+                        Categoria
+                      </label>
+                      <select
+                        id="transaction-category"
+                        name="categoryId"
+                        required
+                        className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none"
+                        value={formData.categoryId}
+                        onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      >
+                        <option value="">Escolha...</option>
+                        {categories
+                          .filter((c) => c.type === (formData.type === 'income' ? 'income' : 'expense'))
+                          .slice()
+                          .sort((a, b) =>
+                            getCategoryFullName(a.id).localeCompare(getCategoryFullName(b.id), 'pt-BR', {
+                              sensitivity: 'base',
+                            }),
+                          )
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {getCategoryFullName(c.id)}
+                            </option>
                           ))}
-                        </select>
+                      </select>
+                    </div>
+                  )
+                )}
+              </div>
+              {formData.type === 'transfer' &&
+                formData.toAccountId &&
+                accounts.find((a) => a.id === formData.toAccountId)?.type === 'INVESTMENT' &&
+                (assets.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-slate-800 dark:text-slate-100">Nenhum ativo cadastrado</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          Para transferir para uma conta de investimentos, é necessário cadastrar ao menos um ativo
+                          (ex.: Tesouro Direto, Ações).
+                        </p>
+                        <Link
+                          to="/investments#ativos"
+                          className="inline-flex items-center gap-2 mt-3 text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                        >
+                          Cadastrar ativo
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
                       </div>
-                    )
-                  )}
-                </>
-              )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="transaction-asset"
+                      className="text-[10px] font-black text-slate-400 uppercase ml-1"
+                    >
+                      Ativo
+                    </label>
+                    <select
+                      id="transaction-asset"
+                      name="assetId"
+                      required
+                      className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-100 rounded-lg outline-none"
+                      value={formData.assetId}
+                      onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}
+                    >
+                      <option value="">Escolha o ativo...</option>
+                      {assets
+                        .slice()
+                        .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+                        .map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                ))}
               <button 
                 type="submit" 
                 disabled={isSubmitting || (formData.type === 'transfer' && formData.toAccountId && accounts.find(a => a.id === formData.toAccountId)?.type === 'INVESTMENT' && assets.length === 0)}

@@ -742,7 +742,7 @@ export const Schedule: React.FC = () => {
                   Atenção!
                 </p>
                 <p className="text-rose-700 dark:text-rose-400 text-xs font-medium">
-                  Você possui {overdueCount} lançamentos vencidos.
+                  Você possui {overdueCount} lançamento(s) vencido(s).
                 </p>
               </div>
             </div>
