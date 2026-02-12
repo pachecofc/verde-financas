@@ -286,34 +286,38 @@ export const Dashboard: React.FC = () => {
         {/* Despesas por Categoria */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
           <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 mb-6">Gastos por Categoria</h3>
-          <div className="h-[250px] w-full min-h-[250px] min-w-0">
-            {expenseByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minHeight={250} minWidth={0}>
-                <RePieChart>
-                  <Pie
-                    data={expenseByCategory}
-                    cx="50%" cy="50%"
-                    innerRadius={60} outerRadius={80}
-                    paddingAngle={5} dataKey="value"
-                  >
-                    {expenseByCategory.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                </RePieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 text-xs italic">Nenhum gasto este mês.</div>
-            )}
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {expenseByCategory.slice(0, 4).map(item => (
-              <div key={item.name} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 truncate uppercase">{item.name}</span>
+          <div className="flex gap-6 items-stretch">
+            <div className="h-[250px] flex-1 min-w-0 shrink-0" style={{ maxWidth: '220px' }}>
+              {expenseByCategory.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" minHeight={250} minWidth={0}>
+                  <RePieChart>
+                    <Pie
+                      data={expenseByCategory}
+                      cx="50%" cy="50%"
+                      innerRadius={55} outerRadius={75}
+                      paddingAngle={5} dataKey="value"
+                    >
+                      {expenseByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  </RePieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400 text-xs italic">Nenhum gasto este mês.</div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 overflow-y-auto max-h-[250px] pr-1 custom-scrollbar">
+              <div className="flex flex-col gap-2">
+                {expenseByCategory.map(item => (
+                  <div key={item.name} className="flex items-center gap-2 shrink-0">
+                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate uppercase">{item.name}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
