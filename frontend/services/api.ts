@@ -2047,6 +2047,40 @@ const faqApi = {
   },
 };
 
+// ============ SUPPORT REQUEST API ============
+export type SupportRequestType = 'help' | 'suggestion' | 'bug';
+
+export interface SupportRequestPayload {
+  type: SupportRequestType;
+  description: string;
+  attachment?: File;
+}
+
+const supportRequestApi = {
+  submit: async (data: SupportRequestPayload): Promise<{ message: string }> => {
+    const doRequest = async () => {
+      const formData = new FormData();
+      formData.append('type', data.type);
+      formData.append('description', data.description);
+      if (data.attachment) {
+        formData.append('attachment', data.attachment);
+      }
+      const token = getAuthToken();
+      const headers: HeadersInit = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      const response = await fetch(`${API_BASE_URL}/support-request`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: formData,
+      });
+      return handleResponse<{ message: string }>(response);
+    };
+    return withRetryAuth(doRequest);
+  },
+};
+
 export default {
   category: categoryApi,
   auth: authApi,
@@ -2061,4 +2095,5 @@ export default {
   gamification: gamificationApi,
   report: reportApi,
   faq: faqApi,
+  supportRequest: supportRequestApi,
 };

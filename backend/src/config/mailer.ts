@@ -8,23 +8,40 @@ dotenv.config();
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM;
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+}
+
 /**
  * Envia e-mail usando Resend (API HTTPS).
  * Use quando estiver em ambiente que bloqueia SMTP (ex.: Render plano gratuito).
  * Configure RESEND_API_KEY e opcionalmente EMAIL_FROM no .env.
  */
-async function sendViaResend(to: string, subject: string, html: string): Promise<void> {
+async function sendViaResend(
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: EmailAttachment[]
+): Promise<void> {
   if (!RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY is not set');
   }
   const from = EMAIL_FROM || 'onboarding@resend.dev';
   const resend = new Resend(RESEND_API_KEY);
-  const { error } = await resend.emails.send({
+  const payload: Parameters<Resend['emails']['send']>[0] = {
     from: from.trim(),
     to: [to],
     subject,
     html,
-  });
+  };
+  if (attachments && attachments.length > 0) {
+    payload.attachments = attachments.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+    }));
+  }
+  const { error } = await resend.emails.send(payload);
   if (error) {
     console.error('Resend API error:', error);
     throw new Error(error.message || 'Failed to send email via Resend');
@@ -62,9 +79,18 @@ function createSmtpTransporter() {
 }
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
+  await sendEmailWithAttachment(to, subject, html, []);
+};
+
+export const sendEmailWithAttachment = async (
+  to: string,
+  subject: string,
+  html: string,
+  attachments: EmailAttachment[] = []
+) => {
   try {
     if (RESEND_API_KEY) {
-      await sendViaResend(to, subject, html);
+      await sendViaResend(to, subject, html, attachments);
       return;
     }
 
@@ -75,12 +101,19 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
       throw new Error('EMAIL_FROM or EMAIL_USER must be set for sending email');
     }
 
-    await transporter.sendMail({
+    const mailOptions: nodemailer.SendMailOptions = {
       from: from.trim(),
       to,
       subject,
       html,
-    });
+    };
+    if (attachments.length > 0) {
+      mailOptions.attachments = attachments.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+      }));
+    }
+    await transporter.sendMail(mailOptions);
     console.log(`Email sent to ${to} (SMTP)`);
   } catch (error) {
     console.error('Error sending email:', error);
