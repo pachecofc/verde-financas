@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  HelpCircle,
 } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -161,6 +162,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             ))}
           </nav>
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <Link
+              to="/help"
+              onClick={() => setIsOpen(false)}
+              title={isSidebarCollapsed ? 'Ajuda' : undefined}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all ${
+                isSidebarCollapsed ? 'md:justify-center md:px-3' : ''
+              } ${isActive('/help') ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold' : ''}`}
+            >
+              <HelpCircle className="w-5 h-5" />
+              <span className={isSidebarCollapsed ? 'md:hidden' : ''}>Ajuda</span>
+            </Link>
             <button
               onClick={toggleTheme}
               title={isSidebarCollapsed ? (theme === 'light' ? 'Modo Escuro' : 'Modo Claro') : undefined}

@@ -17,6 +17,7 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
+import { Help } from './pages/Help';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AccountProvider } from './contexts/AccountContext';
 import { FinanceProvider } from './contexts/FinanceContext';
@@ -164,7 +165,16 @@ export const App: React.FC = () => {
                   </PrivateRoute>
                 }
               />
-              {/* Adicione outras rotas protegidas aqui */}
+              <Route
+                path="/help"
+                element={
+                  <PrivateRoute>
+                    <Layout>
+                      <Help />
+                    </Layout>
+                  </PrivateRoute>
+                }
+              />
             </Routes>
             </ImportProgressProvider>
           </AccountProvider>

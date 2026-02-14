@@ -19,6 +19,7 @@ import scoreRoutes from './routes/scoreRoutes';
 import gamificationRoutes from './routes/gamificationRoutes';
 import reportRoutes from './routes/reportRoutes';
 import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
+import faqRoutes from './routes/faqRoutes';
 import path from 'path';
 
 const app = express();
@@ -127,6 +128,9 @@ app.use('/api/gamification', gamificationRoutes);
 
 // Rotas de relatórios
 app.use('/api/reports', reportRoutes);
+
+// Rotas de FAQ (públicas)
+app.use('/api/faq', faqRoutes);
 
 // Iniciar cron job para hard delete
 import { CronService } from './services/cronService';

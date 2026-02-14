@@ -2022,6 +2022,31 @@ const reportApi = {
   }
 };
 
+// ============ FAQ API ============
+export interface FaqItemApi {
+  id: string;
+  question: string;
+  answer: string;
+  sortOrder: number;
+}
+
+export interface FaqCategoryApi {
+  id: string;
+  name: string;
+  sortOrder: number;
+  items: FaqItemApi[];
+}
+
+const faqApi = {
+  getAll: async (): Promise<{ categories: FaqCategoryApi[] }> => {
+    const response = await fetch(`${API_BASE_URL}/faq`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse<{ categories: FaqCategoryApi[] }>(response);
+  },
+};
+
 export default {
   category: categoryApi,
   auth: authApi,
@@ -2035,4 +2060,5 @@ export default {
   score: scoreApi,
   gamification: gamificationApi,
   report: reportApi,
+  faq: faqApi,
 };

@@ -284,6 +284,34 @@ model UserScoreEvent {
   @@map("user_score_events")
 }
 
+// FaqCategory - Categorias do FAQ (ex: Primeiros Passos, Transações e Contas)
+model FaqCategory {
+  id        String   @id @default(uuid())
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items FaqItem[]
+
+  @@map("faq_categories")
+}
+
+// FaqItem - Perguntas e respostas do FAQ
+model FaqItem {
+  id         String   @id @default(uuid())
+  categoryId String
+  question   String
+  answer     String   @db.Text
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category FaqCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("faq_items")
+}
+
 // AuditLog - Registro de auditoria para integridade e governança
 model AuditLog {
   id           String   @id @default(uuid())
