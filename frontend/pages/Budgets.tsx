@@ -5,12 +5,101 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   Plus, Target, Trash2, Edit2, Sparkles, Crown, Loader2, 
   X, Zap, ShieldCheck, ArrowRight, BrainCircuit, Info, MoreVertical, Star,
-  Search, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw
+  Search, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, LayoutGrid, List, ChevronDown
 } from 'lucide-react';
 import { Budget, Category } from '../types';
 import { GoogleGenAI, Type } from "@google/genai";
-// Importa os componentes do Radix UI Dropdown Menu
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as Accordion from '@radix-ui/react-accordion';
+
+const BUDGETS_VIEW_MODE_KEY = 'budgetsViewMode';
+type ViewMode = 'cards' | 'accordion';
+
+function getStoredViewMode(): ViewMode {
+  const stored = localStorage.getItem(BUDGETS_VIEW_MODE_KEY);
+  return stored === 'cards' ? 'cards' : 'accordion';
+}
+
+const BUDGET_SUGGESTIONS = [
+  { name: 'Necessidades', icon: '🏠', color: '#6366f1', recommendation: 'Recomenda-se alocar 55% de suas receitas aqui.' },
+  { name: 'Liberdade Financeira', icon: '🕊️', color: '#10b981', recommendation: 'Recomenda-se alocar 10% de suas receitas aqui.' },
+  { name: 'Educação', icon: '🎓', color: '#3b82f6', recommendation: 'Recomenda-se alocar 10% de suas receitas aqui.' },
+  { name: 'Diversão', icon: '🍿', color: '#ec4899', recommendation: 'Recomenda-se alocar 10% de suas receitas aqui.' },
+  { name: 'Gastos de Longo Prazo', icon: '⏳', color: '#8b5cf6', recommendation: 'Recomenda-se alocar 10% de suas receitas aqui.' },
+  { name: 'Doação', icon: '💝', color: '#f43f5e', recommendation: 'Recomenda-se alocar 5% de suas receitas aqui.' },
+];
+
+interface BudgetCardProps {
+  budget: Budget;
+  category: Category | undefined;
+  parent: Category | null;
+  formatCurrency: (val: number) => string;
+  onEdit: (b: Budget) => void;
+  onDelete: (id: string) => void;
+}
+
+const BudgetCard: React.FC<BudgetCardProps> = ({ budget, category, parent, formatCurrency, onEdit, onDelete }) => {
+  const percent = Math.min((budget.spent / budget.limit) * 100, 100);
+  const isOver = budget.spent > budget.limit;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 group transition-all hover:border-emerald-200 dark:hover:border-emerald-500/30">
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl">
+            {category?.icon || '📦'}
+          </div>
+          <div>
+            {parent && <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{parent.name}</p>}
+            <h4 className="font-bold text-slate-900 dark:text-slate-100 leading-tight">{category?.name}</h4>
+          </div>
+        </div>
+        <div className="hidden lg:flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          <button onClick={() => onEdit(budget)} className="p-1 text-slate-300 dark:text-slate-600 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors" aria-label="Editar orçamento"><Edit2 className="w-4 h-4" /></button>
+          <button onClick={() => onDelete(budget.id)} className="p-1 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 transition-colors" aria-label="Excluir orçamento"><Trash2 className="w-4 h-4" /></button>
+        </div>
+        <div className="lg:hidden">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Mais opções">
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50 animate-in fade-in zoom-in-95"
+                sideOffset={5}
+                align="end"
+              >
+                <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none" onSelect={() => onEdit(budget)}>
+                  <Edit2 className="w-4 h-4 text-emerald-500" /> Editar
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
+                <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer outline-none" onSelect={() => onDelete(budget.id)}>
+                  <Trash2 className="w-4 h-4" /> Excluir
+                </DropdownMenu.Item>
+                <DropdownMenu.Arrow className="fill-white dark:fill-slate-800" />
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-slate-500 dark:text-slate-400">Progresso</span>
+          <span className={`font-bold ${isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-200'}`}>{percent.toFixed(0)}%</span>
+        </div>
+        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div className={`h-full transition-all duration-1000 ${isOver ? 'bg-rose-500 dark:bg-rose-400' : 'bg-emerald-500 dark:bg-emerald-400'}`} style={{ width: `${percent}%` }} />
+        </div>
+        <div className="flex justify-between items-baseline pt-2">
+          <span className="text-xs text-slate-400 dark:text-slate-500">Gasto: {formatCurrency(budget.spent)}</span>
+          <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{formatCurrency(budget.limit)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const Budgets: React.FC = () => {
   const { user: authUser } = useAuth();
@@ -36,6 +125,13 @@ export const Budgets: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'limit' | 'category'>('category');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
+
+  const setViewModeAndPersist = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(BUDGETS_VIEW_MODE_KEY, mode);
+  };
 
   useEffect(() => {
     setBudgetsLoading(true);
@@ -229,6 +325,32 @@ export const Budgets: React.FC = () => {
     return sorted;
   }, [budgets, searchQuery, sortBy, sortOrder, categories]);
 
+  type GroupedByParent = { parent: Category; budgets: Budget[] }[];
+
+  const groupedByParent = useMemo(() => {
+    const groupsMap = new Map<string, { parent: Category; budgets: Budget[] }>();
+
+    for (const b of filteredAndSortedBudgets) {
+      const cat = categories.find(c => c.id === b.categoryId);
+      if (!cat) continue;
+
+      let parent: Category;
+      if (cat.parentId) {
+        const p = categories.find(c => c.id === cat.parentId);
+        parent = p || { id: '__orphans__', name: 'Outras', type: 'expense', icon: '📁', color: '#64748b' } as Category;
+      } else {
+        parent = cat;
+      }
+
+      if (!groupsMap.has(parent.id)) {
+        groupsMap.set(parent.id, { parent, budgets: [] });
+      }
+      groupsMap.get(parent.id)!.budgets.push(b);
+    }
+
+    return Array.from(groupsMap.values()).sort((a, b) => a.parent.name.localeCompare(b.parent.name));
+  }, [filteredAndSortedBudgets, categories]);
+
   const sortLabel = sortBy === 'limit'
     ? (sortOrder === 'asc' ? 'Valor (menor primeiro)' : 'Valor (maior primeiro)')
     : (sortOrder === 'asc' ? 'Categoria (A-Z)' : 'Categoria (Z-A)');
@@ -241,6 +363,26 @@ export const Budgets: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400">Planeje seus gastos e controle suas categorias.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <div className="flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0" role="group" aria-label="Modo de visualização">
+            <button
+              onClick={() => setViewModeAndPersist('cards')}
+              className={`p-3 transition-all ${viewMode === 'cards' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              title="Visualização em cards"
+              aria-label="Alternar para visualização em cards"
+              aria-pressed={viewMode === 'cards'}
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewModeAndPersist('accordion')}
+              className={`p-3 transition-all ${viewMode === 'accordion' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              title="Visualização em lista"
+              aria-label="Alternar para visualização em lista"
+              aria-pressed={viewMode === 'accordion'}
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
           <button
             onClick={async () => {
               setBudgetsLoading(true);
@@ -346,11 +488,60 @@ export const Budgets: React.FC = () => {
         </div>
       )}
 
-      {/* Lista vazia */}
-      {!budgetsLoading && budgets.length === 0 && (
+      {/* Lista vazia - Modo Cards */}
+      {!budgetsLoading && budgets.length === 0 && viewMode === 'cards' && (
         <div className="text-center py-10 text-slate-500 dark:text-slate-400">
           <p>Nenhum orçamento definido ainda. Clique em &quot;Definir Orçamento&quot; para começar!</p>
         </div>
+      )}
+
+      {/* Lista vazia - Modo Accordion (sugestões) */}
+      {!budgetsLoading && budgets.length === 0 && viewMode === 'accordion' && (
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          <h2 className="px-6 py-4 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+            Sugestões de alocação (regra 55/10/10/10/10/5)
+          </h2>
+          <Accordion.Root type="multiple" collapsible className="divide-y divide-slate-100 dark:divide-slate-800">
+            {BUDGET_SUGGESTIONS.map((sug, i) => (
+              <Accordion.Item
+                key={sug.name}
+                value={`sug-${i}`}
+                className="group transition-colors data-[state=open]:bg-emerald-50/50 dark:data-[state=open]:bg-emerald-900/10"
+              >
+                <Accordion.Header className="flex">
+                  <Accordion.Trigger className="flex flex-1 items-center gap-4 px-6 py-4 text-left font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-none [&[data-state=open]>svg]:rotate-180">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white dark:border-slate-800"
+                      style={{ backgroundColor: `${sug.color}15`, color: sug.color }}
+                    >
+                      {sug.icon}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{sug.name}</span>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{sug.recommendation}</p>
+                    </div>
+                    <ChevronDown className="w-5 h-5 shrink-0 text-slate-400 transition-transform duration-200" />
+                  </Accordion.Trigger>
+                </Accordion.Header>
+                <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <div className="px-6 pb-4 pt-0">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm py-4">
+                      Clique em{' '}
+                      <button
+                        type="button"
+                        onClick={() => { setEditingId(null); setShowModal(true); }}
+                        className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                      >
+                        Definir Orçamento
+                      </button>
+                      {' '}para começar.
+                    </p>
+                  </div>
+                </Accordion.Content>
+              </Accordion.Item>
+            ))}
+          </Accordion.Root>
+        </section>
       )}
 
       {/* Nenhum resultado da busca */}
@@ -367,85 +558,80 @@ export const Budgets: React.FC = () => {
         </div>
       )}
 
-      {!budgetsLoading && filteredAndSortedBudgets.length > 0 && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredAndSortedBudgets.map(b => {
-          const cat = categories.find(c => c.id === b.categoryId);
-          const parent = cat?.parentId ? categories.find(c => c.id === cat.parentId) : null;
-          const percent = Math.min((b.spent / b.limit) * 100, 100);
-          const isOver = b.spent > b.limit;
+      {/* Modo Cards - Grid de orçamentos */}
+      {!budgetsLoading && filteredAndSortedBudgets.length > 0 && viewMode === 'cards' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAndSortedBudgets.map(b => {
+            const cat = categories.find(c => c.id === b.categoryId);
+            const parent = cat?.parentId ? categories.find(c => c.id === cat.parentId) : null;
+            return (
+              <BudgetCard
+                key={b.id}
+                budget={b}
+                category={cat}
+                parent={parent}
+                formatCurrency={formatCurrency}
+                onEdit={handleEdit}
+                onDelete={deleteBudget}
+              />
+            );
+          })}
+        </div>
+      )}
 
-          return (
-            <div key={b.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm space-y-4 group transition-all hover:border-emerald-200 dark:hover:border-emerald-500/30">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl">
-                    {cat?.icon || '📦'}
+      {/* Modo Accordion - Orçamentos agrupados por pai */}
+      {!budgetsLoading && filteredAndSortedBudgets.length > 0 && viewMode === 'accordion' && (
+        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          <h2 className="px-6 py-4 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+            Orçamentos por categoria
+          </h2>
+          <Accordion.Root type="multiple" collapsible className="divide-y divide-slate-100 dark:divide-slate-800">
+            {groupedByParent.map(({ parent, budgets: groupBudgets }) => (
+              <Accordion.Item
+                key={parent.id}
+                value={parent.id}
+                className="group transition-colors data-[state=open]:bg-emerald-50/50 dark:data-[state=open]:bg-emerald-900/10"
+              >
+                <Accordion.Header className="flex">
+                  <Accordion.Trigger className="flex flex-1 items-center justify-between gap-4 px-6 py-4 text-left font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-none [&[data-state=open]>svg]:rotate-180">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white dark:border-slate-800"
+                        style={{ backgroundColor: `${(parent.color || '#10b981')}15`, color: parent.color || '#10b981' }}
+                      >
+                        {parent.icon || '📁'}
+                      </div>
+                      <span className="font-bold text-slate-800 dark:text-slate-100">{parent.name}</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">({groupBudgets.length} orçamento{groupBudgets.length !== 1 ? 's' : ''})</span>
+                    </div>
+                    <ChevronDown className="w-5 h-5 shrink-0 text-slate-400 transition-transform duration-200" />
+                  </Accordion.Trigger>
+                </Accordion.Header>
+                <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <div className="px-6 pb-4 pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {groupBudgets.map(b => {
+                        const cat = categories.find(c => c.id === b.categoryId);
+                        const parentCat = cat?.parentId ? categories.find(c => c.id === cat.parentId) : null;
+                        return (
+                          <BudgetCard
+                            key={b.id}
+                            budget={b}
+                            category={cat}
+                            parent={parent.id === '__orphans__' ? null : parentCat}
+                            formatCurrency={formatCurrency}
+                            onEdit={handleEdit}
+                            onDelete={deleteBudget}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div>
-                    {parent && <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{parent.name}</p>}
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 leading-tight">{cat?.name}</h4>
-                  </div>
-                </div>
-                {/* Botões de Editar/Excluir para Desktop (visíveis no hover) */}
-                <div className="hidden lg:flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => handleEdit(b)} className="p-1 text-slate-300 dark:text-slate-600 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => deleteBudget(b.id)} className="p-1 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                </div>
-              </div>
-                  {/* Dropdown Menu para Mobile/Tablet (visível em telas menores que lg) */}
-                  <div className="lg:hidden">
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger asChild>
-                        <button
-                          className="p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                          aria-label="Mais opções"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </DropdownMenu.Trigger>
-
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content
-                          className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50 animate-in fade-in zoom-in-95 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95 data-[side=top]:slide-in-from-bottom-2 data-[side=right]:slide-in-from-left-2 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2"
-                          sideOffset={5}
-                          align="end"
-                        >
-                          <DropdownMenu.Item
-                            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none transition-colors"
-                            onSelect={() => handleEdit(b)}
-                          >
-                            <Edit2 className="w-4 h-4 text-emerald-500" /> Editar
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
-                          <DropdownMenu.Item
-                            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer outline-none transition-colors"
-                            onSelect={() => deleteBudget(b.id)}
-                          >
-                            <Trash2 className="w-4 h-4" /> Excluir
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Arrow className="fill-white dark:fill-slate-800" />
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
-                  </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Progresso</span>
-                  <span className={`font-bold ${isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-200'}`}>{percent.toFixed(0)}%</span>
-                </div>
-                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className={`h-full transition-all duration-1000 ${isOver ? 'bg-rose-500 dark:bg-rose-400' : 'bg-emerald-500 dark:bg-emerald-400'}`} style={{ width: `${percent}%` }} />
-                </div>
-                <div className="flex justify-between items-baseline pt-2">
-                  <span className="text-xs text-slate-400 dark:text-slate-500">Gasto: {formatCurrency(b.spent)}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{formatCurrency(b.limit)}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                </Accordion.Content>
+              </Accordion.Item>
+            ))}
+          </Accordion.Root>
+        </section>
       )}
 
       {/* Modal Orçamento Inteligente */}
