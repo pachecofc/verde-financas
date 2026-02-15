@@ -57,44 +57,44 @@ export class GamificationController {
   }
 
   // GET /api/gamification/ranking - Top 10 por score + posição do usuário logado
+  // Inclui todos os usuários não deletados; quem não tem registro em user_scores usa score 500.
   static async getRanking(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.userId!;
 
-      const allScores = await prisma.userScore.findMany({
-        where: {
-          user: {
-            deletedAt: null,
-          },
+      const users = await prisma.user.findMany({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          hideFromRanking: true,
+          userScore: { select: { score: true } },
         },
-        include: {
-          user: {
-            select: { id: true, name: true, hideFromRanking: true },
-          },
-        },
-        orderBy: { score: 'desc' },
       });
 
-      const currentUserScoreRow = allScores.find((r) => r.userId === userId);
-      const currentUserRank = currentUserScoreRow
-        ? allScores.findIndex((r) => r.userId === userId) + 1
-        : null;
-      const currentUserScore = currentUserScoreRow?.score ?? 0;
-      const currentUser = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { name: true, hideFromRanking: true },
-      });
+      const DEFAULT_SCORE = 500;
+      const withScore = users.map((u) => ({
+        userId: u.id,
+        name: u.name,
+        hideFromRanking: u.hideFromRanking,
+        score: u.userScore?.score ?? DEFAULT_SCORE,
+      }));
+      withScore.sort((a, b) => b.score - a.score);
+
+      const currentIndex = withScore.findIndex((r) => r.userId === userId);
+      const currentUserRank = currentIndex >= 0 ? currentIndex + 1 : null;
+      const currentRow = withScore[currentIndex];
+      const currentUserScore = currentRow?.score ?? DEFAULT_SCORE;
       const currentUserName =
-        !currentUser || currentUser.hideFromRanking
+        !currentRow || currentRow.hideFromRanking
           ? 'Usuário'
-          : (decrypt(userId, currentUser.name) || currentUser.name || 'Usuário');
+          : (decrypt(userId, currentRow.name) || currentRow.name || 'Usuário');
 
-      const top10 = allScores.slice(0, 10).map((row, index) => {
+      const top10 = withScore.slice(0, 10).map((row, index) => {
         const rank = index + 1;
-        const name =
-          (row.user as { hideFromRanking?: boolean }).hideFromRanking
-            ? 'Usuário'
-            : (decrypt(row.userId, row.user.name) || row.user.name);
+        const name = row.hideFromRanking
+          ? 'Usuário'
+          : (decrypt(row.userId, row.name) || row.name);
         return {
           rank,
           userId: row.userId,

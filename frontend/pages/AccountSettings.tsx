@@ -717,7 +717,7 @@ export const AccountSettings: React.FC = () => {
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={authUser?.hideFromRanking ?? true}
+                  checked={authUser?.hideFromRanking ?? false}
                   onChange={async (e) => {
                     const value = e.target.checked;
                     const ok = await updateUserProfile({ hideFromRanking: value });
