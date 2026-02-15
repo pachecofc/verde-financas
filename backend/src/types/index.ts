@@ -12,6 +12,7 @@ export interface AuthResponse {
     name: string;
     avatarUrl?: string;
     plan?: 'BASIC' | 'PREMIUM';
+    hideFromRanking?: boolean;
   };
 }
 
