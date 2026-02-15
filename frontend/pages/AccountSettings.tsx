@@ -6,6 +6,7 @@ import {
   User, Mail, Lock, Trash2, Crown, X, Eye, EyeOff, Camera, Save, AlertCircle, CheckCircle, Loader2, ArrowLeft, Shield
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { TwoFactorModal } from '../components/TwoFactorModal';
 
@@ -703,6 +704,31 @@ export const AccountSettings: React.FC = () => {
                   )}
                 </button>
               )}
+            </div>
+
+            {/* Ocultar do ranking */}
+            <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
+              <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 mb-2">
+                Ranking de Pontuação
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Na página Saúde Financeira, é exibido um ranking com os maiores scores. Se você marcar a opção abaixo, seu nome não aparecerá no ranking (sua posição e pontuação continuarão visíveis para você).
+              </p>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={authUser?.hideFromRanking ?? true}
+                  onChange={async (e) => {
+                    const value = e.target.checked;
+                    const ok = await updateUserProfile({ hideFromRanking: value });
+                    if (ok) toast.success(value ? 'Seu nome foi ocultado do ranking.' : 'Seu nome será exibido no ranking.');
+                  }}
+                  className="w-5 h-5 rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Ocultar meu nome do ranking
+                </span>
+              </label>
             </div>
           </div>
         )}

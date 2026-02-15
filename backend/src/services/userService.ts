@@ -9,6 +9,7 @@ interface UpdateProfileData {
   email?: string;
   plan?: UserPlan;
   stripeCustomerId?: string | null;
+  hideFromRanking?: boolean;
 }
 
 export class UserService {
@@ -49,10 +50,11 @@ export class UserService {
     if (data.email !== undefined) payload.email = data.email;
     if (data.plan !== undefined) payload.plan = data.plan;
     if (data.stripeCustomerId !== undefined) payload.stripeCustomerId = data.stripeCustomerId;
+    if (data.hideFromRanking !== undefined) (payload as any).hideFromRanking = data.hideFromRanking;
     const user = await prisma.user.update({
       where: { id: userId },
-      data: payload as { name?: string; email?: string; plan?: UserPlan; stripeCustomerId?: string | null },
-      select: { id: true, name: true, email: true, avatarUrl: true, plan: true, stripeCustomerId: true },
+      data: payload as { name?: string; email?: string; plan?: UserPlan; stripeCustomerId?: string | null; hideFromRanking?: boolean },
+      select: { id: true, name: true, email: true, avatarUrl: true, plan: true, stripeCustomerId: true, hideFromRanking: true },
     });
 
     await AuditService.log({
@@ -63,6 +65,18 @@ export class UserService {
       resourceId: userId,
     });
 
+    return {
+      ...user,
+      name: decrypt(userId, user.name) ?? user.name,
+    };
+  }
+
+  static async getProfile(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, avatarUrl: true, plan: true, hideFromRanking: true },
+    });
+    if (!user) return null;
     return {
       ...user,
       name: decrypt(userId, user.name) ?? user.name,

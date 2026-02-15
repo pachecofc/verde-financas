@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -46,6 +46,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [scoreLevels, setScoreLevels] = useState<ScoreLevel[]>([]);
+  const [scoreDelta, setScoreDelta] = useState<number | null>(null);
+  const previousScoreRef = useRef<number | null>(null);
 
   const { user: authUser, logout, isLoggingOut } = useAuth();
   const { theme, toggleTheme, user: financeUser } = useFinance();
@@ -66,6 +68,20 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     const clamped = Math.max(0, Math.min(1000, Math.round(score)));
     return scoreLevels.find((l) => clamped >= l.min && clamped <= l.max) ?? null;
   }, [financeUser?.score, scoreLevels]);
+
+  const currentScore = financeUser?.score ?? 0;
+  useEffect(() => {
+    const prev = previousScoreRef.current;
+    if (prev !== null && currentScore > prev) {
+      setScoreDelta(currentScore - prev);
+      const t = setTimeout(() => {
+        setScoreDelta(null);
+        previousScoreRef.current = currentScore;
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+    previousScoreRef.current = currentScore;
+  }, [currentScore]);
 
   const displayName = authUser?.name || '';
   const displayAvatar = authUser?.avatarUrl || '';
@@ -215,19 +231,24 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <div className="flex items-center justify-end gap-1.5">
                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">{displayName}</p>
                  {scoreLevel && (
-                   <span title={scoreLevel.badge} className="flex items-center justify-center">
+                   <span title={scoreLevel.badge} className={`flex items-center justify-center transition-transform ${scoreDelta !== null ? 'animate-pulse' : ''}`}>
                      <LucideIconByName name={scoreLevel.icon} size={16} className="text-emerald-600 dark:text-emerald-400" />
                    </span>
                  )}
               </div>
-              <div className="flex items-center justify-end gap-1 mt-0.5">
+              <div className={`flex items-center justify-end gap-1 mt-0.5 transition-all ${scoreDelta !== null ? 'animate-pulse' : ''}`}>
                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                  <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{financeUser?.score ?? 0} Score</p>
+                 {scoreDelta !== null && (
+                   <span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 animate-in fade-in duration-200 ml-1 rounded bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5">
+                     +{scoreDelta} pts
+                   </span>
+                 )}
               </div>
             </div>
             <div className="relative flex items-center gap-1.5">
                {scoreLevel && (
-                 <span title={scoreLevel.badge} className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
+                 <span title={scoreLevel.badge} className={`hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 transition-transform ${scoreDelta !== null ? 'animate-pulse' : ''}`}>
                    <LucideIconByName name={scoreLevel.icon} size={18} />
                  </span>
                )}

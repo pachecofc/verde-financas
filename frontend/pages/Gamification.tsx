@@ -9,10 +9,11 @@ import {
   BookOpen,
   Sparkles,
   X,
+  Medal,
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import api from '../services/api';
-import type { ScoreLevel, ScoreEventItem } from '../services/api';
+import type { ScoreLevel, ScoreEventItem, RankingResponse } from '../services/api';
 
 export const Gamification: React.FC = () => {
   const { user: authUser } = useAuth();
@@ -24,6 +25,8 @@ export const Gamification: React.FC = () => {
   const [rulesLoading, setRulesLoading] = useState(true);
   const [scoreEvents, setScoreEvents] = useState<ScoreEventItem[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [ranking, setRanking] = useState<RankingResponse | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(true);
 
   const isPremium = authUser?.plan?.toLowerCase() === 'premium';
 
@@ -59,6 +62,22 @@ export const Gamification: React.FC = () => {
       .catch(() => {})
       .finally(() => {
         if (!cancelled) setEventsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.gamification
+      .getRanking()
+      .then((data) => {
+        if (!cancelled) setRanking(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setRankingLoading(false);
       });
     return () => {
       cancelled = true;
@@ -244,6 +263,65 @@ export const Gamification: React.FC = () => {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+
+          <h3 className="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mt-8">
+            Ranking
+          </h3>
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+            {rankingLoading ? (
+              <div className="py-8 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+              </div>
+            ) : ranking ? (
+              <div className="space-y-4">
+                <ul className="space-y-2">
+                  {ranking.top10.map((entry) => (
+                    <li
+                      key={entry.userId}
+                      className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/50"
+                    >
+                      <span className="flex items-center justify-center w-8 shrink-0">
+                        {entry.rank === 1 && <Medal className="w-6 h-6 text-amber-500" aria-label="1º lugar" />}
+                        {entry.rank === 2 && <Medal className="w-6 h-6 text-slate-400" aria-label="2º lugar" />}
+                        {entry.rank === 3 && <Medal className="w-6 h-6 text-amber-700" aria-label="3º lugar" />}
+                        {entry.rank > 3 && (
+                          <span className="text-xs font-black text-slate-400 dark:text-slate-500 w-6 text-center">
+                            #{entry.rank}
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 text-sm truncate flex-1 min-w-0">
+                        {entry.name}
+                      </span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        {entry.score}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {ranking.currentUser.rank !== null && (
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                      Sua posição
+                    </p>
+                    <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50">
+                      <span className="text-xs font-black text-slate-600 dark:text-slate-300 w-8 text-center shrink-0">
+                        #{ranking.currentUser.rank}
+                      </span>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 text-sm truncate flex-1 min-w-0">
+                        {ranking.currentUser.name}
+                      </span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        {ranking.currentUser.score}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-slate-500 dark:text-slate-400 text-sm py-6">Não foi possível carregar o ranking.</p>
             )}
           </div>
         </div>

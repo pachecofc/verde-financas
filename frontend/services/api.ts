@@ -483,6 +483,7 @@ export interface AuthUser {
   email: string;
   avatarUrl?: string;
   plan?: 'BASIC' | 'PREMIUM';
+  hideFromRanking?: boolean;
 }
 
 export interface AuthResponse {
@@ -506,6 +507,7 @@ export interface UpdatedUserResponse {
   email: string;
   avatarUrl?: string;
   plan?: 'BASIC' | 'PREMIUM';
+  hideFromRanking?: boolean;
 }
 
 // Interface para payload de mudança de senha
@@ -1458,6 +1460,18 @@ export interface ScoreEventsByDay {
   dayTotal: number;
 }
 
+export interface RankingEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  score: number;
+}
+
+export interface RankingResponse {
+  top10: RankingEntry[];
+  currentUser: { rank: number | null; score: number; name: string };
+}
+
 const gamificationApi = {
   getRules: async (): Promise<GamificationRulesResponse> => {
     const doRequest = async () => {
@@ -1477,6 +1491,17 @@ const gamificationApi = {
         headers: getAuthHeaders(),
       });
       return handleResponse<ScoreEventsByDay[]>(response);
+    };
+    return withRetryAuth(doRequest);
+  },
+
+  getRanking: async (): Promise<RankingResponse> => {
+    const doRequest = async () => {
+      const response = await fetch(`${API_BASE_URL}/gamification/ranking`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      return handleResponse<RankingResponse>(response);
     };
     return withRetryAuth(doRequest);
   },

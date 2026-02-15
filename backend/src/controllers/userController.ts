@@ -39,14 +39,14 @@ export class UserController {
         return res.status(401).json({ error: 'Usuário não autenticado.' });
       }
 
-      const { name, email, plan } = req.body;
+      const { name, email, plan, hideFromRanking } = req.body;
 
       // Validar o 'plan' recebido, se necessário
       if (plan && !Object.values(UserPlan).includes(plan.toUpperCase())) {
         return res.status(400).json({ error: 'Plano inválido.' });
       }
       
-      const updatedUser = await UserService.updateUserProfile(req.userId, { name, email, plan });
+      const updatedUser = await UserService.updateUserProfile(req.userId, { name, email, plan, hideFromRanking });
 
       res.status(200).json({
         message: 'Perfil atualizado com sucesso!',
@@ -56,6 +56,7 @@ export class UserController {
           email: updatedUser.email,
           avatarUrl: updatedUser.avatarUrl,
           plan: updatedUser.plan,
+          hideFromRanking: updatedUser.hideFromRanking,
         },
       });
     } catch (error) {

@@ -36,6 +36,7 @@ model User {
   twoFactorSecret      String?   // Secret TOTP criptografado
   twoFactorEnabled     Boolean   @default(false) // Status do 2FA
   twoFactorBackupCodes String[]  // Códigos de backup (criptografados)
+  hideFromRanking      Boolean   @default(true)   // Se true, nome não aparece no ranking (checkbox "Ocultar" selecionado por padrão)
   lastLoginAt          DateTime? // Último login (para regra INACTIVITY)
   termsAcceptedAt      DateTime?  // Data e hora exata do aceite
   termsVersion         String?    // Versão do termo aceito

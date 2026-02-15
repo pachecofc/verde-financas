@@ -17,6 +17,7 @@ import {
   changePasswordSchema,
 } from '../validations/authSchemas';
 import { isConnectionOrDatabaseError, AUTH_CONNECTION_ERROR_MESSAGE } from '../utils/errorUtils';
+import { decrypt } from '../services/encryptionService';
 
 const router = Router();
 
@@ -205,14 +206,17 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
     // Gera novo access token curto para o usuário
     const accessToken = AuthService['generateAccessToken']({ id: user.id, email: user.email });
 
+    const nameDecrypted = decrypt(user.id, user.name) ?? user.name;
+    const userWithHide = user as typeof user & { hideFromRanking?: boolean };
     return res.status(200).json({
       token: accessToken,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: nameDecrypted,
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
+        hideFromRanking: userWithHide.hideFromRanking ?? true,
       },
     });
   } catch (error) {
