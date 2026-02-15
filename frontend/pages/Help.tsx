@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import * as Accordion from '@radix-ui/react-accordion';
-import { HelpCircle, ChevronDown, Loader2, Send, X, Paperclip } from 'lucide-react';
+import { HelpCircle, ChevronDown, Loader2, Send, X, Paperclip, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import api, {
   type FaqCategoryApi,
   type SupportRequestType,
 } from '../services/api';
+import { useOnboardingTour } from '../hooks/useOnboardingTour';
 
 export const Help: React.FC = () => {
   const [categories, setCategories] = useState<FaqCategoryApi[]>([]);
@@ -16,6 +17,7 @@ export const Help: React.FC = () => {
   const [submitDescription, setSubmitDescription] = useState('');
   const [submitAttachment, setSubmitAttachment] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { startTour } = useOnboardingTour();
 
   useEffect(() => {
     api.faq
@@ -62,13 +64,23 @@ export const Help: React.FC = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
-          >
-            <Send className="w-4 h-4" />
-            Enviar pedido de ajuda
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => startTour(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl border border-slate-200 dark:border-slate-700 transition-all active:scale-[0.98]"
+            >
+              <Sparkles className="w-4 h-4" />
+              Assistir tour do sistema
+            </button>
+            <button
+              data-tour-id="tour-enviar-ajuda"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white font-bold rounded-xl shadow-lg transition-all active:scale-[0.98]"
+            >
+              <Send className="w-4 h-4" />
+              Enviar pedido de ajuda
+            </button>
+          </div>
         </div>
       </header>
 

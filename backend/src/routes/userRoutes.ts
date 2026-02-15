@@ -29,6 +29,9 @@ router.put('/profile/avatar', authMiddleware, handleAvatarUpload, UserController
 // Rota para atualizar outras informações do perfil (nome, email, etc.)
 router.put('/profile', authMiddleware, UserController.updateProfile);
 
+// Rota para marcar tour de onboarding como concluído
+router.put('/profile/onboarding-tour-completed', authMiddleware, UserController.markOnboardingTourCompleted);
+
 // Rota para excluir conta (soft delete) - requer 2FA se habilitado
 router.delete('/delete-account', authMiddleware, requireTwoFactor, UserController.deleteAccount);
 

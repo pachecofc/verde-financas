@@ -141,7 +141,7 @@ export const Gamification: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center text-center">
+          <div data-tour-id="tour-status-score" className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col items-center text-center">
             <div className="w-48 h-48 rounded-full border-[12px] border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center relative mb-6">
               <div
                 className="absolute inset-0 rounded-full border-[12px] border-emerald-500 border-t-transparent border-r-transparent -rotate-45"
@@ -269,7 +269,7 @@ export const Gamification: React.FC = () => {
           <h3 className="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-2 mt-8">
             Ranking
           </h3>
-          <div className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div data-tour-id="tour-ranking" className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm">
             {rankingLoading ? (
               <div className="py-8 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />

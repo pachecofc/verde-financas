@@ -722,24 +722,26 @@ export const Transactions: React.FC = () => {
           >
             <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${transactionsRefreshing ? 'animate-spin' : ''}`} />
           </button>
-          <button onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative group flex-shrink-0">
+          <button data-tour-id="tour-scanner" onClick={handleScannerClick} className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 px-5 py-3 rounded-xl font-semibold hover:bg-emerald-100 transition-all relative group flex-shrink-0">
             <Camera className="w-5 h-5 group-hover:animate-pulse" /> Scanner
             {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}
           </button>
-          <button
-            onClick={() => { setImportStep('upload'); setShowImportModal(true); }}
-            disabled={isImporting}
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-          >
-            <FileSpreadsheet className="w-5 h-5" /> Importar CSV
-          </button>
-          <button
-            onClick={() => handleExportCsv()}
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all flex-shrink-0"
-          >
-            <FileText className="w-5 h-5" /> Exportar CSV
-          </button>
-          <button onClick={() => { setEditingId(null); setShowModal(true); }} className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98] flex-shrink-0">
+          <div data-tour-id="tour-import-export" className="flex items-center gap-2">
+            <button
+              onClick={() => { setImportStep('upload'); setShowImportModal(true); }}
+              disabled={isImporting}
+              className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              <FileSpreadsheet className="w-5 h-5" /> Importar CSV
+            </button>
+            <button
+              onClick={() => handleExportCsv()}
+              className="flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-5 py-3 rounded-xl font-semibold hover:bg-slate-50 transition-all flex-shrink-0"
+            >
+              <FileText className="w-5 h-5" /> Exportar CSV
+            </button>
+          </div>
+          <button data-tour-id="tour-novo-lancamento" onClick={() => { setEditingId(null); setShowModal(true); }} className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98] flex-shrink-0">
             <Plus className="w-5 h-5" /> Novo Lançamento
           </button>
         </div>

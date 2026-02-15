@@ -148,6 +148,7 @@ export const Accounts: React.FC = () => {
             <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
+            data-tour-id="tour-add-conta"
             onClick={() => { setEditingId(null); setShowModal(true); }}
             className="flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white px-6 py-3 rounded-xl transition-all shadow-lg dark:shadow-none active:scale-[0.98]"
           >

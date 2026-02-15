@@ -89,7 +89,7 @@ export class AuthService {
     // Gerar token JWT de acesso (curta duração)
     const token = this.generateAccessToken({ id: user.id, email: user.email });
 
-    const userWithHide = user as typeof user & { hideFromRanking?: boolean };
+    const userWithHide = user as typeof user & { hideFromRanking?: boolean; onboardingTourCompletedAt?: Date | null };
     return {
       token,
       user: {
@@ -99,6 +99,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
         hideFromRanking: userWithHide.hideFromRanking ?? true,
+        onboardingTourCompletedAt: userWithHide.onboardingTourCompletedAt?.toISOString() ?? null,
       },
     };
   }
@@ -145,7 +146,7 @@ export class AuthService {
     const userWith2FA = user as typeof user & { twoFactorEnabled: boolean };
     if (userWith2FA.twoFactorEnabled) {
       const nameDecrypted = decrypt(user.id, user.name) ?? user.name;
-      const userWithHide = user as typeof user & { hideFromRanking?: boolean };
+      const userWithHide = user as typeof user & { hideFromRanking?: boolean; onboardingTourCompletedAt?: Date | null };
       return {
         token: '', // Token vazio - será gerado após validação do 2FA
         user: {
@@ -155,6 +156,7 @@ export class AuthService {
           avatarUrl: user.avatarUrl || undefined,
           plan: user.plan || undefined,
           hideFromRanking: userWithHide.hideFromRanking ?? true,
+          onboardingTourCompletedAt: userWithHide.onboardingTourCompletedAt?.toISOString() ?? null,
         },
         requiresTwoFactor: true,
       };
@@ -173,7 +175,7 @@ export class AuthService {
     });
 
     const nameDecrypted = decrypt(user.id, user.name) ?? user.name;
-    const userWithHide = user as typeof user & { hideFromRanking?: boolean };
+    const userWithHide = user as typeof user & { hideFromRanking?: boolean; onboardingTourCompletedAt?: Date | null };
     return {
       token,
       user: {
@@ -183,6 +185,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
         hideFromRanking: userWithHide.hideFromRanking ?? true,
+        onboardingTourCompletedAt: userWithHide.onboardingTourCompletedAt?.toISOString() ?? null,
       },
     };
   }
@@ -223,7 +226,7 @@ export class AuthService {
     });
 
     const nameDecrypted2FA = decrypt(user.id, user.name) ?? user.name;
-    const userWithHide = user as typeof user & { hideFromRanking?: boolean };
+    const userWithHide = user as typeof user & { hideFromRanking?: boolean; onboardingTourCompletedAt?: Date | null };
     return {
       token,
       user: {
@@ -233,6 +236,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
         hideFromRanking: userWithHide.hideFromRanking ?? true,
+        onboardingTourCompletedAt: userWithHide.onboardingTourCompletedAt?.toISOString() ?? null,
       },
     };
   }

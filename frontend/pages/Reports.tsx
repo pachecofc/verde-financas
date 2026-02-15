@@ -203,7 +203,7 @@ export const Reports: React.FC = () => {
       </div>
 
       {/* Grid de Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div data-tour-id="tour-reports" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {reportCards.map((card) => {
           const Icon = card.icon;
           return (

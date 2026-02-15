@@ -205,7 +205,7 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
     const accessToken = AuthService['generateAccessToken']({ id: user.id, email: user.email });
 
     const nameDecrypted = decrypt(user.id, user.name) ?? user.name;
-    const userWithHide = user as typeof user & { hideFromRanking?: boolean };
+    const userWithHide = user as typeof user & { hideFromRanking?: boolean; onboardingTourCompletedAt?: Date | null };
     return res.status(200).json({
       token: accessToken,
       user: {
@@ -215,6 +215,7 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
         avatarUrl: user.avatarUrl || undefined,
         plan: user.plan || undefined,
         hideFromRanking: userWithHide.hideFromRanking ?? true,
+        onboardingTourCompletedAt: userWithHide.onboardingTourCompletedAt?.toISOString() ?? null,
       },
     });
   } catch (error) {

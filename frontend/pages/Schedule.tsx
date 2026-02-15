@@ -497,6 +497,7 @@ export const Schedule: React.FC = () => {
             <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${schedulesRefreshing ? "animate-spin" : ""}`} />
           </button>
           <button
+            data-tour-id="tour-agendar"
             onClick={() => {
               setEditingId(null);
               setShowModal(true);

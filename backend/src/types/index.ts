@@ -13,6 +13,7 @@ export interface AuthResponse {
     avatarUrl?: string;
     plan?: 'BASIC' | 'PREMIUM';
     hideFromRanking?: boolean;
+    onboardingTourCompletedAt?: string | null;
   };
 }
 

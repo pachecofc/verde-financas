@@ -470,6 +470,7 @@ export interface AuthUser {
   avatarUrl?: string;
   plan?: 'BASIC' | 'PREMIUM';
   hideFromRanking?: boolean;
+  onboardingTourCompletedAt?: string | null;
 }
 
 export interface AuthResponse {
@@ -494,6 +495,7 @@ export interface UpdatedUserResponse {
   avatarUrl?: string;
   plan?: 'BASIC' | 'PREMIUM';
   hideFromRanking?: boolean;
+  onboardingTourCompletedAt?: string | null;
 }
 
 // Interface para payload de mudança de senha
@@ -572,6 +574,16 @@ export const authApi = {
       body: formData,
     });
     return handleResponse<{ message: string; avatarUrl: string }>(response);
+  },
+
+  // Marcar tour de onboarding como concluído
+  markOnboardingTourCompleted: async (): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/users/profile/onboarding-tour-completed`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    await handleResponse<{ message: string }>(response);
   },
 
   // Função para atualizar informações do perfil (nome, email, etc.)

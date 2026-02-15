@@ -357,6 +357,7 @@ export const Categories: React.FC = () => {
             <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${categoriesLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
+            data-tour-id="tour-add-categoria"
             onClick={() => { setEditingId(null); setShowModal(true); }}
             disabled={categoriesLoading}
             className="bg-emerald-600 dark:bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg dark:shadow-none hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all flex items-center gap-2 font-bold active:scale-[0.98] disabled:opacity-50 flex-shrink-0"

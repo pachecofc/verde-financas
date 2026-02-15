@@ -22,6 +22,7 @@ interface AuthContextType {
   resetPassword: (data: ResetPasswordPayload) => Promise<boolean>;
   uploadAvatar: (file: File) => Promise<boolean>;
   updateUserProfile: (data: Partial<UpdatedUserResponse>) => Promise<boolean>;
+  markOnboardingTourCompleted: () => Promise<boolean>;
   changePassword: (data: ChangePasswordPayload) => Promise<boolean>;
   verifyLoginTwoFactor: (userId: string, code: string) => Promise<boolean>;
 }
@@ -201,6 +202,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
+  const markOnboardingTourCompleted = useCallback(async (): Promise<boolean> => {
+    try {
+      await authApi.markOnboardingTourCompleted();
+      if (user) {
+        const completedAt = new Date().toISOString();
+        const updatedUser = { ...user, onboardingTourCompletedAt: completedAt };
+        authApi.setAuth(authApi.getToken()!, updatedUser);
+        setUser(updatedUser);
+      }
+      return true;
+    } catch (err) {
+      console.error('Erro ao marcar tour concluído:', err);
+      return false;
+    }
+  }, [user]);
+
   // Alterar senha
   const changePassword = useCallback(async (data: ChangePasswordPayload): Promise<boolean> => {
     setIsLoading(true);
@@ -272,6 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetPassword,
       uploadAvatar,
       updateUserProfile,
+      markOnboardingTourCompleted,
       changePassword,
       verifyLoginTwoFactor,
     }}>

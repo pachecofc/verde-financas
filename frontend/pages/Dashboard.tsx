@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart as RePieChart, Pie, Cell, Legend, AreaChart, Area, ComposedChart
@@ -7,12 +7,19 @@ import {
 import { TrendingUp, TrendingDown, Wallet, Calendar, Info, ShieldCheck, HeartPulse, Trophy, Crown, Sparkles, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAccounts } from '../contexts/AccountContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { WelcomeModal } from '../components/WelcomeModal';
+import { useOnboardingTour } from '../hooks/useOnboardingTour';
 
 export const Dashboard: React.FC = () => {
   const { transactions, categories, schedules, budgets, theme, user } = useFinance();
-  const { accounts } = useAccounts(); // Usar contas do AccountContext (vindas do backend)
+  const { accounts } = useAccounts();
+  const { user: authUser, markOnboardingTourCompleted } = useAuth();
+  const { startTour } = useOnboardingTour();
+  const hasShownWelcomeRef = useRef(false);
 
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -131,6 +138,27 @@ export const Dashboard: React.FC = () => {
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+  useEffect(() => {
+    if (
+      authUser &&
+      !authUser.onboardingTourCompletedAt &&
+      !hasShownWelcomeRef.current
+    ) {
+      hasShownWelcomeRef.current = true;
+      setShowWelcomeModal(true);
+    }
+  }, [authUser]);
+
+  const handleSkipTour = async () => {
+    setShowWelcomeModal(false);
+    await markOnboardingTourCompleted();
+  };
+
+  const handleStartTour = () => {
+    setShowWelcomeModal(false);
+    startTour(false);
+  };
+
   const chartStyles = {
     grid: theme === 'dark' ? '#1e293b' : '#f1f5f9',
     text: theme === 'dark' ? '#94a3b8' : '#64748b',
@@ -140,6 +168,13 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-10 transition-colors">
+      {showWelcomeModal && authUser && (
+        <WelcomeModal
+          userName={authUser.name}
+          onStartTour={handleStartTour}
+          onSkip={handleSkipTour}
+        />
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Painel de Controle</h1>
@@ -152,7 +187,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div data-tour-id="tour-dashboard-resumo" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Link to="/health" className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-md transition-all group overflow-hidden relative">
           <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
              <ShieldCheck className="w-24 h-24 text-emerald-600" />
@@ -195,7 +230,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Fluxo de Caixa Central (Novo) */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div data-tour-id="tour-dashboard-fluxo" className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Fluxo de Caixa: Realizado vs Previsto</h3>

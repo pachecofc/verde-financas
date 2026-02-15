@@ -42,6 +42,7 @@ model User {
   termsVersion         String?    // Versão do termo aceito
   privacyPolicyVersion  String?   // Versão da política aceita
   signupIp             String?    // Endereço IP usado no cadastro
+  onboardingTourCompletedAt DateTime? // null = nunca concluiu; preenchido = tour de onboarding concluído
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 

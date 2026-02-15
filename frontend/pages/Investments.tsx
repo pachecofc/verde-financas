@@ -216,6 +216,7 @@ export const Investments: React.FC = () => {
         </div>
         <div className="flex gap-2">
            <button 
+            data-tour-id="tour-nova-meta"
             onClick={() => handleOpenGoalModal()}
             className="flex items-center gap-2 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-slate-800 px-5 py-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-800 transition-all font-semibold"
           >
@@ -314,75 +315,6 @@ export const Investments: React.FC = () => {
              </div>
           </div>
         </div>
-
-        <div className="lg:col-span-3">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Metas de Vida
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {goals.map(goal => {
-                  const percent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
-                  const isDone = percent >= 100;
-                  return (
-                    <div key={goal.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm group hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all relative">
-                       <div className="flex justify-between items-start mb-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${isDone ? 'bg-amber-50 dark:bg-amber-900/20 animate-bounce' : 'bg-slate-50 dark:bg-slate-800'}`}>
-                             {isDone ? '👑' : goal.icon}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <div className="hidden lg:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => handleOpenGoalModal(goal)} className="text-slate-300 dark:text-slate-600 hover:text-emerald-500 dark:hover:text-emerald-400 p-1"><Edit2 className="w-4 h-4" /></button>
-                              <button onClick={() => deleteGoal(goal.id)} className="text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 p-1"><X className="w-4 h-4" /></button>
-                            </div>
-                            <div className="lg:hidden">
-                              <DropdownMenu.Root>
-                                <DropdownMenu.Trigger asChild>
-                                  <button className="p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Mais opções">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </button>
-                                </DropdownMenu.Trigger>
-                                <DropdownMenu.Portal>
-                                  <DropdownMenu.Content
-                                    className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50"
-                                    sideOffset={5}
-                                    align="end"
-                                  >
-                                    <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer" onSelect={() => handleOpenGoalModal(goal)}>
-                                      <Edit2 className="w-4 h-4 text-emerald-500" /> Editar
-                                    </DropdownMenu.Item>
-                                    <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
-                                    <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer" onSelect={() => deleteGoal(goal.id)}>
-                                      <X className="w-4 h-4" /> Excluir
-                                    </DropdownMenu.Item>
-                                  </DropdownMenu.Content>
-                                </DropdownMenu.Portal>
-                              </DropdownMenu.Root>
-                            </div>
-                          </div>
-                       </div>
-                       <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{goal.name}</h4>
-                       <div className="flex justify-between text-xs font-bold mb-2">
-                          <span className="text-slate-400 dark:text-slate-500">{formatCurrency(goal.currentAmount)}</span>
-                          <span className={isDone ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>{percent.toFixed(0)}%</span>
-                       </div>
-                       <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2">
-                          <div 
-                            className={`h-full transition-all duration-1000 ${isDone ? 'bg-amber-500 dark:bg-amber-400' : 'bg-emerald-500 dark:bg-emerald-400'}`} 
-                            style={{ width: `${percent}%` }} 
-                          />
-                       </div>
-                       <p className="text-[10px] text-slate-400 dark:text-slate-500 text-right font-bold">Objetivo: {formatCurrency(goal.targetAmount)}</p>
-                    </div>
-                  );
-                })}
-                {goals.length === 0 && (
-                  <div className="col-span-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
-                    <Award className="w-12 h-12 opacity-20 mb-2" />
-                    <p className="text-sm font-medium text-center">Nenhuma meta definida. Que tal começar a planejar uma viagem?</p>
-                  </div>
-                )}
-          </div>
-        </div>
       </div>
 
       <section id="ativos" className="space-y-6 scroll-mt-8">
@@ -404,6 +336,7 @@ export const Investments: React.FC = () => {
               />
             </div>
             <button
+              data-tour-id="tour-adicionar-ativo"
               onClick={() => { setEditingAssetId(null); setShowAssetModal(true); }}
               className="bg-emerald-600 dark:bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg dark:shadow-none hover:bg-emerald-700 dark:hover:bg-emerald-400 transition-all flex items-center gap-2 font-bold active:scale-[0.98] flex-shrink-0"
             >
@@ -511,6 +444,75 @@ export const Investments: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+          <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Metas de Vida
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {goals.map(goal => {
+            const percent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+            const isDone = percent >= 100;
+            return (
+              <div key={goal.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm group hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all relative">
+                <div className="flex justify-between items-start mb-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${isDone ? 'bg-amber-50 dark:bg-amber-900/20 animate-bounce' : 'bg-slate-50 dark:bg-slate-800'}`}>
+                    {isDone ? '👑' : goal.icon}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="hidden lg:flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleOpenGoalModal(goal)} className="text-slate-300 dark:text-slate-600 hover:text-emerald-500 dark:hover:text-emerald-400 p-1"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => deleteGoal(goal.id)} className="text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 p-1"><X className="w-4 h-4" /></button>
+                    </div>
+                    <div className="lg:hidden">
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                          <button className="p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Mais opções">
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Portal>
+                          <DropdownMenu.Content
+                            className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50"
+                            sideOffset={5}
+                            align="end"
+                          >
+                            <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer" onSelect={() => handleOpenGoalModal(goal)}>
+                              <Edit2 className="w-4 h-4 text-emerald-500" /> Editar
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
+                            <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer" onSelect={() => deleteGoal(goal.id)}>
+                              <X className="w-4 h-4" /> Excluir
+                            </DropdownMenu.Item>
+                          </DropdownMenu.Content>
+                        </DropdownMenu.Portal>
+                      </DropdownMenu.Root>
+                    </div>
+                  </div>
+                </div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-100 mb-1">{goal.name}</h4>
+                <div className="flex justify-between text-xs font-bold mb-2">
+                  <span className="text-slate-400 dark:text-slate-500">{formatCurrency(goal.currentAmount)}</span>
+                  <span className={isDone ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}>{percent.toFixed(0)}%</span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${isDone ? 'bg-amber-500 dark:bg-amber-400' : 'bg-emerald-500 dark:bg-emerald-400'}`} 
+                    style={{ width: `${percent}%` }} 
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 text-right font-bold">Objetivo: {formatCurrency(goal.targetAmount)}</p>
+              </div>
+            );
+          })}
+          {goals.length === 0 && (
+            <div className="col-span-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
+              <Award className="w-12 h-12 opacity-20 mb-2" />
+              <p className="text-sm font-medium text-center">Nenhuma meta definida. Que tal começar a planejar uma viagem?</p>
+            </div>
+          )}
         </div>
       </section>
 

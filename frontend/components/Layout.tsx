@@ -89,13 +89,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Transações', path: '/transactions', icon: ArrowLeftRight },
-    { name: 'Orçamentos', path: '/budgets', icon: PieChart },
-    { name: 'Programação', path: '/schedule', icon: CalendarDays },
+    { name: 'Orçamentos', path: '/budgets', icon: PieChart, tourId: 'tour-sidebar-budgets' },
+    { name: 'Programação', path: '/schedule', icon: CalendarDays, tourId: 'tour-sidebar-schedule' },
     { name: 'Investimentos', path: '/investments', icon: TrendingUp },
     { name: 'Saúde Financeira', path: '/health', icon: HeartPulse },
     { name: 'Relatórios', path: '/reports', icon: FileText },
-    { name: 'Contas', path: '/accounts', icon: CreditCard },
-    { name: 'Categorias', path: '/categories', icon: Tags },
+    { name: 'Contas', path: '/accounts', icon: CreditCard, tourId: 'tour-sidebar-accounts' },
+    { name: 'Categorias', path: '/categories', icon: Tags, tourId: 'tour-sidebar-categories' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -119,6 +119,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {isOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsOpen(false)} />}
 
       <aside
+        data-tour-id="tour-sidebar"
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform transition-transform duration-300 md:relative md:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}
@@ -156,6 +157,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <Link
                 key={item.path}
                 to={item.path}
+                {...(item.tourId ? { 'data-tour-id': item.tourId } : {})}
                 onClick={() => setIsOpen(false)}
                 title={isSidebarCollapsed ? item.name : undefined}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
@@ -180,6 +182,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <Link
               to="/help"
+              data-tour-id="tour-sidebar-help"
               onClick={() => setIsOpen(false)}
               title={isSidebarCollapsed ? 'Ajuda' : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-all ${
@@ -226,7 +229,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-30 transition-colors">
           <button onClick={() => setIsOpen(true)} className="md:hidden text-slate-600 dark:text-slate-300"><Menu className="w-6 h-6" /></button>
-          <div className="flex items-center gap-4 ml-auto cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded-xl transition-all group" onClick={handleAvatarClick}>
+          <div data-tour-id="tour-header-avatar" className="flex items-center gap-4 ml-auto cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded-xl transition-all group" onClick={handleAvatarClick}>
             <div className="text-right hidden sm:block">
               <div className="flex items-center justify-end gap-1.5">
                  <p className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">{displayName}</p>
@@ -295,6 +298,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
         {/* Floating AI Button */}
         <button
+          data-tour-id="tour-ai-button"
           onClick={() => setIsAiOpen(true)}
           className="fixed bottom-8 right-8 w-14 h-14 bg-emerald-600 dark:bg-emerald-500 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all group z-40"
           title="Assistente Financeiro IA"

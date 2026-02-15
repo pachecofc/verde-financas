@@ -86,6 +86,25 @@ export class UserController {
     }
   }
 
+  static async markOnboardingTourCompleted(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Usuário não autenticado.' });
+      }
+
+      await UserService.markOnboardingTourCompleted(req.userId);
+
+      res.status(200).json({
+        message: 'Tour de onboarding marcado como concluído.',
+      });
+    } catch (error) {
+      console.error('Erro ao marcar tour concluído:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Erro interno ao marcar tour.',
+      });
+    }
+  }
+
   static async reactivateAccount(req: AuthenticatedRequest, res: Response) {
     try {
       if (!req.userId) {

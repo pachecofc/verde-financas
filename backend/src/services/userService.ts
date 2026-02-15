@@ -160,6 +160,14 @@ export class UserService {
     return result.count;
   }
 
+  // Marcar tour de onboarding como concluído
+  static async markOnboardingTourCompleted(userId: string) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { onboardingTourCompletedAt: new Date() } as { onboardingTourCompletedAt: Date },
+    });
+  }
+
   // Atualizar último login (para regra INACTIVITY)
   static async updateLastLogin(userId: string): Promise<void> {
     await prisma.user.update({

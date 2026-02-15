@@ -399,6 +399,7 @@ export const Budgets: React.FC = () => {
             <RefreshCw className={`w-5 h-5 text-slate-500 dark:text-slate-400 ${budgetsLoading ? 'animate-spin' : ''}`} />
           </button>
           <button 
+            data-tour-id="tour-orcamento-inteligente"
             onClick={handleSmartBudgetClick}
             className="flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-slate-800/50 px-5 py-3 rounded-xl transition-all font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40 active:scale-[0.98] relative group"
           >
@@ -407,6 +408,7 @@ export const Budgets: React.FC = () => {
             {!isPremium && <div className="absolute -top-2 -right-2 bg-amber-400 text-amber-900 rounded-full p-1 shadow-sm"><Star className="w-3.5 h-3.5" /></div>}
           </button>
           <button 
+            data-tour-id="tour-definir-orcamento"
             onClick={() => { setEditingId(null); setShowModal(true); }}
             className="flex items-center justify-center gap-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white px-6 py-3 rounded-xl transition-all font-semibold shadow-lg shadow-emerald-100 dark:shadow-none active:scale-[0.98]"
           >
@@ -581,7 +583,7 @@ export const Budgets: React.FC = () => {
 
       {/* Modo Accordion - Orçamentos agrupados por pai */}
       {!budgetsLoading && filteredAndSortedBudgets.length > 0 && viewMode === 'accordion' && (
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+        <section data-tour-id="tour-accordion-orcamentos" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
           <h2 className="px-6 py-4 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
             Orçamentos por categoria
           </h2>
