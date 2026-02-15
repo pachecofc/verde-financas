@@ -1,11 +1,93 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react'; // Adicionado useMemo
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useFinance } from '../contexts/FinanceContext';
-import { Plus, Trash2, Edit2, ChevronRight, X, Smile, Loader2, AlertCircle, RefreshCw, MoreVertical, Search, Tags } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronRight, ChevronDown, X, Smile, Loader2, AlertCircle, RefreshCw, MoreVertical, Search, Tags, LayoutGrid, List } from 'lucide-react';
 import { Category } from '../types';
 import { authApi } from '../services/api';
 
-// Importa os componentes do Radix UI Dropdown Menu
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as Accordion from '@radix-ui/react-accordion';
+
+const CATEGORIES_VIEW_MODE_KEY = 'categoriesViewMode';
+type ViewMode = 'cards' | 'accordion';
+
+function getStoredViewMode(): ViewMode {
+  const stored = localStorage.getItem(CATEGORIES_VIEW_MODE_KEY);
+  return stored === 'accordion' ? 'accordion' : 'cards';
+}
+
+interface CategoryCardProps {
+  category: Category;
+  parent?: Category | null;
+  showParent?: boolean;
+  onEdit: (cat: Category) => void;
+  onDelete: (id: string) => void;
+}
+
+const CategoryCard: React.FC<CategoryCardProps> = ({
+  category,
+  parent,
+  showParent = true,
+  onEdit,
+  onDelete
+}) => (
+  <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col group transition-all hover:border-emerald-200 dark:hover:border-emerald-500/30 relative overflow-hidden">
+    {category.parentId && (
+      <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 dark:bg-slate-800" />
+    )}
+
+    <div className="flex items-center gap-3 mb-3">
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white dark:border-slate-800"
+        style={{ backgroundColor: `${category.color || '#10b981'}15`, color: category.color || '#10b981' }}
+      >
+        {category.icon || '🛍️'}
+      </div>
+      <div className="min-w-0">
+        {showParent && parent && (
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate flex items-center gap-1">
+            {parent.name} <ChevronRight className="w-2 h-2" />
+          </p>
+        )}
+        <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{category.name}</p>
+      </div>
+    </div>
+
+    <div className="flex justify-between items-center mt-auto pt-3 border-t border-slate-50 dark:border-slate-800">
+      <span className={`text-[10px] font-bold uppercase tracking-widest ${category.type === 'income' ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+        {category.type === 'income' ? 'Receita' : 'Despesa'}
+      </span>
+      <div className="hidden lg:flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+        <button onClick={() => onEdit(category)} className="text-slate-300 dark:text-slate-600 hover:text-emerald-500 dark:hover:text-emerald-400 p-1 transition-colors" aria-label="Editar categoria"><Edit2 className="w-3.5 h-3.5" /></button>
+        <button onClick={() => onDelete(category.id)} className="text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 p-1 transition-colors" aria-label="Excluir categoria"><Trash2 className="w-3.5 h-3.5" /></button>
+      </div>
+      <div className="lg:hidden">
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button className="p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Mais opções">
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50 animate-in fade-in zoom-in-95 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95 data-[side=top]:slide-in-from-bottom-2 data-[side=right]:slide-in-from-left-2 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2"
+              sideOffset={5}
+              align="end"
+            >
+              <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none transition-colors" onSelect={() => onEdit(category)}>
+                <Edit2 className="w-4 h-4 text-emerald-500" /> Editar
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
+              <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer outline-none transition-colors" onSelect={() => onDelete(category.id)}>
+                <Trash2 className="w-4 h-4" /> Excluir
+              </DropdownMenu.Item>
+              <DropdownMenu.Arrow className="fill-white dark:fill-slate-800" />
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
+    </div>
+  </div>
+);
 
 // Lista de emojis sugeridos por categoria para facilitar o uso
 const EMOJI_LIST = [
@@ -45,6 +127,13 @@ export const Categories: React.FC = () => {
     color: '#10b981',
     parentId: ''
   });
+
+  const [viewMode, setViewMode] = useState<ViewMode>(getStoredViewMode);
+
+  const setViewModeAndPersist = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(CATEGORIES_VIEW_MODE_KEY, mode);
+  };
 
   // Carregar categorias quando a página for montada ou quando as categorias estiverem vazias (se autenticado)
   useEffect(() => {
@@ -149,7 +238,66 @@ export const Categories: React.FC = () => {
       const bDisplay = b.parentId ? `${bParent} ${b.name}` : b.name;
       return aDisplay.localeCompare(bDisplay);
     });
-  }, [categories, searchTerm]); // Dependências para o useMemo
+  }, [categories, searchTerm]);
+
+  type GroupedByParent = { parent: Category; children: Category[] }[];
+
+  const groupedByType = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+    const matchesSearch = (cat: Category) =>
+      !searchTerm || cat.name.toLowerCase().includes(lowerSearch);
+    const parentMatchesSearch = (parent: Category) =>
+      !searchTerm || parent.name.toLowerCase().includes(lowerSearch);
+
+    const buildGroups = (type: 'income' | 'expense') => {
+      const parents = categories
+        .filter(c => c.type === type && !c.parentId)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const parentIds = new Set(parents.map(p => p.id));
+      const orphans = categories.filter(
+        c => c.type === type && c.parentId && !parentIds.has(c.parentId)
+      );
+
+      const groups: GroupedByParent = [];
+
+      for (const parent of parents) {
+        const children = categories
+          .filter(c => c.parentId === parent.id)
+          .filter(c => !searchTerm || parentMatchesSearch(parent) || matchesSearch(c))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        const parentIncluded =
+          !searchTerm || parentMatchesSearch(parent) || children.length > 0;
+        if (parentIncluded) {
+          groups.push({ parent, children });
+        }
+      }
+
+      if (orphans.length > 0) {
+        const orphanMatches = orphans.filter(matchesSearch);
+        if (orphanMatches.length > 0) {
+          groups.push({
+            parent: {
+              id: '__orphans__',
+              name: 'Outras',
+              type,
+              icon: '📁',
+              color: '#64748b'
+            } as Category,
+            children: orphanMatches.sort((a, b) => a.name.localeCompare(b.name))
+          });
+        }
+      }
+
+      return groups;
+    };
+
+    return {
+      income: buildGroups('income'),
+      expense: buildGroups('expense')
+    };
+  }, [categories, searchTerm]);
 
   const potentialParents = categories.filter(c =>
     c.type === formData.type &&
@@ -180,6 +328,26 @@ export const Categories: React.FC = () => {
             />
           </div>
 
+          <div className="flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0" role="group" aria-label="Modo de visualização">
+            <button
+              onClick={() => setViewModeAndPersist('cards')}
+              className={`p-3 transition-all ${viewMode === 'cards' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              title="Visualização em cards"
+              aria-label="Alternar para visualização em cards"
+              aria-pressed={viewMode === 'cards'}
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewModeAndPersist('accordion')}
+              className={`p-3 transition-all ${viewMode === 'accordion' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              title="Visualização em lista"
+              aria-label="Alternar para visualização em lista"
+              aria-pressed={viewMode === 'accordion'}
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
           <button
             onClick={() => refreshCategories()}
             disabled={categoriesLoading}
@@ -262,84 +430,149 @@ export const Categories: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredAndSortedCategories // Usar a lista filtrada e ordenada
-          .map(cat => {
+      {viewMode === 'cards' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredAndSortedCategories.map(cat => {
             const parent = cat.parentId ? categories.find(c => c.id === cat.parentId) : null;
-
             return (
-              <div key={cat.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col group transition-all hover:border-emerald-200 dark:hover:border-emerald-500/30 relative overflow-hidden">
-                {cat.parentId && (
-                  <div className="absolute top-0 left-0 w-1 h-full bg-slate-100 dark:bg-slate-800" />
-                )}
-
-                <div className="flex items-center gap-3 mb-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white dark:border-slate-800"
-                    style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                  >
-                    {cat.icon}
-                  </div>
-                  <div className="min-w-0">
-                    {parent && (
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate flex items-center gap-1">
-                        {parent.name} <ChevronRight className="w-2 h-2" />
-                      </p>
-                    )}
-                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{cat.name}</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-auto pt-3 border-t border-slate-50 dark:border-slate-800">
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${cat.type === 'income' ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {cat.type === 'income' ? 'Receita' : 'Despesa'}
-                  </span>
-                  {/* Botões de Editar/Excluir para Desktop (visíveis no hover) */}
-                  <div className="hidden lg:flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => handleEdit(cat)} className="text-slate-300 dark:text-slate-600 hover:text-emerald-500 dark:hover:text-emerald-400 p-1 transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => deleteCategory(cat.id)} className="text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 p-1 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </div>
-                  {/* Dropdown Menu para Mobile/Tablet (visível em telas menores que lg) */}
-                  <div className="lg:hidden">
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger asChild>
-                        <button
-                          className="p-1 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                          aria-label="Mais opções"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </DropdownMenu.Trigger>
-
-                      <DropdownMenu.Portal>
-                        <DropdownMenu.Content
-                          className="bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-100 dark:border-slate-700 p-1 z-50 animate-in fade-in zoom-in-95 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95 data-[side=top]:slide-in-from-bottom-2 data-[side=right]:slide-in-from-left-2 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2"
-                          sideOffset={5}
-                          align="end"
-                        >
-                          <DropdownMenu.Item
-                            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer outline-none transition-colors"
-                            onSelect={() => handleEdit(cat)}
-                          >
-                            <Edit2 className="w-4 h-4 text-emerald-500" /> Editar
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Separator className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
-                          <DropdownMenu.Item
-                            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 cursor-pointer outline-none transition-colors"
-                            onSelect={() => deleteCategory(cat.id)}
-                          >
-                            <Trash2 className="w-4 h-4" /> Excluir
-                          </DropdownMenu.Item>
-                          <DropdownMenu.Arrow className="fill-white dark:fill-slate-800" />
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Portal>
-                    </DropdownMenu.Root>
-                  </div>
-                </div>
-              </div>
+              <CategoryCard
+                key={cat.id}
+                category={cat}
+                parent={parent}
+                showParent={true}
+                onEdit={handleEdit}
+                onDelete={deleteCategory}
+              />
             );
           })}
-      </div>
+        </div>
+      )}
+
+      {viewMode === 'accordion' && (
+        <div className="space-y-6">
+          {groupedByType.income.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+              <h2 className="px-6 py-4 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                Receitas
+              </h2>
+              <Accordion.Root type="multiple" collapsible className="divide-y divide-slate-100 dark:divide-slate-800">
+                {groupedByType.income.map(({ parent, children }) => (
+                  <Accordion.Item
+                    key={parent.id}
+                    value={parent.id}
+                    className="group transition-colors data-[state=open]:bg-emerald-50/50 dark:data-[state=open]:bg-emerald-900/10"
+                  >
+                    <Accordion.Header className="flex">
+                      <Accordion.Trigger className="flex flex-1 items-center justify-between gap-4 px-6 py-4 text-left font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-none [&[data-state=open]>svg]:rotate-180">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white dark:border-slate-800"
+                            style={{ backgroundColor: `${(parent.color || '#10b981')}15`, color: parent.color || '#10b981' }}
+                          >
+                            {parent.icon || '📁'}
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{parent.name}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 dark:text-emerald-400">
+                            Receita
+                          </span>
+                        </div>
+                        <ChevronDown className="w-5 h-5 shrink-0 text-slate-400 transition-transform duration-200" />
+                      </Accordion.Trigger>
+                      {parent.id !== '__orphans__' && (
+                        <div className="flex items-center gap-1 pr-2">
+                          <button onClick={() => handleEdit(parent)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Editar categoria"><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={() => deleteCategory(parent.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Excluir categoria"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      )}
+                    </Accordion.Header>
+                    <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                      <div className="px-6 pb-4 pt-0">
+                        {children.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {children.map(cat => (
+                              <CategoryCard
+                                key={cat.id}
+                                category={cat}
+                                parent={parent.id === '__orphans__' ? undefined : parent}
+                                showParent={false}
+                                onEdit={handleEdit}
+                                onDelete={deleteCategory}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-500 dark:text-slate-400 text-sm py-4">Nenhuma subcategoria</p>
+                        )}
+                      </div>
+                    </Accordion.Content>
+                  </Accordion.Item>
+                ))}
+              </Accordion.Root>
+            </section>
+          )}
+
+          {groupedByType.expense.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+              <h2 className="px-6 py-4 text-lg font-bold text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                Despesas
+              </h2>
+              <Accordion.Root type="multiple" collapsible className="divide-y divide-slate-100 dark:divide-slate-800">
+                {groupedByType.expense.map(({ parent, children }) => (
+                  <Accordion.Item
+                    key={parent.id}
+                    value={parent.id}
+                    className="group transition-colors data-[state=open]:bg-emerald-50/50 dark:data-[state=open]:bg-emerald-900/10"
+                  >
+                    <Accordion.Header className="flex">
+                      <Accordion.Trigger className="flex flex-1 items-center justify-between gap-4 px-6 py-4 text-left font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-none [&[data-state=open]>svg]:rotate-180">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm border border-white dark:border-slate-800"
+                            style={{ backgroundColor: `${(parent.color || '#10b981')}15`, color: parent.color || '#10b981' }}
+                          >
+                            {parent.icon || '📁'}
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-100">{parent.name}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-rose-900 dark:text-rose-200">
+                            Despesa
+                          </span>
+                        </div>
+                        <ChevronDown className="w-5 h-5 shrink-0 text-slate-400 transition-transform duration-200" />
+                      </Accordion.Trigger>
+                      {parent.id !== '__orphans__' && (
+                        <div className="flex items-center gap-1 pr-2">
+                          <button onClick={() => handleEdit(parent)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Editar categoria"><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={() => deleteCategory(parent.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Excluir categoria"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      )}
+                    </Accordion.Header>
+                    <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                      <div className="px-6 pb-4 pt-6">
+                        {children.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {children.map(cat => (
+                              <CategoryCard
+                                key={cat.id}
+                                category={cat}
+                                parent={parent.id === '__orphans__' ? undefined : parent}
+                                showParent={false}
+                                onEdit={handleEdit}
+                                onDelete={deleteCategory}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-500 dark:text-slate-400 text-sm py-4">Nenhuma subcategoria</p>
+                        )}
+                      </div>
+                    </Accordion.Content>
+                  </Accordion.Item>
+                ))}
+              </Accordion.Root>
+            </section>
+          )}
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

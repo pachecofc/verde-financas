@@ -31,15 +31,12 @@ export class RefreshTokenService {
     });
 
     if (!existing) {
-      console.debug('[auth:refresh] Token não encontrado no banco');
       throw new Error('Refresh token inválido ou expirado');
     }
     if (existing.revokedAt) {
-      console.debug('[auth:refresh] Token já revogado (possível reuse - outra aba?)');
       throw new Error('Refresh token inválido ou expirado');
     }
     if (existing.expiresAt.getTime() <= Date.now()) {
-      console.debug('[auth:refresh] Token expirado (expiresAt passou)');
       throw new Error('Refresh token inválido ou expirado');
     }
 

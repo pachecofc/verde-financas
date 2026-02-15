@@ -193,13 +193,11 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
     if (!refreshToken) {
-      console.debug('[auth:refresh] Refresh token não encontrado no cookie');
       return res.status(401).json({ error: 'Refresh token não encontrado' });
     }
 
     const { newToken, user } = await RefreshTokenService.rotateRefreshToken(refreshToken);
 
-    console.debug('[auth:refresh] Token rotacionado com sucesso para userId:', user.id);
     res.cookie(REFRESH_COOKIE_NAME, newToken, getRefreshCookieOptions());
     UserService.updateLastLogin(user.id).catch(() => {});
 
@@ -220,7 +218,6 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
       },
     });
   } catch (error) {
-    console.debug('[auth:refresh] Erro na rota /refresh:', error instanceof Error ? error.message : error);
     // Em caso de erro, limpar cookie para evitar loops
     res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/auth' });
     return res.status(401).json({
