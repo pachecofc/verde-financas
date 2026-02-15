@@ -68,6 +68,7 @@ export class GamificationController {
           id: true,
           name: true,
           hideFromRanking: true,
+          createdAt: true,
           userScore: { select: { score: true } },
         },
       });
@@ -77,9 +78,13 @@ export class GamificationController {
         userId: u.id,
         name: u.name,
         hideFromRanking: u.hideFromRanking,
+        createdAt: u.createdAt.getTime(),
         score: u.userScore?.score ?? DEFAULT_SCORE,
       }));
-      withScore.sort((a, b) => b.score - a.score);
+      withScore.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.createdAt - b.createdAt;
+      });
 
       const currentIndex = withScore.findIndex((r) => r.userId === userId);
       const currentUserRank = currentIndex >= 0 ? currentIndex + 1 : null;

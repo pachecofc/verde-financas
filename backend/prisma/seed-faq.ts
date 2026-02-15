@@ -56,6 +56,12 @@ const faqData = [
           'Não. O Score e as conquistas (Badges) são ferramentas motivacionais e educativas para ajudar você a manter o foco e a disciplina, mas não possuem valor monetário nem podem ser trocados por dinheiro real.',
         sortOrder: 2,
       },
+      {
+        question: 'Como funciona o ranking de pontuação?',
+        answer:
+          'O ranking mostra os 10 usuários com maior Score Verde, em ordem decrescente de pontuação. Em caso de empate, quem criou a conta primeiro fica à frente. Sua posição e sua pontuação aparecem sempre, mesmo que você não esteja entre os 10. Você pode ocultar seu nome do ranking nas Configurações da conta (aba Segurança), marcando "Ocultar meu nome do ranking"; nesse caso, será exibido "Usuário" no lugar do seu nome.',
+        sortOrder: 3,
+      },
     ],
   },
   {

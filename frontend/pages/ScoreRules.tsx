@@ -109,6 +109,20 @@ export const ScoreRules: React.FC = () => {
         </div>
       </section>
 
+      {/* Regras do ranking */}
+      <section>
+        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-4">Ranking de pontuação</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
+          Na página Saúde Financeira é exibido um ranking com os maiores scores. As regras são:
+        </p>
+        <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 text-sm space-y-2 mb-4">
+          <li>Os usuários são ordenados pelo <strong>Score Verde</strong> (maior primeiro).</li>
+          <li>Em caso de <strong>empate na pontuação</strong>, quem criou a conta primeiro fica à frente (data de cadastro mais antiga = melhor posição).</li>
+          <li>Aparecem os <strong>10 primeiros</strong> do ranking; sua posição e sua pontuação são sempre exibidas, mesmo que você não esteja entre os 10.</li>
+          <li>Quem preferir pode <strong>ocultar o nome do ranking</strong> nas configurações da conta (aba Segurança); nesses casos, é exibido &quot;Usuário&quot; no lugar do nome.</li>
+        </ul>
+      </section>
+
       {/* Regras de conquistas (achievementRules) */}
       <section>
         <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-4">Regras de conquistas</h2>
